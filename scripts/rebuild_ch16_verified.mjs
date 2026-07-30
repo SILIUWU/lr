@@ -26,9 +26,22 @@ const translations = {
   "16.1.1": T(
     "Parametric 与 Non-Parametric Knowledge",
     [
-      "设参数为 θ 的语言模型为 Mθ，外部文档集合为 D={d₁,…,dₙ}。纯 parametric 模式直接计算给定 query q 时 answer a 的概率；RAG 则同时考虑“检索到文档 d 的概率”和“在 q、d 条件下生成 a 的概率”，并对可能的证据文档求和。",
+      "设参数为 $\\theta$ 的语言模型为 $\\mathcal{M}_\\theta$，外部文档集合为 $\\mathcal{D}=\\{d_1,d_2,\\ldots,d_N\\}$。纯 parametric 模式直接计算给定 query $q$ 时 answer $a$ 的概率；RAG 则同时考虑“检索到文档 $d$ 的概率”和“在 $q,d$ 条件下生成 $a$ 的概率”，并对可能的证据文档求和。",
       "因此，RAG 的生成不是凭空多了一份知识，而是通过 retrieval distribution 把答案条件化在 non-parametric evidence 上。原书用图书馆作类比：parametric LLM 像一位记住大量藏书、但已经离校多年的学者；RAG 相当于给他一张借书证，使他能实时查证、引用来源，并在需要时承认必须核对资料。"
-    ]
+    ],
+    {
+      formulaNotes: [{
+        equation: "16.1–16.2",
+        title: "Parametric 与 RAG 的生成概率",
+        reading: "式 (16.1) 只让生成依赖 query 与模型参数；式 (16.2) 先由 retriever 给文档分配概率，再把各文档条件下的生成概率加权求和。这个求和就是对 retrieved evidence 做 marginalization。",
+        symbols: [
+          ["\\mathcal{M}_\\theta", "参数为 $\\theta$ 的语言模型"],
+          ["\\mathcal{D}", "外部文档语料库"],
+          ["P_{\\mathrm{ret}}", "retriever 在文档上的概率分布"],
+          ["a, q, d", "answer、query 与候选证据文档"]
+        ]
+      }]
+    }
   ),
   "16.1.2": T(
     "何时选择 RAG、Fine-Tuning 或 Long Context",
@@ -61,6 +74,8 @@ const translations = {
     "端到端 RAG 把一次性的离线索引与逐请求执行的在线服务分开。离线侧完成文档加载、chunking、embedding 与入库；在线侧把 query 编码后检索 top-k chunk，将其注入 prompt，再由 LLM 生成答案。",
     {
       figure: {
+        number: "Figure 16.1",
+        src: "/paper/figure-16-1.webp",
         caption: "Figure 16.1 · 端到端 RAG 架构。蓝色部分表示一次构建、持续更新的 offline indexing；绿色与橙色部分表示每次 query 都会执行的 online retrieval 与 generation。",
         alt: "RAG 离线索引和在线检索生成两条数据流。"
       }
@@ -71,12 +86,24 @@ const translations = {
     [
       "Document loading：输入可能是 PDF、HTML、Markdown、DOCX 或代码。loader 不只抽取干净文本，还应保留 source URL、页码、section title、timestamp 等 metadata，以支持 filtering 与 citation。",
       "Chunking：长文档必须切成 embedding model context window 能容纳、同时语义相对完整的 chunk。原书给出典型上限 512 tokens，并把 chunking strategy 视为影响 RAG 质量最大的设计之一。",
-      "Embedding：每个 chunk cᵢ 由 embedding model fφ 编码为 d 维向量 eᵢ，并与原文和 metadata 一起写入 vector database。"
+      "Embedding：每个 chunk $c_i$ 由 embedding model $f_\\phi$ 编码为 $d$ 维向量 $\\mathbf{e}_i=f_\\phi(c_i)\\in\\mathbb{R}^d$，并与原文和 metadata 一起写入 vector database。"
     ]
   ),
   "16.2.3": T(
     "Retrieval",
-    "给定 query q，retriever 先用同一 embedding model 得到向量 q，再以 cosine similarity 搜索最相近的 k 个 chunk。返回的 top-k 集合 Ck 会成为后续生成所见的 context；因此 embedding 空间、index 和 k 的选择会共同决定召回边界。"
+    "给定 query $q$，retriever 先用同一 embedding model 得到向量 $\\mathbf{q}=f_\\phi(q)$，再以 cosine similarity 搜索最相近的 $k$ 个 chunk。返回的 top-$k$ 集合 $\\mathcal{C}_k=\\{c_{(1)},\\ldots,c_{(k)}\\}$ 会成为后续生成所见的 context；因此 embedding 空间、index 和 $k$ 的选择会共同决定召回边界。",
+    {
+      formulaNotes: [{
+        equation: "16.3",
+        title: "Query 与 Chunk 的 Cosine Similarity",
+        reading: "点积衡量两个向量方向的一致程度，分母用两者的 L2 norm 做归一化，因此结果不被向量长度直接支配。相似度越高，chunk 越可能进入 top-k context。",
+        symbols: [
+          ["\\mathbf{q}", "query embedding"],
+          ["\\mathbf{e}_i", "第 i 个 chunk 的 embedding"],
+          ["\\|\\cdot\\|", "向量的 L2 norm"]
+        ]
+      }]
+    }
   ),
   "16.2.4": T(
     "Generation",
@@ -90,23 +117,23 @@ const translations = {
   "16.3.1": T(
     "Sparse Retrieval：BM25 与 TF-IDF",
     [
-      "Sparse retrieval 把 query 与文档表示为词表空间中的高维稀疏向量。BM25 根据 query term 在文档中的出现频率、文档长度与 term 的区分度计算相关性；k₁ 通常取 1.2–2.0，b 常取 0.75。",
+      "Sparse retrieval 把 query 与文档表示为词表空间中的高维稀疏向量。BM25 根据 query term 在文档中的出现频率、文档长度与 term 的区分度计算相关性；$k_1$ 通常取 $1.2$–$2.0$，$b$ 常取 $0.75$。",
       "即使 dense retrieval 已普及，sparse 方法仍在精确关键词、产品码、错误码、专有名词和罕见词上占优势。它易于解释、无需 GPU，可借助 inverted index 扩展到海量文档，也能处理 embedding 训练时未见过的新术语。"
     ]
   ),
   "16.3.2": T(
     "Dense Retrieval：DPR",
     [
-      "Dense Passage Retrieval（DPR）使用独立的 query encoder EQ 与 passage encoder EP。两者通常基于 BERT，通过 contrastive loss 训练，使相关 query-passage pair 在 embedding space 中靠近。",
-      "训练一个包含 B 对正样本的 batch 时，同 batch 的其他 passage 可直接作为 negative；temperature τ 控制 softmax 的尖锐程度。仅靠随机 negative 往往不够，lexically similar 但语义不相关的 hard negatives 对提升 retriever 很关键。",
-      "面对百万乃至十亿级向量，穷举搜索不可行。FAISS 提供 IVF、HNSW 与 Product Quantization：IVF 先把向量聚类并只查近邻 cell；HNSW 用多层小世界图获得近似 O(log N) 搜索；PQ 压缩向量以降低内存。"
+      "Dense Passage Retrieval（DPR）使用独立的 query encoder $E_Q$ 与 passage encoder $E_P$。两者通常基于 BERT，通过 contrastive loss 训练，使相关 query-passage pair 在 embedding space 中靠近。",
+      "训练一个包含 $B$ 对正样本的 batch 时，同 batch 的其他 passage 可直接作为 negative；temperature $\\tau$ 控制 softmax 的尖锐程度。仅靠随机 negative 往往不够，lexically similar 但语义不相关的 hard negatives 对提升 retriever 很关键。",
+      "面对百万乃至十亿级向量，穷举搜索不可行。FAISS 提供 IVF、HNSW 与 Product Quantization：IVF 先把向量聚类并只查近邻 cell；HNSW 用多层小世界图获得近似 $O(\\log N)$ 搜索；PQ 压缩向量以降低内存。"
     ]
   ),
   "16.3.3": T(
     "使用 Reciprocal Rank Fusion 的 Hybrid Retrieval",
     [
       "Hybrid retrieval 同时利用 dense 与 sparse signal。直接线性组合需要先解决两套 score 的尺度不可比问题；Reciprocal Rank Fusion（RRF）绕开 score calibration，改为只使用每个结果在各排名列表中的 rank。",
-      "RRF 对每份 ranked list 累加 1/(k+rank)。原书采用 k=60 作为平滑常数，降低头部名次的过强影响。若同一文档在 BM25 中排第 3、dense retrieval 中排第 7，其 RRF 约为 1/63+1/67=0.0308；两个列表都排第 1 时约为 0.0328。"
+      "RRF 对每份 ranked list 累加 $1/(k+\\operatorname{rank})$。原书采用 $k=60$ 作为平滑常数，降低头部名次的过强影响。若同一文档在 BM25 中排第 3、dense retrieval 中排第 7，其 RRF 为 $1/63+1/67\\approx0.0308$；两个列表都排第 1 时约为 $0.0328$。"
     ]
   ),
   "16.3.4": T(
@@ -167,7 +194,7 @@ const translations = {
     "带 Overlap 的 Fixed-Size Chunking",
     [
       "最简单的策略是每 W 个 token 切一段，相邻 chunk 重叠 O 个 token。Overlap 用来降低信息刚好跨越边界时的损失，但会增加索引条目、embedding 成本与重复 context。",
-      "长度为 L 的文档，chunk 数量为 ceil((L−O)/(W−O))。原书代码示例使用 chunk_size=512、chunk_overlap=64，并优先按空行、换行、句号和空格递归切分。"
+      "长度为 $L$ 的文档，chunk 数量为 $\\left\\lceil(L-O)/(W-O)\\right\\rceil$。原书代码示例使用 `chunk_size=512`、`chunk_overlap=64`，并优先按空行、换行、句号和空格递归切分。"
     ]
   ),
   "16.4.2": T(
@@ -293,6 +320,8 @@ const translations = {
     "控制流不再单向前进：Agent 先 plan，再 retrieve；随后评估 context sufficiency，并检查最终陈述是否 grounded。证据不足时回到检索或 query refinement；证据充分时才返回 answer。",
     {
       figure: {
+        number: "Figure 16.2",
+        src: "/paper/figure-16-2.webp",
         caption: "Figure 16.2 · Agentic RAG control flow：Plan、Retrieve、Evaluate sufficiency 与 grounding self-check 组成可迭代闭环。",
         alt: "Agentic RAG 在计划、检索、充分性评估与生成之间循环。"
       }
@@ -486,7 +515,7 @@ const translations = {
     "Joint Retriever-Generator Training",
     [
       "REALM 与原始 RAG work 提出端到端联合训练 retriever 与 generator：对所有候选文档，把生成答案的条件概率与 retriever 给出该文档的概率相乘并求和，再对这一 marginal likelihood 求梯度。",
-      "Retriever 参数可用 REINFORCE estimator 更新，也可把 Pφ(d|q) 视为对文档的 differentiable attention。联合训练很强，但 document index 必须随 retriever 改变而异步刷新；只有 top-k 文档贡献信号，gradient 稀疏；若没有 pre-trained retriever 良好初始化，训练容易不稳定。"
+      "Retriever 参数可用 REINFORCE estimator 更新，也可把 $P_\\phi(d\\mid q)$ 视为对文档的 differentiable attention。联合训练很强，但 document index 必须随 retriever 改变而异步刷新；只有 top-$k$ 文档贡献信号，gradient 稀疏；若没有 pre-trained retriever 良好初始化，训练容易不稳定。"
     ],
     {
       failure: [
@@ -571,7 +600,7 @@ function makeBaseBlocks(entry, number, pages) {
 
 function extractEnvironment(segment, environment) {
   const expression = new RegExp(
-    String.raw`\\begin\{${environment}\}([\\s\\S]*?)\\end\{${environment}\}`,
+    String.raw`\\begin\{${environment}\}([\s\S]*?)\\end\{${environment}\}`,
     "g",
   );
   return [...segment.matchAll(expression)].map((match) => match[1].trim());
@@ -594,13 +623,24 @@ function extractFormulas(segment) {
   const formulas = [];
   for (const environment of ["equation", "align"]) {
     for (const raw of extractEnvironment(segment, environment)) {
-      const latex = raw.replace(/\\label\{[^}]+\}/g, "").trim();
+      let latex = raw.replace(/\\label\{[^}]+\}/g, "").trim();
+      if (environment === "align") {
+        latex = `\\begin{aligned}${latex}\\end{aligned}`;
+      }
+      latex = latex
+        .replaceAll("\\texttt{⟨search⟩}", "\\texttt{<search>}")
+        .replaceAll("\\texttt{⟨/search⟩}", "\\texttt{</search>}");
       formulas.push(latex);
     }
   }
   const displayMath = /\n\\\[\n?([\s\S]*?)\n?\\\]\n/g;
   for (const match of segment.matchAll(displayMath)) {
-    formulas.push(match[1].trim());
+    formulas.push(
+      match[1]
+        .trim()
+        .replaceAll("\\texttt{⟨search⟩}", "\\texttt{<search>}")
+        .replaceAll("\\texttt{⟨/search⟩}", "\\texttt{</search>}"),
+    );
   }
   return formulas;
 }
@@ -619,16 +659,23 @@ function enrichBlocks(entry, number, pages, segment) {
     });
   }
   for (const [formulaIndex, latex] of extractFormulas(segment).entries()) {
+    const note = entry.formulaNotes?.[formulaIndex];
     blocks.push({
       id: `s-${number.replaceAll(".", "-")}-formula${formulaIndex + 1}`,
       type: "formula",
       origin: "source_translation",
       reviewStatus: "verified",
-      source: sectionSource(number, pages),
-      title: `原书公式 ${formulaIndex + 1}`,
+      source: {
+        ...sectionSource(number, pages),
+        ...(note?.equation ? { equation: note.equation } : {}),
+      },
+      title: note?.title ?? `原书公式 ${formulaIndex + 1}`,
       expression: latex,
       latex,
-      reading: "公式的变量含义与用途见本节译述；保留原书 LaTeX 以便逐项核对。",
+      reading:
+        note?.reading ??
+        "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。",
+      ...(note?.symbols ? { symbols: note.symbols } : {}),
     });
   }
   for (const [codeIndex, listing] of extractListings(segment).entries()) {
@@ -662,7 +709,11 @@ function enrichBlocks(entry, number, pages, segment) {
       type: "figure",
       origin: "source_translation",
       reviewStatus: "verified",
-      source: sectionSource(number, pages),
+      source: {
+        ...sectionSource(number, pages),
+        ...(entry.figure.number ? { figure: entry.figure.number } : {}),
+      },
+      src: entry.figure.src,
       alt: entry.figure.alt,
       caption: entry.figure.caption,
       adapted: false,
@@ -691,7 +742,7 @@ const sections = chapterInventory.headings.map((heading, index) => {
   if (!entry) throw new Error(`missing translation for §${heading.number}`);
   const start = heading.sourceLine;
   const end = headingLines[index + 1] ?? 15412;
-  const segment = texLines.slice(start, end - 1).join("\n");
+  const segment = texLines.slice(start - 1, end - 1).join("\n");
   const pages = heading.pages ?? "页码待核对";
   return {
     id: `s-${heading.number.replaceAll(".", "-")}`,

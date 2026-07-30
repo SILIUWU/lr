@@ -3941,7 +3941,7 @@
     "sectionNumber": "16.2.3",
     "title": "Retrieval",
     "enTitle": "Retrieval",
-    "search": "retrieval-augmented generation (rag) retrieval-augmented generation（rag） retrieval retrieval 给定 query q，retriever 先用同一 embedding model 得到向量 "
+    "search": "retrieval-augmented generation (rag) retrieval-augmented generation（rag） retrieval retrieval 给定 query $q$，retriever 先用同一 embedding model 得到向"
   },
   {
     "chapter": 16,

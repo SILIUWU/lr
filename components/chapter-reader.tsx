@@ -24,6 +24,49 @@ function sourceUrl(pages: string) {
   return `https://arxiv.org/pdf/2606.24937#page=${Number.isFinite(page) ? page : 1}`;
 }
 
+function renderKatex(latex: string, displayMode: boolean) {
+  try {
+    const markup = katex.renderToString(latex, {
+      displayMode,
+      throwOnError: false,
+      strict: "ignore",
+      output: "htmlAndMathml",
+      macros: {
+        "\\bm": "\\mathbf{#1}",
+      },
+    });
+    return markup.includes("katex-error") ? "" : markup;
+  } catch {
+    return "";
+  }
+}
+
+function InlineMathText({ text }: { text: string }) {
+  const parts = text.split(/(\$[^$]+\$)/g);
+  return (
+    <>
+      {parts.map((part, index) => {
+        if (!(part.startsWith("$") && part.endsWith("$"))) {
+          return part;
+        }
+        const latex = part.slice(1, -1);
+        const markup = renderKatex(latex, false);
+        return markup ? (
+          <span
+            className="inline-math"
+            key={`${latex}-${index}`}
+            dangerouslySetInnerHTML={{ __html: markup }}
+          />
+        ) : (
+          <span className="inline-math-fallback" key={`${latex}-${index}`}>
+            公式渲染待修复
+          </span>
+        );
+      })}
+    </>
+  );
+}
+
 function SourceLine({ block }: { block: ReadingBlock }) {
   const source = block.source;
   return (
@@ -48,18 +91,7 @@ function SourceLine({ block }: { block: ReadingBlock }) {
 }
 
 function Formula({ block }: { block: FormulaBlock }) {
-  let markup = "";
-  if (block.latex) {
-    try {
-      markup = katex.renderToString(block.latex, {
-        displayMode: true,
-        throwOnError: false,
-        output: "htmlAndMathml",
-      });
-    } catch {
-      markup = "";
-    }
-  }
+  const markup = block.latex ? renderKatex(block.latex, true) : "";
   return (
     <div className="native-formula">
       {markup ? (
@@ -68,15 +100,23 @@ function Formula({ block }: { block: FormulaBlock }) {
           dangerouslySetInnerHTML={{ __html: markup }}
         />
       ) : (
-        <pre>{block.expression}</pre>
+        <p className="math-render-error">该公式暂时无法渲染，已进入校订队列。</p>
       )}
-      {block.reading && <p>{block.reading}</p>}
+      {block.reading && (
+        <p>
+          <InlineMathText text={block.reading} />
+        </p>
+      )}
       {block.symbols?.length ? (
         <dl>
           {block.symbols.map(([symbol, meaning]) => (
             <div key={symbol}>
-              <dt>{symbol}</dt>
-              <dd>{meaning}</dd>
+              <dt>
+                <InlineMathText text={`$${symbol}$`} />
+              </dt>
+              <dd>
+                <InlineMathText text={meaning} />
+              </dd>
             </div>
           ))}
         </dl>
@@ -99,7 +139,9 @@ function BlockRenderer({ block }: { block: ReadingBlock }) {
 
       {block.type === "paragraph" && (
         <>
-          <p>{block.text}</p>
+          <p>
+            <InlineMathText text={block.text} />
+          </p>
           {block.originalExcerpt && (
             <details className="original-excerpt">
               <summary>查看关键英文原文</summary>
@@ -112,7 +154,9 @@ function BlockRenderer({ block }: { block: ReadingBlock }) {
       {block.type === "list" && (
         <ul>
           {block.items.map((item) => (
-            <li key={item}>{item}</li>
+            <li key={item}>
+              <InlineMathText text={item} />
+            </li>
           ))}
         </ul>
       )}
@@ -135,8 +179,16 @@ function BlockRenderer({ block }: { block: ReadingBlock }) {
       {block.type === "figure" && (
         <figure className="native-figure">
           {block.src ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={withBasePath(block.src)} alt={block.alt} />
+            <a
+              className="native-figure-image"
+              href={withBasePath(block.src)}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`打开原图：${block.alt}`}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={withBasePath(block.src)} alt={block.alt} />
+            </a>
           ) : (
             <div className="figure-transcript" role="img" aria-label={block.alt}>
               <span>FIGURE TRANSCRIPT</span>
@@ -145,7 +197,11 @@ function BlockRenderer({ block }: { block: ReadingBlock }) {
           )}
           <figcaption>
             {block.caption}
-            {block.adapted && <small>adapted from the source figure</small>}
+            <small>
+              {block.adapted
+                ? "本站改绘 · adapted from the source figure"
+                : "原书独立图形 · 未改绘 · 点击查看原始尺寸"}
+            </small>
           </figcaption>
         </figure>
       )}
@@ -158,7 +214,7 @@ function BlockRenderer({ block }: { block: ReadingBlock }) {
               <tr>
                 {block.columns.map((column) => (
                   <th key={column} scope="col">
-                    {column}
+                    <InlineMathText text={column} />
                   </th>
                 ))}
               </tr>
@@ -167,7 +223,9 @@ function BlockRenderer({ block }: { block: ReadingBlock }) {
               {block.rows.map((row, index) => (
                 <tr key={`${block.id}-${index}`}>
                   {row.map((cell, cellIndex) => (
-                    <td key={`${block.id}-${index}-${cellIndex}`}>{cell}</td>
+                    <td key={`${block.id}-${index}-${cellIndex}`}>
+                      <InlineMathText text={cell} />
+                    </td>
                   ))}
                 </tr>
               ))}
@@ -178,29 +236,35 @@ function BlockRenderer({ block }: { block: ReadingBlock }) {
 
       {block.type === "example" && (
         <div className="native-example">
-          <p>{block.scenario}</p>
+          <p>
+            <InlineMathText text={block.scenario} />
+          </p>
           <ol>
             {block.steps.map((step) => (
-              <li key={step}>{step}</li>
+              <li key={step}>
+                <InlineMathText text={step} />
+              </li>
             ))}
           </ol>
           {block.result && (
             <p>
               <strong>结果：</strong>
-              {block.result}
+              <InlineMathText text={block.result} />
             </p>
           )}
           {block.limitation && (
             <p>
               <strong>限制：</strong>
-              {block.limitation}
+              <InlineMathText text={block.limitation} />
             </p>
           )}
         </div>
       )}
 
       {(block.type === "callout" || block.type === "failure") && (
-        <p className="native-callout">{block.text}</p>
+        <p className="native-callout">
+          <InlineMathText text={block.text} />
+        </p>
       )}
     </section>
   );
@@ -244,10 +308,7 @@ export function ChapterReader({ chapter }: { chapter: ChapterContent }) {
       ? "精读完成"
       : chapter.status === "guide"
         ? "章节导读"
-        : "逐节译读 · 校订中";
-  const progressPercent = Math.round(
-    (chapter.metrics.chineseCharacters / 300000) * 100,
-  );
+        : "精读重建中";
   const topLevelSections = chapter.sections.filter(
     (section) => section.level === 1,
   );
@@ -278,7 +339,13 @@ export function ChapterReader({ chapter }: { chapter: ChapterContent }) {
               <span>原书 pp. {chapter.pages}</span>
               <span>约 {chapter.minutes} 分钟</span>
               <span>{chapter.metrics.sectionCount} 个结构条目</span>
-              <span>{chapter.metrics.sourceCoverage}% 小节核验覆盖</span>
+              <span>{chapter.metrics.sourceCoverage}% 目录结构映射</span>
+              <span>
+                {new Intl.NumberFormat("zh-CN").format(
+                  chapter.metrics.chineseCharacters,
+                )}{" "}
+                个已核验中文字符
+              </span>
             </div>
             <aside className="reader-overview">
               <strong>本章导读</strong>
@@ -288,9 +355,9 @@ export function ChapterReader({ chapter }: { chapter: ChapterContent }) {
               <aside className="reader-disclosure">
                 <strong>发布状态说明</strong>
                 <p>
-                  旧版未经校订的机器翻译已下线。本章正依据 arXiv LaTeX
-                  原文逐节重建；仅带有“已对照原文核验”说明的内容属于已发布译述，
-                  其余小节会明确显示为制作中。
+                  目录结构已经映射，不等于正文已经完整翻译。旧版未经校订的机器翻译已下线；
+                  本章正依据 arXiv LaTeX 原文逐节重建。当前发布内容属于已核验导读与部分精读，
+                  不是本章完整译本。
                 </p>
               </aside>
             )}
@@ -455,7 +522,11 @@ export function ChapterReader({ chapter }: { chapter: ChapterContent }) {
             查看本章 PDF 来源 ↗
           </a>
           <small className="reader-volume-note">
-            已核验正文约占全书最低验收体量的 {progressPercent}%
+            当前已核验中文约{" "}
+            {new Intl.NumberFormat("zh-CN").format(
+              chapter.metrics.chineseCharacters,
+            )}{" "}
+            字；目录映射不代表完整翻译。
           </small>
         </aside>
       </div>

@@ -71,9 +71,10 @@ test("native reader corpus maps all 30 chapters and source sections", async () =
     (total, chapter) => total + chapter.sections.length,
     0,
   );
-  const chineseCharacters = chapters.reduce(
-    (total, chapter) => total + chapter.metrics.chineseCharacters,
-    0,
+  const verifiedBlocks = chapters.flatMap((chapter) =>
+    chapter.sections.flatMap((section) =>
+      section.blocks.filter((block) => block.reviewStatus === "verified"),
+    ),
   );
   assert.equal(chapters.length, 30);
   assert.deepEqual(
@@ -82,8 +83,8 @@ test("native reader corpus maps all 30 chapters and source sections", async () =
   );
   assert.ok(sectionCount >= 900, `expected >=900 mapped sections, got ${sectionCount}`);
   assert.ok(
-    chineseCharacters >= 300_000,
-    `expected >=300k Chinese source-rendition characters, got ${chineseCharacters}`,
+    verifiedBlocks.length >= 150,
+    `expected >=150 verified public blocks, got ${verifiedBlocks.length}`,
   );
   assert.ok(
     chapters.every((chapter) =>
@@ -91,11 +92,16 @@ test("native reader corpus maps all 30 chapters and source sections", async () =
         (section) =>
           section.id &&
           section.pages &&
-          section.blocks.length > 0 &&
-          section.blocks.some((block) =>
-            ["source_translation", "source_definition"].includes(block.origin),
-          ) &&
-          section.blocks.every(
+          section.blocks.length > 0,
+      ),
+    ),
+  );
+  assert.ok(
+    chapters.every((chapter) =>
+      chapter.sections.every((section) =>
+        section.blocks
+          .filter((block) => block.reviewStatus === "verified")
+          .every(
             (block) =>
               block.source?.chapter === chapter.chapter && block.source?.pages,
           ),
@@ -103,13 +109,18 @@ test("native reader corpus maps all 30 chapters and source sections", async () =
     ),
   );
   assert.equal(new Set(chapters.flatMap((chapter) => chapter.sections.map((section) => `${chapter.chapter}:${section.id}`))).size, sectionCount);
-  assert.equal(chapters[14].sections.length, 3);
+  assert.equal(chapters[14].sections.length, 10);
   assert.ok(
     chapters
       .slice(15, 27)
       .every((chapter) => chapter.sections.length >= 14),
   );
-  assert.ok(chapters.every((chapter) => chapter.status === "in_progress"));
+  assert.equal(chapters[14].status, "complete");
+  assert.ok(
+    chapters
+      .filter((chapter) => chapter.chapter !== 15)
+      .every((chapter) => chapter.status === "in_progress"),
+  );
 });
 
 test("v1 learning state migrates without losing notes, cards or theme", () => {
@@ -189,7 +200,7 @@ test("server renders the branded course without starter remnants", async () => {
   assert.match(html, /打开一章/);
   assert.match(html, /按原书章节，直接进入正文/);
   assert.match(html, /\/read\/ch-15/);
-  assert.match(html, /逐句校订中/);
+  assert.match(html, /只有经过逐页核验的正文才会发布为“原文译述”/);
   assert.doesNotMatch(html, /30 章站内精读|全书精读完成/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 });
@@ -199,7 +210,7 @@ test("lesson route links to full chapter pages and retains labs and quizzes", as
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /Agentic AI Architecture Stack/);
-  assert.match(html, /先进入逐节正文，再回来做实验与测验/);
+  assert.match(html, /先查看章节译文状态，再回来做实验与测验/);
   assert.match(html, /\/read\/ch-15/);
   assert.doesNotMatch(html, /本站阅读到这里已经完整/);
   assert.match(html, /原文事实/);
@@ -216,46 +227,57 @@ test("chapter route renders section anchors, source pages and native rich blocks
   const introductionBlockCount =
     introductionHtml.match(/class="reader-block /g)?.length ?? 0;
   assert.ok(
-    introductionBlockCount >= 8 && introductionBlockCount <= 12,
-    `Ch.15 should render 8-12 substantive blocks, got ${introductionBlockCount}`,
+    introductionBlockCount >= 10 && introductionBlockCount <= 16,
+    `Ch.15 should render 10-16 substantive blocks, got ${introductionBlockCount}`,
   );
 
   const chapter16 = await render("/read/ch-16");
   assert.equal(chapter16.status, 200);
   const ragHtml = await chapter16.text();
   assert.match(ragHtml, /s-16-7-4/);
-  assert.match(ragHtml, /完整 Agentic RAG 的四节点闭环/);
+  assert.match(ragHtml, /完整 Agentic RAG 实现/);
   assert.match(ragHtml, /PDF p\.[\s\S]{0,40}322-323/);
   assert.match(ragHtml, /原文译述/);
   assert.match(ragHtml, /编者解释/);
   assert.match(ragHtml, /工程延伸/);
-  assert.match(ragHtml, /逐节译读 · 校订中/);
+  assert.match(ragHtml, /精读重建中/);
+  assert.match(ragHtml, /目录结构映射/);
+  assert.match(ragHtml, /figure-16-1\.webp/);
+  assert.match(ragHtml, /Eq\.[\s\S]{0,20}16\.1–16\.2/);
+  assert.match(ragHtml, /katex/);
 
   const chapter18 = await render("/read/ch-18");
+  assert.equal(chapter18.status, 200);
   const harnessHtml = await chapter18.text();
-  assert.match(harnessHtml, /Eq\.[\s\S]{0,20}18\.10/);
-  assert.match(harnessHtml, /katex/);
-  assert.match(harnessHtml, /figure-18-2\.webp/);
+  assert.match(harnessHtml, /s-18-2-6/);
+  assert.match(harnessHtml, /精读重建中/);
+  assert.doesNotMatch(harnessHtml, /Eq\.[\s\S]{0,20}18\.10/);
+  assert.doesNotMatch(harnessHtml, /figure-18-2\.webp/);
 
   const chapter22 = await render("/read/ch-22");
   const protocolHtml = await chapter22.text();
   assert.match(protocolHtml, /s-22-2-3/);
-  assert.match(protocolHtml, /协议标准化不等于自动安全/);
+  assert.match(protocolHtml, /精读重建中/);
+  assert.doesNotMatch(protocolHtml, /协议标准化不等于自动安全/);
 
   const chapter27 = await render("/read/ch-27");
   const uiHtml = await chapter27.text();
   assert.match(uiHtml, /s-27-3-6/);
-  assert.match(uiHtml, /错误与恢复必须成为一等 UI 状态/);
+  assert.match(uiHtml, /精读重建中/);
+  assert.doesNotMatch(uiHtml, /错误与恢复必须成为一等 UI 状态/);
 });
 
 test("paper figures and social preview are wired from local assets", async () => {
-  const [lessonSource, layoutSource] = await Promise.all([
+  const [lessonSource, readerSource, layoutSource] = await Promise.all([
     readFile(new URL("../components/lesson-view.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../content/chapters/ch-16.json", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
   ]);
   assert.match(lessonSource, /figure-15-1\.webp/);
   assert.match(lessonSource, /figure-18-2\.webp/);
   assert.match(lessonSource, /figure-22-3\.webp/);
+  assert.match(readerSource, /figure-16-1\.webp/);
+  assert.match(readerSource, /figure-16-2\.webp/);
   assert.match(layoutSource, /\/og\.png/);
   assert.match(layoutSource, /Haggai Roitman/);
   assert.doesNotMatch(layoutSource, /Guo et al/);

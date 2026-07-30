@@ -85,7 +85,7 @@
             "section": "16.1.1",
             "pages": "308"
           },
-          "text": "设参数为 θ 的语言模型为 Mθ，外部文档集合为 D={d₁,…,dₙ}。纯 parametric 模式直接计算给定 query q 时 answer a 的概率；RAG 则同时考虑“检索到文档 d 的概率”和“在 q、d 条件下生成 a 的概率”，并对可能的证据文档求和。"
+          "text": "设参数为 $\\theta$ 的语言模型为 $\\mathcal{M}_\\theta$，外部文档集合为 $\\mathcal{D}=\\{d_1,d_2,\\ldots,d_N\\}$。纯 parametric 模式直接计算给定 query $q$ 时 answer $a$ 的概率；RAG 则同时考虑“检索到文档 $d$ 的概率”和“在 $q,d$ 条件下生成 $a$ 的概率”，并对可能的证据文档求和。"
         },
         {
           "id": "s-16-1-1-p2",
@@ -98,6 +98,40 @@
             "pages": "308"
           },
           "text": "因此，RAG 的生成不是凭空多了一份知识，而是通过 retrieval distribution 把答案条件化在 non-parametric evidence 上。原书用图书馆作类比：parametric LLM 像一位记住大量藏书、但已经离校多年的学者；RAG 相当于给他一张借书证，使他能实时查证、引用来源，并在需要时承认必须核对资料。"
+        },
+        {
+          "id": "s-16-1-1-formula1",
+          "type": "formula",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": {
+            "chapter": 16,
+            "section": "16.1.1",
+            "pages": "308",
+            "equation": "16.1–16.2"
+          },
+          "title": "Parametric 与 RAG 的生成概率",
+          "expression": "\\begin{aligned}P_{\\text{parametric}}(a \\mid q) &= P_{\\mathcal{M}_\\theta}(a \\mid q) \\\\[6pt]\n  P_{\\text{RAG}}(a \\mid q, \\mathcal{D}) &= \\sum_{d \\in \\mathcal{D}} P_{\\mathcal{M}_\\theta}(a \\mid q, d)\\,\n    P_{\\text{ret}}(d \\mid q, \\mathcal{D})\\end{aligned}",
+          "latex": "\\begin{aligned}P_{\\text{parametric}}(a \\mid q) &= P_{\\mathcal{M}_\\theta}(a \\mid q) \\\\[6pt]\n  P_{\\text{RAG}}(a \\mid q, \\mathcal{D}) &= \\sum_{d \\in \\mathcal{D}} P_{\\mathcal{M}_\\theta}(a \\mid q, d)\\,\n    P_{\\text{ret}}(d \\mid q, \\mathcal{D})\\end{aligned}",
+          "reading": "式 (16.1) 只让生成依赖 query 与模型参数；式 (16.2) 先由 retriever 给文档分配概率，再把各文档条件下的生成概率加权求和。这个求和就是对 retrieved evidence 做 marginalization。",
+          "symbols": [
+            [
+              "\\mathcal{M}_\\theta",
+              "参数为 $\\theta$ 的语言模型"
+            ],
+            [
+              "\\mathcal{D}",
+              "外部文档语料库"
+            ],
+            [
+              "P_{\\mathrm{ret}}",
+              "retriever 在文档上的概率分布"
+            ],
+            [
+              "a, q, d",
+              "answer、query 与候选证据文档"
+            ]
+          ]
         }
       ]
     },
@@ -255,8 +289,10 @@
           "source": {
             "chapter": 16,
             "section": "16.2.1",
-            "pages": "309"
+            "pages": "309",
+            "figure": "Figure 16.1"
           },
+          "src": "/paper/figure-16-1.webp",
           "alt": "RAG 离线索引和在线检索生成两条数据流。",
           "caption": "Figure 16.1 · 端到端 RAG 架构。蓝色部分表示一次构建、持续更新的 offline indexing；绿色与橙色部分表示每次 query 都会执行的 online retrieval 与 generation。",
           "adapted": false
@@ -305,7 +341,7 @@
             "section": "16.2.2",
             "pages": "309"
           },
-          "text": "Embedding：每个 chunk cᵢ 由 embedding model fφ 编码为 d 维向量 eᵢ，并与原文和 metadata 一起写入 vector database。"
+          "text": "Embedding：每个 chunk $c_i$ 由 embedding model $f_\\phi$ 编码为 $d$ 维向量 $\\mathbf{e}_i=f_\\phi(c_i)\\in\\mathbb{R}^d$，并与原文和 metadata 一起写入 vector database。"
         }
       ]
     },
@@ -327,7 +363,37 @@
             "section": "16.2.3",
             "pages": "310"
           },
-          "text": "给定 query q，retriever 先用同一 embedding model 得到向量 q，再以 cosine similarity 搜索最相近的 k 个 chunk。返回的 top-k 集合 Ck 会成为后续生成所见的 context；因此 embedding 空间、index 和 k 的选择会共同决定召回边界。"
+          "text": "给定 query $q$，retriever 先用同一 embedding model 得到向量 $\\mathbf{q}=f_\\phi(q)$，再以 cosine similarity 搜索最相近的 $k$ 个 chunk。返回的 top-$k$ 集合 $\\mathcal{C}_k=\\{c_{(1)},\\ldots,c_{(k)}\\}$ 会成为后续生成所见的 context；因此 embedding 空间、index 和 $k$ 的选择会共同决定召回边界。"
+        },
+        {
+          "id": "s-16-2-3-formula1",
+          "type": "formula",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": {
+            "chapter": 16,
+            "section": "16.2.3",
+            "pages": "310",
+            "equation": "16.3"
+          },
+          "title": "Query 与 Chunk 的 Cosine Similarity",
+          "expression": "\\text{sim}(\\mathbf{q}, \\mathbf{e}_i) = \\frac{\\mathbf{q} \\cdot \\mathbf{e}_i}{\\|\\mathbf{q}\\|\\,\\|\\mathbf{e}_i\\|}",
+          "latex": "\\text{sim}(\\mathbf{q}, \\mathbf{e}_i) = \\frac{\\mathbf{q} \\cdot \\mathbf{e}_i}{\\|\\mathbf{q}\\|\\,\\|\\mathbf{e}_i\\|}",
+          "reading": "点积衡量两个向量方向的一致程度，分母用两者的 L2 norm 做归一化，因此结果不被向量长度直接支配。相似度越高，chunk 越可能进入 top-k context。",
+          "symbols": [
+            [
+              "\\mathbf{q}",
+              "query embedding"
+            ],
+            [
+              "\\mathbf{e}_i",
+              "第 i 个 chunk 的 embedding"
+            ],
+            [
+              "\\|\\cdot\\|",
+              "向量的 L2 norm"
+            ]
+          ]
         }
       ]
     },
@@ -408,7 +474,7 @@
             "section": "16.3.1",
             "pages": "310"
           },
-          "text": "Sparse retrieval 把 query 与文档表示为词表空间中的高维稀疏向量。BM25 根据 query term 在文档中的出现频率、文档长度与 term 的区分度计算相关性；k₁ 通常取 1.2–2.0，b 常取 0.75。"
+          "text": "Sparse retrieval 把 query 与文档表示为词表空间中的高维稀疏向量。BM25 根据 query term 在文档中的出现频率、文档长度与 term 的区分度计算相关性；$k_1$ 通常取 $1.2$–$2.0$，$b$ 常取 $0.75$。"
         },
         {
           "id": "s-16-3-1-p2",
@@ -421,6 +487,21 @@
             "pages": "310"
           },
           "text": "即使 dense retrieval 已普及，sparse 方法仍在精确关键词、产品码、错误码、专有名词和罕见词上占优势。它易于解释、无需 GPU，可借助 inverted index 扩展到海量文档，也能处理 embedding 训练时未见过的新术语。"
+        },
+        {
+          "id": "s-16-3-1-formula1",
+          "type": "formula",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": {
+            "chapter": 16,
+            "section": "16.3.1",
+            "pages": "310"
+          },
+          "title": "原书公式 1",
+          "expression": "\\text{BM25}(d, q) = \\sum_{i=1}^{n} \\text{IDF}(t_i) \\cdot\n    \\frac{f(t_i, d) \\cdot (k_1 + 1)}{f(t_i, d) + k_1 \\cdot \\left(1 - b + b \\cdot \\frac{|d|}{\\text{avgdl}}\\right)}",
+          "latex": "\\text{BM25}(d, q) = \\sum_{i=1}^{n} \\text{IDF}(t_i) \\cdot\n    \\frac{f(t_i, d) \\cdot (k_1 + 1)}{f(t_i, d) + k_1 \\cdot \\left(1 - b + b \\cdot \\frac{|d|}{\\text{avgdl}}\\right)}",
+          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
         }
       ]
     },
@@ -442,7 +523,7 @@
             "section": "16.3.2",
             "pages": "311"
           },
-          "text": "Dense Passage Retrieval（DPR）使用独立的 query encoder EQ 与 passage encoder EP。两者通常基于 BERT，通过 contrastive loss 训练，使相关 query-passage pair 在 embedding space 中靠近。"
+          "text": "Dense Passage Retrieval（DPR）使用独立的 query encoder $E_Q$ 与 passage encoder $E_P$。两者通常基于 BERT，通过 contrastive loss 训练，使相关 query-passage pair 在 embedding space 中靠近。"
         },
         {
           "id": "s-16-3-2-p2",
@@ -454,7 +535,7 @@
             "section": "16.3.2",
             "pages": "311"
           },
-          "text": "训练一个包含 B 对正样本的 batch 时，同 batch 的其他 passage 可直接作为 negative；temperature τ 控制 softmax 的尖锐程度。仅靠随机 negative 往往不够，lexically similar 但语义不相关的 hard negatives 对提升 retriever 很关键。"
+          "text": "训练一个包含 $B$ 对正样本的 batch 时，同 batch 的其他 passage 可直接作为 negative；temperature $\\tau$ 控制 softmax 的尖锐程度。仅靠随机 negative 往往不够，lexically similar 但语义不相关的 hard negatives 对提升 retriever 很关键。"
         },
         {
           "id": "s-16-3-2-p3",
@@ -466,7 +547,37 @@
             "section": "16.3.2",
             "pages": "311"
           },
-          "text": "面对百万乃至十亿级向量，穷举搜索不可行。FAISS 提供 IVF、HNSW 与 Product Quantization：IVF 先把向量聚类并只查近邻 cell；HNSW 用多层小世界图获得近似 O(log N) 搜索；PQ 压缩向量以降低内存。"
+          "text": "面对百万乃至十亿级向量，穷举搜索不可行。FAISS 提供 IVF、HNSW 与 Product Quantization：IVF 先把向量聚类并只查近邻 cell；HNSW 用多层小世界图获得近似 $O(\\log N)$ 搜索；PQ 压缩向量以降低内存。"
+        },
+        {
+          "id": "s-16-3-2-formula1",
+          "type": "formula",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": {
+            "chapter": 16,
+            "section": "16.3.2",
+            "pages": "311"
+          },
+          "title": "原书公式 1",
+          "expression": "\\text{sim}(q, p) = E_Q(q)^\\top E_P(p)",
+          "latex": "\\text{sim}(q, p) = E_Q(q)^\\top E_P(p)",
+          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+        },
+        {
+          "id": "s-16-3-2-formula2",
+          "type": "formula",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": {
+            "chapter": 16,
+            "section": "16.3.2",
+            "pages": "311"
+          },
+          "title": "原书公式 2",
+          "expression": "\\mathcal{L}_{\\text{DPR}} = -\\frac{1}{B} \\sum_{i=1}^{B}\n    \\log \\frac{\\exp\\!\\left(E_Q(q_i)^\\top E_P(p_i^+) / \\tau\\right)}\n              {\\sum_{j=1}^{B} \\exp\\!\\left(E_Q(q_i)^\\top E_P(p_j) / \\tau\\right)}",
+          "latex": "\\mathcal{L}_{\\text{DPR}} = -\\frac{1}{B} \\sum_{i=1}^{B}\n    \\log \\frac{\\exp\\!\\left(E_Q(q_i)^\\top E_P(p_i^+) / \\tau\\right)}\n              {\\sum_{j=1}^{B} \\exp\\!\\left(E_Q(q_i)^\\top E_P(p_j) / \\tau\\right)}",
+          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
         }
       ]
     },
@@ -500,7 +611,7 @@
             "section": "16.3.3",
             "pages": "311"
           },
-          "text": "RRF 对每份 ranked list 累加 1/(k+rank)。原书采用 k=60 作为平滑常数，降低头部名次的过强影响。若同一文档在 BM25 中排第 3、dense retrieval 中排第 7，其 RRF 约为 1/63+1/67=0.0308；两个列表都排第 1 时约为 0.0328。"
+          "text": "RRF 对每份 ranked list 累加 $1/(k+\\operatorname{rank})$。原书采用 $k=60$ 作为平滑常数，降低头部名次的过强影响。若同一文档在 BM25 中排第 3、dense retrieval 中排第 7，其 RRF 为 $1/63+1/67\\approx0.0308$；两个列表都排第 1 时约为 $0.0328$。"
         },
         {
           "id": "s-16-3-3-formula1",
@@ -513,9 +624,39 @@
             "pages": "311"
           },
           "title": "原书公式 1",
+          "expression": "s_{\\text{hybrid}}(d, q) = \\alpha \\cdot s_{\\text{dense}}(d, q) + (1-\\alpha) \\cdot s_{\\text{sparse}}(d, q)",
+          "latex": "s_{\\text{hybrid}}(d, q) = \\alpha \\cdot s_{\\text{dense}}(d, q) + (1-\\alpha) \\cdot s_{\\text{sparse}}(d, q)",
+          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+        },
+        {
+          "id": "s-16-3-3-formula2",
+          "type": "formula",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": {
+            "chapter": 16,
+            "section": "16.3.3",
+            "pages": "311"
+          },
+          "title": "原书公式 2",
+          "expression": "\\text{RRF}(d) = \\sum_{r \\in \\mathcal{R}} \\frac{1}{k + \\text{rank}_r(d)}",
+          "latex": "\\text{RRF}(d) = \\sum_{r \\in \\mathcal{R}} \\frac{1}{k + \\text{rank}_r(d)}",
+          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+        },
+        {
+          "id": "s-16-3-3-formula3",
+          "type": "formula",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": {
+            "chapter": 16,
+            "section": "16.3.3",
+            "pages": "311"
+          },
+          "title": "原书公式 3",
           "expression": "\\text{RRF}(d) = \\frac{1}{60 + 3} + \\frac{1}{60 + 7} = \\frac{1}{63} + \\frac{1}{67} \\approx 0.0159 + 0.0149 = 0.0308",
           "latex": "\\text{RRF}(d) = \\frac{1}{60 + 3} + \\frac{1}{60 + 7} = \\frac{1}{63} + \\frac{1}{67} \\approx 0.0159 + 0.0149 = 0.0308",
-          "reading": "公式的变量含义与用途见本节译述；保留原书 LaTeX 以便逐项核对。"
+          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
         }
       ]
     },
@@ -574,6 +715,96 @@
             "pages": "312-313"
           },
           "text": "原书的使用建议是：若线上无 GPU、已有 Elasticsearch/Lucene 基础设施或需要解释 expanded term，可优先考虑 SPLADEv2；若多语言能力与短 query 更重要，可考虑 dense model。常见强基线是 SPLADEv2 first-stage retrieval 加 top-k cross-encoder reranking。"
+        },
+        {
+          "id": "s-16-3-4-formula1",
+          "type": "formula",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": {
+            "chapter": 16,
+            "section": "16.3.4",
+            "pages": "312-313"
+          },
+          "title": "原书公式 1",
+          "expression": "w_t(x) = \\log\\!\\left(1 + \\text{ReLU}\\!\\left(\\max_{i \\in [1,n]} \\mathbf{H}_i[t]\\right)\\right)",
+          "latex": "w_t(x) = \\log\\!\\left(1 + \\text{ReLU}\\!\\left(\\max_{i \\in [1,n]} \\mathbf{H}_i[t]\\right)\\right)",
+          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+        },
+        {
+          "id": "s-16-3-4-formula2",
+          "type": "formula",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": {
+            "chapter": 16,
+            "section": "16.3.4",
+            "pages": "312-313"
+          },
+          "title": "原书公式 2",
+          "expression": "s(q, d) = \\sum_{t \\in \\mathcal{V}} w_t^q \\cdot w_t^d",
+          "latex": "s(q, d) = \\sum_{t \\in \\mathcal{V}} w_t^q \\cdot w_t^d",
+          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+        },
+        {
+          "id": "s-16-3-4-formula3",
+          "type": "formula",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": {
+            "chapter": 16,
+            "section": "16.3.4",
+            "pages": "312-313"
+          },
+          "title": "原书公式 3",
+          "expression": "\\mathcal{L} = \\mathcal{L}_{\\text{contrastive}} + \\lambda_q \\|\\mathbf{w}^q\\|_1 + \\lambda_d \\|\\mathbf{w}^d\\|_1",
+          "latex": "\\mathcal{L} = \\mathcal{L}_{\\text{contrastive}} + \\lambda_q \\|\\mathbf{w}^q\\|_1 + \\lambda_d \\|\\mathbf{w}^d\\|_1",
+          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+        },
+        {
+          "id": "s-16-3-4-formula4",
+          "type": "formula",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": {
+            "chapter": 16,
+            "section": "16.3.4",
+            "pages": "312-313"
+          },
+          "title": "原书公式 4",
+          "expression": "\\mathcal{L}_{\\text{distill}} = \\text{KL}\\!\\left(\\sigma(s_{\\text{student}}) \\,\\|\\, \\sigma(s_{\\text{teacher}})\\right)",
+          "latex": "\\mathcal{L}_{\\text{distill}} = \\text{KL}\\!\\left(\\sigma(s_{\\text{student}}) \\,\\|\\, \\sigma(s_{\\text{teacher}})\\right)",
+          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+        },
+        {
+          "id": "s-16-3-4-formula5",
+          "type": "formula",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": {
+            "chapter": 16,
+            "section": "16.3.4",
+            "pages": "312-313"
+          },
+          "title": "原书公式 5",
+          "expression": "\\lambda_q > \\lambda_d \\quad \\text{(e.g., } \\lambda_q = 3 \\times 10^{-4},\\; \\lambda_d = 1 \\times 10^{-4}\\text{)}",
+          "latex": "\\lambda_q > \\lambda_d \\quad \\text{(e.g., } \\lambda_q = 3 \\times 10^{-4},\\; \\lambda_d = 1 \\times 10^{-4}\\text{)}",
+          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+        },
+        {
+          "id": "s-16-3-4-formula6",
+          "type": "formula",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": {
+            "chapter": 16,
+            "section": "16.3.4",
+            "pages": "312-313"
+          },
+          "title": "原书公式 6",
+          "expression": "\\mathcal{L}_{\\text{FLOPS}} = \\sum_{t \\in \\mathcal{V}} \\left(\\overline{a}_t^q\\right)^2 + \\sum_{t \\in \\mathcal{V}} \\left(\\overline{a}_t^d\\right)^2",
+          "latex": "\\mathcal{L}_{\\text{FLOPS}} = \\sum_{t \\in \\mathcal{V}} \\left(\\overline{a}_t^q\\right)^2 + \\sum_{t \\in \\mathcal{V}} \\left(\\overline{a}_t^d\\right)^2",
+          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
         },
         {
           "id": "s-16-3-4-table1",
@@ -669,6 +900,51 @@
             "pages": "313-314"
           },
           "text": "Serving 时只实时编码 query；document token embeddings 已写入 index。PLAID 先用 centroid 取 candidate，再对候选计算精确 MaxSim，可降低 5–10 倍 latency。代价是 index size 远大于 single-vector 方法，不过 residual quantization 可把每维压到约 2 bytes。"
+        },
+        {
+          "id": "s-16-3-5-formula1",
+          "type": "formula",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": {
+            "chapter": 16,
+            "section": "16.3.5",
+            "pages": "313-314"
+          },
+          "title": "原书公式 1",
+          "expression": "s(q, d) = \\sum_{i \\in |\\mathbf{q}|} \\max_{j \\in |\\mathbf{d}|} \\mathbf{q}_i^\\top \\mathbf{d}_j",
+          "latex": "s(q, d) = \\sum_{i \\in |\\mathbf{q}|} \\max_{j \\in |\\mathbf{d}|} \\mathbf{q}_i^\\top \\mathbf{d}_j",
+          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+        },
+        {
+          "id": "s-16-3-5-formula2",
+          "type": "formula",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": {
+            "chapter": 16,
+            "section": "16.3.5",
+            "pages": "313-314"
+          },
+          "title": "原书公式 2",
+          "expression": "\\mathcal{L}_{\\text{ColBERT}} = -\\log \\frac{\\exp(s(q, d^+))}{\\exp(s(q, d^+)) + \\sum_{k=1}^{N} \\exp(s(q, d^-_k))}",
+          "latex": "\\mathcal{L}_{\\text{ColBERT}} = -\\log \\frac{\\exp(s(q, d^+))}{\\exp(s(q, d^+)) + \\sum_{k=1}^{N} \\exp(s(q, d^-_k))}",
+          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+        },
+        {
+          "id": "s-16-3-5-formula3",
+          "type": "formula",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": {
+            "chapter": 16,
+            "section": "16.3.5",
+            "pages": "313-314"
+          },
+          "title": "原书公式 3",
+          "expression": "\\begin{aligned}\\mathbf{q}_i &= \\text{Linear}(E_Q(q)_i) \\in \\mathbb{R}^{128}, \\quad i = 1, \\ldots, |q| \\\\\n  \\mathbf{d}_j &= \\text{Linear}(E_D(d)_j) \\in \\mathbb{R}^{128}, \\quad j = 1, \\ldots, |d|\\end{aligned}",
+          "latex": "\\begin{aligned}\\mathbf{q}_i &= \\text{Linear}(E_Q(q)_i) \\in \\mathbb{R}^{128}, \\quad i = 1, \\ldots, |q| \\\\\n  \\mathbf{d}_j &= \\text{Linear}(E_D(d)_j) \\in \\mathbb{R}^{128}, \\quad j = 1, \\ldots, |d|\\end{aligned}",
+          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
         }
       ]
     },
@@ -824,7 +1100,22 @@
             "section": "16.4.1",
             "pages": "315"
           },
-          "text": "长度为 L 的文档，chunk 数量为 ceil((L−O)/(W−O))。原书代码示例使用 chunk_size=512、chunk_overlap=64，并优先按空行、换行、句号和空格递归切分。"
+          "text": "长度为 $L$ 的文档，chunk 数量为 $\\left\\lceil(L-O)/(W-O)\\right\\rceil$。原书代码示例使用 `chunk_size=512`、`chunk_overlap=64`，并优先按空行、换行、句号和空格递归切分。"
+        },
+        {
+          "id": "s-16-4-1-formula1",
+          "type": "formula",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": {
+            "chapter": 16,
+            "section": "16.4.1",
+            "pages": "315"
+          },
+          "title": "原书公式 1",
+          "expression": "N_{\\text{chunks}} = \\left\\lceil \\frac{L - O}{W - O} \\right\\rceil",
+          "latex": "N_{\\text{chunks}} = \\left\\lceil \\frac{L - O}{W - O} \\right\\rceil",
+          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
         },
         {
           "id": "s-16-4-1-code1",
@@ -1077,6 +1368,21 @@
           "text": "Step-back prompting 先把具体问题改写成更一般的问题，同时检索原问题与 step-back question；multi-query generation 则生成 M 个多样化 reformulation，分别检索、合并并去重结果。后者提高 recall，但会增加查询次数与成本。"
         },
         {
+          "id": "s-16-5-1-formula1",
+          "type": "formula",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": {
+            "chapter": 16,
+            "section": "16.5.1",
+            "pages": "316"
+          },
+          "title": "原书公式 1",
+          "expression": "\\hat{d} = \\text{LLM}(q), \\quad \\mathbf{e}_{\\text{query}} = f_\\phi(\\hat{d})",
+          "latex": "\\hat{d} = \\text{LLM}(q), \\quad \\mathbf{e}_{\\text{query}} = f_\\phi(\\hat{d})",
+          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+        },
+        {
           "id": "s-16-5-1-code1",
           "type": "code",
           "origin": "source_translation",
@@ -1112,6 +1418,21 @@
             "pages": "317"
           },
           "text": "First-stage retriever 返回 top-k candidate 后，cross-encoder 把 query 与每个 document pair 一起编码并重新评分。由于它能让两侧 token 直接 attention，相关性通常更准确；代价是无法预计算 document embedding，latency 较高。因此它不适合全库初检，却很适合重排约 20–100 个候选。"
+        },
+        {
+          "id": "s-16-5-2-formula1",
+          "type": "formula",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": {
+            "chapter": 16,
+            "section": "16.5.2",
+            "pages": "317"
+          },
+          "title": "原书公式 1",
+          "expression": "s_{\\text{cross}}(q, d) = \\text{CrossEncoder}([q; d])",
+          "latex": "s_{\\text{cross}}(q, d) = \\text{CrossEncoder}([q; d])",
+          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
         },
         {
           "id": "s-16-5-2-code1",
@@ -1468,8 +1789,10 @@
           "source": {
             "chapter": 16,
             "section": "16.7.2",
-            "pages": "320"
+            "pages": "320",
+            "figure": "Figure 16.2"
           },
+          "src": "/paper/figure-16-2.webp",
           "alt": "Agentic RAG 在计划、检索、充分性评估与生成之间循环。",
           "caption": "Figure 16.2 · Agentic RAG control flow：Plan、Retrieve、Evaluate sufficiency 与 grounding self-check 组成可迭代闭环。",
           "adapted": false
@@ -1707,9 +2030,9 @@
             "pages": "324-325"
           },
           "title": "原书公式 1",
-          "expression": "\\underbrace{\\text{think}_1}_{\\text{reasoning}} \\to \\underbrace{\\texttt{⟨search⟩}q_1\\texttt{⟨/search⟩}}_{\\text{action}} \\to \\underbrace{[\\text{results}_1]}_{\\text{observation}} \\to \\text{think}_2 \\to \\texttt{⟨search⟩}q_2\\texttt{⟨/search⟩} \\to \\cdots \\to \\text{answer}",
-          "latex": "\\underbrace{\\text{think}_1}_{\\text{reasoning}} \\to \\underbrace{\\texttt{⟨search⟩}q_1\\texttt{⟨/search⟩}}_{\\text{action}} \\to \\underbrace{[\\text{results}_1]}_{\\text{observation}} \\to \\text{think}_2 \\to \\texttt{⟨search⟩}q_2\\texttt{⟨/search⟩} \\to \\cdots \\to \\text{answer}",
-          "reading": "公式的变量含义与用途见本节译述；保留原书 LaTeX 以便逐项核对。"
+          "expression": "\\underbrace{\\text{think}_1}_{\\text{reasoning}} \\to \\underbrace{\\texttt{<search>}q_1\\texttt{</search>}}_{\\text{action}} \\to \\underbrace{[\\text{results}_1]}_{\\text{observation}} \\to \\text{think}_2 \\to \\texttt{<search>}q_2\\texttt{</search>} \\to \\cdots \\to \\text{answer}",
+          "latex": "\\underbrace{\\text{think}_1}_{\\text{reasoning}} \\to \\underbrace{\\texttt{<search>}q_1\\texttt{</search>}}_{\\text{action}} \\to \\underbrace{[\\text{results}_1]}_{\\text{observation}} \\to \\text{think}_2 \\to \\texttt{<search>}q_2\\texttt{</search>} \\to \\cdots \\to \\text{answer}",
+          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
         },
         {
           "id": "s-16-7-6-table1",
@@ -1860,6 +2183,66 @@
             "pages": "325-326"
           },
           "text": "MRR 只关注第一份 relevant document 的 rank，并对 query 集求 reciprocal rank 平均；NDCG@K 允许 relevance 具有多个等级，并用 log₂(i+1) 对靠后的结果折损，再除以理想排序 IDCG 归一化。"
+        },
+        {
+          "id": "s-16-8-1-formula1",
+          "type": "formula",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": {
+            "chapter": 16,
+            "section": "16.8.1",
+            "pages": "325-326"
+          },
+          "title": "原书公式 1",
+          "expression": "\\text{Recall@}K = \\frac{|\\mathcal{R}_K \\cap \\mathcal{R}^*|}{|\\mathcal{R}^*|}",
+          "latex": "\\text{Recall@}K = \\frac{|\\mathcal{R}_K \\cap \\mathcal{R}^*|}{|\\mathcal{R}^*|}",
+          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+        },
+        {
+          "id": "s-16-8-1-formula2",
+          "type": "formula",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": {
+            "chapter": 16,
+            "section": "16.8.1",
+            "pages": "325-326"
+          },
+          "title": "原书公式 2",
+          "expression": "\\text{Precision@}K = \\frac{|\\mathcal{R}_K \\cap \\mathcal{R}^*|}{K}",
+          "latex": "\\text{Precision@}K = \\frac{|\\mathcal{R}_K \\cap \\mathcal{R}^*|}{K}",
+          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+        },
+        {
+          "id": "s-16-8-1-formula3",
+          "type": "formula",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": {
+            "chapter": 16,
+            "section": "16.8.1",
+            "pages": "325-326"
+          },
+          "title": "原书公式 3",
+          "expression": "\\text{MRR} = \\frac{1}{|Q|} \\sum_{i=1}^{|Q|} \\frac{1}{\\text{rank}_i}",
+          "latex": "\\text{MRR} = \\frac{1}{|Q|} \\sum_{i=1}^{|Q|} \\frac{1}{\\text{rank}_i}",
+          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+        },
+        {
+          "id": "s-16-8-1-formula4",
+          "type": "formula",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": {
+            "chapter": 16,
+            "section": "16.8.1",
+            "pages": "325-326"
+          },
+          "title": "原书公式 4",
+          "expression": "\\text{NDCG@}K = \\frac{\\text{DCG@}K}{\\text{IDCG@}K}, \\quad\n  \\text{DCG@}K = \\sum_{i=1}^{K} \\frac{\\text{rel}_i}{\\log_2(i+1)}",
+          "latex": "\\text{NDCG@}K = \\frac{\\text{DCG@}K}{\\text{IDCG@}K}, \\quad\n  \\text{DCG@}K = \\sum_{i=1}^{K} \\frac{\\text{rel}_i}{\\log_2(i+1)}",
+          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
         }
       ]
     },
@@ -1894,6 +2277,51 @@
             "pages": "326"
           },
           "text": "Context Precision 关注 relevant document 是否排在更前；Context Recall 检查 ground-truth claims 中有多少可以归因于当前 context。它们把 retrieval ranking 与最终回答所需证据连接起来。"
+        },
+        {
+          "id": "s-16-8-2-formula1",
+          "type": "formula",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": {
+            "chapter": 16,
+            "section": "16.8.2",
+            "pages": "326"
+          },
+          "title": "原书公式 1",
+          "expression": "\\text{Faithfulness} = \\frac{\\text{\\# claims supported by context}}{\\text{\\# total claims in answer}}",
+          "latex": "\\text{Faithfulness} = \\frac{\\text{\\# claims supported by context}}{\\text{\\# total claims in answer}}",
+          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+        },
+        {
+          "id": "s-16-8-2-formula2",
+          "type": "formula",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": {
+            "chapter": 16,
+            "section": "16.8.2",
+            "pages": "326"
+          },
+          "title": "原书公式 2",
+          "expression": "\\text{AnswerRelevance} = \\frac{1}{N} \\sum_{i=1}^{N} \\cos\\!\\left(E(q), E(\\hat{q}_i)\\right)",
+          "latex": "\\text{AnswerRelevance} = \\frac{1}{N} \\sum_{i=1}^{N} \\cos\\!\\left(E(q), E(\\hat{q}_i)\\right)",
+          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+        },
+        {
+          "id": "s-16-8-2-formula3",
+          "type": "formula",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": {
+            "chapter": 16,
+            "section": "16.8.2",
+            "pages": "326"
+          },
+          "title": "原书公式 3",
+          "expression": "\\begin{aligned}\\text{ContextPrecision@}K &= \\frac{1}{K} \\sum_{k=1}^{K} \\text{Precision@}k \\cdot \\mathbf{1}[\\text{doc}_k \\text{ is relevant}] \\\\\n  \\text{ContextRecall} &= \\frac{\\text{\\# ground-truth claims attributable to context}}{\\text{\\# total ground-truth claims}}\\end{aligned}",
+          "latex": "\\begin{aligned}\\text{ContextPrecision@}K &= \\frac{1}{K} \\sum_{k=1}^{K} \\text{Precision@}k \\cdot \\mathbf{1}[\\text{doc}_k \\text{ is relevant}] \\\\\n  \\text{ContextRecall} &= \\frac{\\text{\\# ground-truth claims attributable to context}}{\\text{\\# total ground-truth claims}}\\end{aligned}",
+          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
         }
       ]
     },
@@ -2410,6 +2838,21 @@
             "pages": "330"
           },
           "text": "其 loss 最大化在 q、d* 与 distractors 条件下生成 grounded CoT 和最终答案的概率。训练时主动加入干扰证据，使模型在 production retrieval 不完美时更能拒绝噪声。"
+        },
+        {
+          "id": "s-16-10-2-formula1",
+          "type": "formula",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": {
+            "chapter": 16,
+            "section": "16.10.2",
+            "pages": "330"
+          },
+          "title": "原书公式 1",
+          "expression": "\\mathcal{L}_{\\text{RAFT}} = -\\mathbb{E}_{(q,a,d^*,\\{d_i^-\\})} \\left[\n    \\log P_\\theta\\!\\left(\\text{CoT}(d^*) \\oplus a \\;\\middle|\\; q, d^*, \\{d_i^-\\}\\right)\n  \\right]",
+          "latex": "\\mathcal{L}_{\\text{RAFT}} = -\\mathbb{E}_{(q,a,d^*,\\{d_i^-\\})} \\left[\n    \\log P_\\theta\\!\\left(\\text{CoT}(d^*) \\oplus a \\;\\middle|\\; q, d^*, \\{d_i^-\\}\\right)\n  \\right]",
+          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
         }
       ]
     },
@@ -2443,7 +2886,22 @@
             "section": "16.10.3",
             "pages": "331"
           },
-          "text": "Retriever 参数可用 REINFORCE estimator 更新，也可把 Pφ(d|q) 视为对文档的 differentiable attention。联合训练很强，但 document index 必须随 retriever 改变而异步刷新；只有 top-k 文档贡献信号，gradient 稀疏；若没有 pre-trained retriever 良好初始化，训练容易不稳定。"
+          "text": "Retriever 参数可用 REINFORCE estimator 更新，也可把 $P_\\phi(d\\mid q)$ 视为对文档的 differentiable attention。联合训练很强，但 document index 必须随 retriever 改变而异步刷新；只有 top-$k$ 文档贡献信号，gradient 稀疏；若没有 pre-trained retriever 良好初始化，训练容易不稳定。"
+        },
+        {
+          "id": "s-16-10-3-formula1",
+          "type": "formula",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": {
+            "chapter": 16,
+            "section": "16.10.3",
+            "pages": "331"
+          },
+          "title": "原书公式 1",
+          "expression": "\\nabla_\\theta \\mathcal{L} = \\nabla_\\theta \\left[\n    -\\log \\sum_{d \\in \\mathcal{D}} P_\\theta(a \\mid q, d) \\cdot P_\\phi(d \\mid q)\n  \\right]",
+          "latex": "\\nabla_\\theta \\mathcal{L} = \\nabla_\\theta \\left[\n    -\\log \\sum_{d \\in \\mathcal{D}} P_\\theta(a \\mid q, d) \\cdot P_\\phi(d \\mid q)\n  \\right]",
+          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
         },
         {
           "id": "s-16-10-3-failure",
@@ -2646,9 +3104,9 @@
     "Evaluation 必须分开测 retrieval、generation 与 end-to-end task；Production 还必须管理增量索引、版本、缓存、并发与可观测性。"
   ],
   "metrics": {
-    "chineseCharacters": 5767,
+    "chineseCharacters": 6736,
     "sourceCoverage": 100,
     "sectionCount": 54,
-    "blockCount": 126
+    "blockCount": 154
   }
 }

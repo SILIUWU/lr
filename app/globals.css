@@ -4524,6 +4524,23 @@ input[type="range"] {
   font-weight: 700;
 }
 
+.inline-math {
+  display: inline-block;
+  max-width: 100%;
+  margin: 0 0.06em;
+  vertical-align: -0.08em;
+}
+
+.inline-math .katex {
+  font-size: 1.04em;
+}
+
+.inline-math-fallback,
+.math-render-error {
+  color: var(--red);
+  font-size: 0.82em;
+}
+
 .reader-source-line {
   gap: 0.35rem;
   margin-bottom: 0.7rem;
@@ -4543,6 +4560,35 @@ input[type="range"] {
 .native-formula-expression,
 .native-formula > pre {
   padding: 1.2rem 0.8rem;
+}
+
+.native-formula-expression {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+.native-formula-expression .katex-display {
+  width: max-content;
+  min-width: 100%;
+  margin: 0;
+}
+
+.native-formula-expression .katex {
+  font-size: 1.05em;
+}
+
+.native-figure-image {
+  display: block;
+  cursor: zoom-in;
+}
+
+.native-figure-image img {
+  transition: filter 160ms ease;
+}
+
+.native-figure-image:hover img {
+  filter: contrast(1.02) saturate(1.03);
 }
 
 .native-code pre {
@@ -4742,6 +4788,10 @@ input[type="range"] {
   .native-example > ol {
     font-size: 0.98rem;
     line-height: 1.85;
+  }
+
+  .native-formula-expression .katex {
+    font-size: 0.92em;
   }
 
   .reader-pagination {

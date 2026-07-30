@@ -132,6 +132,29 @@ assert.ok(
   chapter16.sections.some((section) => section.number === "16.5.3"),
   "missing Ch.16 §16.5.3",
 );
+const chapter16Blocks = chapter16.sections.flatMap((section) => section.blocks);
+const chapter16Formulas = chapter16Blocks.filter(
+  (block) => block.type === "formula",
+);
+const chapter16Figures = chapter16Blocks.filter(
+  (block) => block.type === "figure",
+);
+assert.ok(
+  chapter16Formulas.length >= 30,
+  `expected source formulas in Ch.16, found ${chapter16Formulas.length}`,
+);
+assert.ok(
+  chapter16Formulas.every((block) => block.latex),
+  "Ch.16 formula block missing LaTeX",
+);
+assert.deepEqual(
+  chapter16Figures.map((block) => block.src),
+  ["/paper/figure-16-1.webp", "/paper/figure-16-2.webp"],
+);
+assert.ok(
+  chapter16.metrics.chineseCharacters < 10_000,
+  "Ch.16 must remain in_progress until a substantially fuller translation is published",
+);
 
 const keySources = await Promise.all(
   [
@@ -147,7 +170,7 @@ const keySources = await Promise.all(
 const combined = keySources.join("\n");
 assert.doesNotMatch(
   combined,
-  /Guo et al|本站阅读到这里已经完整|全书精读完成|结构完整上线/,
+  /Guo et al|本站阅读到这里已经完整|全书精读完成|结构完整上线|小节核验覆盖/,
 );
 assert.match(combined, /Haggai Roitman/);
 assert.match(combined, /reviewStatus === "verified"/);
