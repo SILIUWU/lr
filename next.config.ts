@@ -1,7 +1,14 @@
 import type { NextConfig } from "next";
 
+const staticExport = process.env.STATIC_EXPORT === "1";
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
 const nextConfig: NextConfig = {
-  /* config options here */
+  output: staticExport ? "export" : undefined,
+  basePath: staticExport ? basePath : undefined,
+  assetPrefix: staticExport ? basePath : undefined,
+  trailingSlash: staticExport,
+  images: staticExport ? { unoptimized: true } : undefined,
 };
 
 export default nextConfig;

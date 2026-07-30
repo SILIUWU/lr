@@ -21,6 +21,8 @@ npm run lint
 npm test
 ```
 
+如需部署到普通静态托管平台，可运行 `npm run build:static`，产物位于 `out/`。
+
 ## 路由
 
 - `/`：课程首页与 30 章知识地图
