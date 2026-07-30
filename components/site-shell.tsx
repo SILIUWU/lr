@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { lessons } from "@/lib/course-data";
+import { chapterMap, lessons } from "@/lib/course-data";
 import { useCourse } from "./course-provider";
 
 type SearchEntry = {
@@ -25,6 +25,9 @@ const mainNav = [
 
 export function SiteShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const readingMatch = pathname.match(/\/read\/ch-(\d{2})/);
+  const currentChapter = readingMatch ? Number(readingMatch[1]) : null;
+  const isReadingPage = currentChapter !== null;
   const { state, toggleTheme } = useCourse();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -151,35 +154,63 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
 
-        <div className="sidebar-section-title">
-          <span>12 个学习单元</span>
-          <span>
-            {state.completedLessons.length}/{lessons.length}
-          </span>
-        </div>
-        <nav className="lesson-nav" aria-label="课程目录">
-          {lessons.map((lesson) => {
-            const current = pathname === `/learn/${lesson.slug}`;
-            const completed = state.completedLessons.includes(lesson.slug);
-            return (
-              <Link
-                href={`/learn/${lesson.slug}`}
-                key={lesson.slug}
-                onClick={closeNavigation}
-                className={current ? "active" : ""}
-                aria-current={current ? "page" : undefined}
-              >
-                <span className={completed ? "lesson-index done" : "lesson-index"}>
-                  {completed ? "✓" : String(lesson.index + 1).padStart(2, "0")}
-                </span>
-                <span>
-                  <small>{lesson.chapters}</small>
-                  {lesson.title}
-                </span>
-              </Link>
-            );
-          })}
-        </nav>
+        {isReadingPage ? (
+          <>
+            <div className="sidebar-section-title">
+              <span>全书目录 · 30 章</span>
+              <span>CH.{String(currentChapter).padStart(2, "0")}</span>
+            </div>
+            <nav className="chapter-nav" aria-label="全书章节目录">
+              {chapterMap.map((chapter) => {
+                const current = currentChapter === chapter.chapter;
+                return (
+                  <Link
+                    href={`/read/ch-${String(chapter.chapter).padStart(2, "0")}`}
+                    key={chapter.chapter}
+                    onClick={closeNavigation}
+                    className={current ? "active" : ""}
+                    aria-current={current ? "page" : undefined}
+                  >
+                    <span>CH.{String(chapter.chapter).padStart(2, "0")}</span>
+                    <strong>{chapter.title}</strong>
+                  </Link>
+                );
+              })}
+            </nav>
+          </>
+        ) : (
+          <>
+            <div className="sidebar-section-title">
+              <span>12 个学习单元</span>
+              <span>
+                {state.completedLessons.length}/{lessons.length}
+              </span>
+            </div>
+            <nav className="lesson-nav" aria-label="课程目录">
+              {lessons.map((lesson) => {
+                const current = pathname === `/learn/${lesson.slug}`;
+                const completed = state.completedLessons.includes(lesson.slug);
+                return (
+                  <Link
+                    href={`/learn/${lesson.slug}`}
+                    key={lesson.slug}
+                    onClick={closeNavigation}
+                    className={current ? "active" : ""}
+                    aria-current={current ? "page" : undefined}
+                  >
+                    <span className={completed ? "lesson-index done" : "lesson-index"}>
+                      {completed ? "✓" : String(lesson.index + 1).padStart(2, "0")}
+                    </span>
+                    <span>
+                      <small>{lesson.chapters}</small>
+                      {lesson.title}
+                    </span>
+                  </Link>
+                );
+              })}
+            </nav>
+          </>
+        )}
 
         <div className="sidebar-footer">
           <button type="button" onClick={toggleTheme}>

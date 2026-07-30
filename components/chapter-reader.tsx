@@ -86,12 +86,15 @@ function Formula({ block }: { block: FormulaBlock }) {
 }
 
 function BlockRenderer({ block }: { block: ReadingBlock }) {
+  const showSourceLine =
+    block.type !== "paragraph" || block.origin !== "source_translation";
+
   return (
     <section
       className={`reader-block block-${block.type} block-origin-${block.origin}`}
       id={block.id}
     >
-      <SourceLine block={block} />
+      {showSourceLine && <SourceLine block={block} />}
       {block.title && <h4>{block.title}</h4>}
 
       {block.type === "paragraph" && (
@@ -208,21 +211,29 @@ function SectionHeading({
 }: {
   section: ChapterContent["sections"][number];
 }) {
-  const copy = (
-    <>
-      <span>{section.number ? `§${section.number}` : "INTRO"}</span>
-      <small>
-        {section.enTitle === section.zhTitle
-          ? "ORIGINAL SECTION TITLE"
-          : section.enTitle}
-      </small>
-      <strong>{section.zhTitle}</strong>
-      <em>pp. {section.pages}</em>
-    </>
+  const HeadingTag =
+    section.level >= 3 ? "h4" : section.level === 2 ? "h3" : "h2";
+  const verified = section.blocks.some(
+    (block) =>
+      block.reviewStatus === "verified" &&
+      ["source_translation", "source_definition"].includes(block.origin),
   );
-  if (section.level >= 3) return <h4 className="reader-section-heading">{copy}</h4>;
-  if (section.level === 2) return <h3 className="reader-section-heading">{copy}</h3>;
-  return <h2 className="reader-section-heading">{copy}</h2>;
+
+  return (
+    <header className="reader-section-heading">
+      <div>
+        <span>{section.number ? `§ ${section.number}` : "章节导读"}</span>
+        <a href={sourceUrl(section.pages)} target="_blank" rel="noreferrer">
+          PDF pp. {section.pages} ↗
+        </a>
+      </div>
+      <HeadingTag>{section.zhTitle}</HeadingTag>
+      {section.enTitle !== section.zhTitle && (
+        <p lang="en">{section.enTitle}</p>
+      )}
+      {verified && <small>本节译述已对照原文核验</small>}
+    </header>
+  );
 }
 
 export function ChapterReader({ chapter }: { chapter: ChapterContent }) {
@@ -237,141 +248,128 @@ export function ChapterReader({ chapter }: { chapter: ChapterContent }) {
   const progressPercent = Math.round(
     (chapter.metrics.chineseCharacters / 300000) * 100,
   );
+  const topLevelSections = chapter.sections.filter(
+    (section) => section.level === 1,
+  );
 
   return (
     <article className="reader-page">
-      <header className="reader-hero">
-        <div className="reader-hero-number">
-          <span>CHAPTER</span>
-          <strong>{String(chapter.chapter).padStart(2, "0")}</strong>
-        </div>
-        <div className="reader-hero-copy">
-          <div>
-            <span className={`reader-status status-${chapter.status}`}>
-              {statusLabel}
-            </span>
-            <span>原书 pp. {chapter.pages}</span>
-            <span>约 {chapter.minutes} 分钟</span>
-          </div>
-          <p lang="en">{chapter.title}</p>
-          <h1>{chapter.zhTitle}</h1>
-          <blockquote>{chapter.overview}</blockquote>
-          <dl>
-            <div>
-              <dt>{chapter.metrics.sectionCount}</dt>
-              <dd>个结构条目</dd>
+      <div className="reader-book-layout">
+        <div className="reader-body">
+          <header className="reader-hero">
+            <nav className="reader-breadcrumbs" aria-label="面包屑">
+              <Link href="/">首页</Link>
+              <span>/</span>
+              <Link href="/#chapter-directory">全书目录</Link>
+              <span>/</span>
+              <strong>第 {chapter.chapter} 章</strong>
+            </nav>
+            <div className="reader-chapter-kicker">
+              <span>Chapter {String(chapter.chapter).padStart(2, "0")}</span>
+              <span className={`reader-status status-${chapter.status}`}>
+                {statusLabel}
+              </span>
             </div>
-            <div>
-              <dt>{chapter.metrics.blockCount}</dt>
-              <dd>个已发布区块</dd>
+            <h1>{chapter.zhTitle}</h1>
+            <p className="reader-english-title" lang="en">
+              {chapter.title}
+            </p>
+            <div className="reader-hero-meta">
+              <span>原书 pp. {chapter.pages}</span>
+              <span>约 {chapter.minutes} 分钟</span>
+              <span>{chapter.metrics.sectionCount} 个结构条目</span>
+              <span>{chapter.metrics.sourceCoverage}% 小节核验覆盖</span>
             </div>
-            <div>
-              <dt>
-                {new Intl.NumberFormat("zh-CN").format(
-                  chapter.metrics.chineseCharacters,
-                )}
-              </dt>
-              <dd>已核验中文字符</dd>
-            </div>
-            <div>
-              <dt>{chapter.metrics.sourceCoverage}%</dt>
-              <dd>小节核验覆盖</dd>
-            </div>
-          </dl>
-          {chapter.status === "in_progress" && (
-            <aside className="reader-disclosure">
-              诚信说明：旧版未经校订的机器翻译已下线。本章目录仍在依据
-              arXiv LaTeX 原文逐节重建；只有显示“已对照原文核验”的区块才属于
-              可读译文，其他小节会明确标记为制作中。
+            <aside className="reader-overview">
+              <strong>本章导读</strong>
+              <p>{chapter.overview}</p>
             </aside>
-          )}
-        </div>
-      </header>
+            {chapter.status === "in_progress" && (
+              <aside className="reader-disclosure">
+                <strong>发布状态说明</strong>
+                <p>
+                  旧版未经校订的机器翻译已下线。本章正依据 arXiv LaTeX
+                  原文逐节重建；仅带有“已对照原文核验”说明的内容属于已发布译述，
+                  其余小节会明确显示为制作中。
+                </p>
+              </aside>
+            )}
+          </header>
 
-      <div className="reader-layout">
-        <aside className="reader-outline">
-          <div>
-            <span className="eyebrow">ON THIS PAGE</span>
-            <strong>本章目录</strong>
-            <small>
-              本章已核验正文约占全书最低验收体量的 {progressPercent}%
-            </small>
-          </div>
-          <nav aria-label={`第 ${chapter.chapter} 章目录`}>
+          <details className="reader-mobile-outline">
+            <summary>展开本章完整目录（{chapter.sections.length} 节）</summary>
+            <nav aria-label={`第 ${chapter.chapter} 章完整目录`}>
+              {chapter.sections.map((section) => (
+                <a
+                  href={`#${section.id}`}
+                  className={`outline-level-${section.level}`}
+                  key={section.id}
+                >
+                  <span>{section.number ?? "·"}</span>
+                  {section.zhTitle}
+                </a>
+              ))}
+            </nav>
+          </details>
+
+          <details className="reader-contract">
+            <summary>如何辨认“原文译述”与编者内容</summary>
+            <div>
+              <section>
+                <span className="origin-label origin-source_translation">
+                  原文译述
+                </span>
+                <p>仅发布已对照 arXiv LaTeX 与 PDF 页面的译述。</p>
+              </section>
+              <section>
+                <span className="origin-label origin-editorial_explanation">
+                  编者解释
+                </span>
+                <p>用于补足直觉、背景或推导，不冒充原文。</p>
+              </section>
+              <section>
+                <span className="origin-label origin-engineering_extension">
+                  工程延伸
+                </span>
+                <p>面向实现的建议，需要结合实际系统验证。</p>
+              </section>
+            </div>
+          </details>
+
+          <div className="reader-content">
             {chapter.sections.map((section) => (
-              <a
-                href={`#${section.id}`}
-                className={`outline-level-${section.level}`}
+              <section
+                className={`reader-section reader-level-${section.level}`}
+                id={section.id}
                 key={section.id}
               >
-                <span>{section.number ?? "·"}</span>
-                {section.zhTitle}
-              </a>
+                <SectionHeading section={section} />
+                <div className="reader-block-list">
+                  {section.blocks.length ? (
+                    section.blocks.map((block) => (
+                      <BlockRenderer block={block} key={block.id} />
+                    ))
+                  ) : (
+                    <aside className="reader-review-pending">
+                      <strong>本节译文正在重新校订</strong>
+                      <p>
+                        未经核验的机器草稿已撤下，暂不以“原文译述”名义展示。
+                        本节会从 LaTeX
+                        源重新拆分正文、公式、代码和图表后发布。
+                      </p>
+                      <a
+                        href={sourceUrl(section.pages)}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        临时查看 PDF p. {section.pages} 来源 ↗
+                      </a>
+                    </aside>
+                  )}
+                </div>
+              </section>
             ))}
-          </nav>
-          <a
-            className="reader-source-button"
-            href={sourceUrl(chapter.pages)}
-            target="_blank"
-            rel="noreferrer"
-          >
-            查看本章 PDF 来源 ↗
-          </a>
-        </aside>
-
-        <div className="reader-body">
-          <section className="reader-contract">
-            <div>
-              <span className="origin-label origin-source_translation">
-                原文译述
-              </span>
-              <p>仅发布已对照 arXiv LaTeX 与 PDF 页面的译述。</p>
-            </div>
-            <div>
-              <span className="origin-label origin-editorial_explanation">
-                编者解释
-              </span>
-              <p>用于补足直觉、背景或推导，不冒充原文。</p>
-            </div>
-            <div>
-              <span className="origin-label origin-engineering_extension">
-                工程延伸
-              </span>
-              <p>面向实现的建议，需要结合实际系统验证。</p>
-            </div>
-          </section>
-
-          {chapter.sections.map((section) => (
-            <section
-              className={`reader-section reader-level-${section.level}`}
-              id={section.id}
-              key={section.id}
-            >
-              <SectionHeading section={section} />
-              <div className="reader-block-list">
-                {section.blocks.length ? (
-                  section.blocks.map((block) => (
-                    <BlockRenderer block={block} key={block.id} />
-                  ))
-                ) : (
-                  <aside className="reader-review-pending">
-                    <strong>本节译文正在重新校订</strong>
-                    <p>
-                      未经核验的机器草稿已撤下，暂不以“原文译述”名义展示。
-                      本节会从 LaTeX 源重新拆分正文、公式、代码和图表后发布。
-                    </p>
-                    <a
-                      href={sourceUrl(section.pages)}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      临时查看 PDF p. {section.pages} 来源 ↗
-                    </a>
-                  </aside>
-                )}
-              </div>
-            </section>
-          ))}
+          </div>
 
           {chapter.glossary.length > 0 && (
             <section className="reader-glossary">
@@ -393,8 +391,11 @@ export function ChapterReader({ chapter }: { chapter: ChapterContent }) {
           <footer className="reader-license">
             <p>
               Source: Haggai Roitman,{" "}
-              <em>The Hitchhiker&apos;s Guide to Agentic AI: From Foundations to Systems</em>,
-              arXiv v2 / book version 1.3. 原作与本站译述均依{" "}
+              <em>
+                The Hitchhiker&apos;s Guide to Agentic AI: From Foundations
+                to Systems
+              </em>
+              , arXiv v2 / book version 1.3. 原作与本站译述均依{" "}
               <a
                 href="https://creativecommons.org/licenses/by-sa/4.0/"
                 target="_blank"
@@ -410,7 +411,7 @@ export function ChapterReader({ chapter }: { chapter: ChapterContent }) {
             {previous ? (
               <Link href={chapterHref(previous)}>
                 <small>← 上一章</small>
-                <strong>CH.{String(previous).padStart(2, "0")}</strong>
+                <strong>第 {previous} 章</strong>
               </Link>
             ) : (
               <span />
@@ -418,7 +419,7 @@ export function ChapterReader({ chapter }: { chapter: ChapterContent }) {
             {next ? (
               <Link href={chapterHref(next)}>
                 <small>下一章 →</small>
-                <strong>CH.{String(next).padStart(2, "0")}</strong>
+                <strong>第 {next} 章</strong>
               </Link>
             ) : (
               <Link href="/progress">
@@ -428,6 +429,35 @@ export function ChapterReader({ chapter }: { chapter: ChapterContent }) {
             )}
           </nav>
         </div>
+
+        <aside className="reader-outline">
+          <div>
+            <span className="eyebrow">本页目录</span>
+            <strong>本章结构</strong>
+            <small>
+              仅列一级结构；正文包含全部 {chapter.sections.length} 个小节
+            </small>
+          </div>
+          <nav aria-label={`第 ${chapter.chapter} 章目录`}>
+            {topLevelSections.map((section) => (
+              <a href={`#${section.id}`} key={section.id}>
+                <span>{section.number ?? "·"}</span>
+                {section.zhTitle}
+              </a>
+            ))}
+          </nav>
+          <a
+            className="reader-source-button"
+            href={sourceUrl(chapter.pages)}
+            target="_blank"
+            rel="noreferrer"
+          >
+            查看本章 PDF 来源 ↗
+          </a>
+          <small className="reader-volume-note">
+            已核验正文约占全书最低验收体量的 {progressPercent}%
+          </small>
+        </aside>
       </div>
 
       <ReaderTools
