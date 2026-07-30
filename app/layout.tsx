@@ -5,6 +5,10 @@ import "katex/dist/katex.min.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ??
+      "https://agentic-ai-guide-cn.nobobeluong.chatgpt.site",
+  ),
   title: {
     default: "Agentic AI 全栈指南 · From Foundations to Systems",
     template: "%s · Agentic AI 全栈指南",
