@@ -3400,6 +3400,29 @@ input[type="range"] {
   border-left: 4px solid var(--green);
 }
 
+.reader-block.block-formula {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.reader-block-list > .block-formula + .block-formula {
+  margin-top: -0.7rem;
+}
+
+.reader-block.block-formula > h4 {
+  margin: 0.2rem 0 0.55rem;
+  color: var(--ink-soft);
+  font-family: ui-monospace, monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.reader-block.block-formula .reader-source-line {
+  margin-bottom: 0.65rem;
+}
+
 .reader-block.block-failure {
   border-color: color-mix(in srgb, var(--red) 45%, var(--line));
   border-left: 4px solid var(--red);
@@ -3506,8 +3529,9 @@ input[type="range"] {
 .native-formula > pre {
   overflow-x: auto;
   margin: 0;
-  padding: 1.5rem 1rem;
-  background: var(--paper-deep);
+  padding: 1.1rem 1rem;
+  border-left: 2px solid color-mix(in srgb, var(--navy-light) 38%, var(--line));
+  background: color-mix(in srgb, var(--paper-deep) 68%, transparent);
   text-align: center;
 }
 
@@ -3517,8 +3541,9 @@ input[type="range"] {
 }
 
 .native-formula > p {
-  margin: 1rem 0 0;
+  margin: 0.65rem 0 0;
   color: var(--ink-soft);
+  font-size: 0.78rem;
   line-height: 1.8;
 }
 
@@ -3544,6 +3569,27 @@ input[type="range"] {
   margin: 0;
   color: var(--ink-soft);
   font-size: 0.75rem;
+}
+
+.reader-chapter-incomplete {
+  margin: 2.5rem 0 1rem;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid color-mix(in srgb, var(--orange) 45%, var(--line));
+  border-left: 4px solid var(--orange);
+  background: color-mix(in srgb, var(--orange) 5%, var(--paper-strong));
+}
+
+.reader-chapter-incomplete strong {
+  color: var(--navy);
+  font-family: Georgia, "Noto Serif SC", serif;
+  font-size: 0.95rem;
+}
+
+.reader-chapter-incomplete p {
+  margin: 0.45rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.74rem;
+  line-height: 1.75;
 }
 
 .native-code {

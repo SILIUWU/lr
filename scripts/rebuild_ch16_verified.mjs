@@ -669,12 +669,10 @@ function enrichBlocks(entry, number, pages, segment) {
         ...sectionSource(number, pages),
         ...(note?.equation ? { equation: note.equation } : {}),
       },
-      title: note?.title ?? `原书公式 ${formulaIndex + 1}`,
+      ...(note?.title ? { title: note.title } : {}),
       expression: latex,
       latex,
-      reading:
-        note?.reading ??
-        "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。",
+      ...(note?.reading ? { reading: note.reading } : {}),
       ...(note?.symbols ? { symbols: note.symbols } : {}),
     });
   }

@@ -245,6 +245,11 @@ test("chapter route renders section anchors, source pages and native rich blocks
   assert.match(ragHtml, /figure-16-1\.webp/);
   assert.match(ragHtml, /Eq\.[\s\S]{0,20}16\.1–16\.2/);
   assert.match(ragHtml, /katex/);
+  assert.match(ragHtml, /你已读完的是当前公开内容，不是原章全文/);
+  assert.doesNotMatch(
+    ragHtml,
+    /变量含义与适用条件仍在逐式补充校订|原书公式 [1-9]/,
+  );
 
   const chapter18 = await render("/read/ch-18");
   assert.equal(chapter18.status, 200);

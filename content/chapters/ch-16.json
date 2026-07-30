@@ -498,10 +498,8 @@
             "section": "16.3.1",
             "pages": "310"
           },
-          "title": "原书公式 1",
           "expression": "\\text{BM25}(d, q) = \\sum_{i=1}^{n} \\text{IDF}(t_i) \\cdot\n    \\frac{f(t_i, d) \\cdot (k_1 + 1)}{f(t_i, d) + k_1 \\cdot \\left(1 - b + b \\cdot \\frac{|d|}{\\text{avgdl}}\\right)}",
-          "latex": "\\text{BM25}(d, q) = \\sum_{i=1}^{n} \\text{IDF}(t_i) \\cdot\n    \\frac{f(t_i, d) \\cdot (k_1 + 1)}{f(t_i, d) + k_1 \\cdot \\left(1 - b + b \\cdot \\frac{|d|}{\\text{avgdl}}\\right)}",
-          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+          "latex": "\\text{BM25}(d, q) = \\sum_{i=1}^{n} \\text{IDF}(t_i) \\cdot\n    \\frac{f(t_i, d) \\cdot (k_1 + 1)}{f(t_i, d) + k_1 \\cdot \\left(1 - b + b \\cdot \\frac{|d|}{\\text{avgdl}}\\right)}"
         }
       ]
     },
@@ -559,10 +557,8 @@
             "section": "16.3.2",
             "pages": "311"
           },
-          "title": "原书公式 1",
           "expression": "\\text{sim}(q, p) = E_Q(q)^\\top E_P(p)",
-          "latex": "\\text{sim}(q, p) = E_Q(q)^\\top E_P(p)",
-          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+          "latex": "\\text{sim}(q, p) = E_Q(q)^\\top E_P(p)"
         },
         {
           "id": "s-16-3-2-formula2",
@@ -574,10 +570,8 @@
             "section": "16.3.2",
             "pages": "311"
           },
-          "title": "原书公式 2",
           "expression": "\\mathcal{L}_{\\text{DPR}} = -\\frac{1}{B} \\sum_{i=1}^{B}\n    \\log \\frac{\\exp\\!\\left(E_Q(q_i)^\\top E_P(p_i^+) / \\tau\\right)}\n              {\\sum_{j=1}^{B} \\exp\\!\\left(E_Q(q_i)^\\top E_P(p_j) / \\tau\\right)}",
-          "latex": "\\mathcal{L}_{\\text{DPR}} = -\\frac{1}{B} \\sum_{i=1}^{B}\n    \\log \\frac{\\exp\\!\\left(E_Q(q_i)^\\top E_P(p_i^+) / \\tau\\right)}\n              {\\sum_{j=1}^{B} \\exp\\!\\left(E_Q(q_i)^\\top E_P(p_j) / \\tau\\right)}",
-          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+          "latex": "\\mathcal{L}_{\\text{DPR}} = -\\frac{1}{B} \\sum_{i=1}^{B}\n    \\log \\frac{\\exp\\!\\left(E_Q(q_i)^\\top E_P(p_i^+) / \\tau\\right)}\n              {\\sum_{j=1}^{B} \\exp\\!\\left(E_Q(q_i)^\\top E_P(p_j) / \\tau\\right)}"
         }
       ]
     },
@@ -623,10 +617,8 @@
             "section": "16.3.3",
             "pages": "311"
           },
-          "title": "原书公式 1",
           "expression": "s_{\\text{hybrid}}(d, q) = \\alpha \\cdot s_{\\text{dense}}(d, q) + (1-\\alpha) \\cdot s_{\\text{sparse}}(d, q)",
-          "latex": "s_{\\text{hybrid}}(d, q) = \\alpha \\cdot s_{\\text{dense}}(d, q) + (1-\\alpha) \\cdot s_{\\text{sparse}}(d, q)",
-          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+          "latex": "s_{\\text{hybrid}}(d, q) = \\alpha \\cdot s_{\\text{dense}}(d, q) + (1-\\alpha) \\cdot s_{\\text{sparse}}(d, q)"
         },
         {
           "id": "s-16-3-3-formula2",
@@ -638,10 +630,8 @@
             "section": "16.3.3",
             "pages": "311"
           },
-          "title": "原书公式 2",
           "expression": "\\text{RRF}(d) = \\sum_{r \\in \\mathcal{R}} \\frac{1}{k + \\text{rank}_r(d)}",
-          "latex": "\\text{RRF}(d) = \\sum_{r \\in \\mathcal{R}} \\frac{1}{k + \\text{rank}_r(d)}",
-          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+          "latex": "\\text{RRF}(d) = \\sum_{r \\in \\mathcal{R}} \\frac{1}{k + \\text{rank}_r(d)}"
         },
         {
           "id": "s-16-3-3-formula3",
@@ -653,10 +643,8 @@
             "section": "16.3.3",
             "pages": "311"
           },
-          "title": "原书公式 3",
           "expression": "\\text{RRF}(d) = \\frac{1}{60 + 3} + \\frac{1}{60 + 7} = \\frac{1}{63} + \\frac{1}{67} \\approx 0.0159 + 0.0149 = 0.0308",
-          "latex": "\\text{RRF}(d) = \\frac{1}{60 + 3} + \\frac{1}{60 + 7} = \\frac{1}{63} + \\frac{1}{67} \\approx 0.0159 + 0.0149 = 0.0308",
-          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+          "latex": "\\text{RRF}(d) = \\frac{1}{60 + 3} + \\frac{1}{60 + 7} = \\frac{1}{63} + \\frac{1}{67} \\approx 0.0159 + 0.0149 = 0.0308"
         }
       ]
     },
@@ -726,10 +714,8 @@
             "section": "16.3.4",
             "pages": "312-313"
           },
-          "title": "原书公式 1",
           "expression": "w_t(x) = \\log\\!\\left(1 + \\text{ReLU}\\!\\left(\\max_{i \\in [1,n]} \\mathbf{H}_i[t]\\right)\\right)",
-          "latex": "w_t(x) = \\log\\!\\left(1 + \\text{ReLU}\\!\\left(\\max_{i \\in [1,n]} \\mathbf{H}_i[t]\\right)\\right)",
-          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+          "latex": "w_t(x) = \\log\\!\\left(1 + \\text{ReLU}\\!\\left(\\max_{i \\in [1,n]} \\mathbf{H}_i[t]\\right)\\right)"
         },
         {
           "id": "s-16-3-4-formula2",
@@ -741,10 +727,8 @@
             "section": "16.3.4",
             "pages": "312-313"
           },
-          "title": "原书公式 2",
           "expression": "s(q, d) = \\sum_{t \\in \\mathcal{V}} w_t^q \\cdot w_t^d",
-          "latex": "s(q, d) = \\sum_{t \\in \\mathcal{V}} w_t^q \\cdot w_t^d",
-          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+          "latex": "s(q, d) = \\sum_{t \\in \\mathcal{V}} w_t^q \\cdot w_t^d"
         },
         {
           "id": "s-16-3-4-formula3",
@@ -756,10 +740,8 @@
             "section": "16.3.4",
             "pages": "312-313"
           },
-          "title": "原书公式 3",
           "expression": "\\mathcal{L} = \\mathcal{L}_{\\text{contrastive}} + \\lambda_q \\|\\mathbf{w}^q\\|_1 + \\lambda_d \\|\\mathbf{w}^d\\|_1",
-          "latex": "\\mathcal{L} = \\mathcal{L}_{\\text{contrastive}} + \\lambda_q \\|\\mathbf{w}^q\\|_1 + \\lambda_d \\|\\mathbf{w}^d\\|_1",
-          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+          "latex": "\\mathcal{L} = \\mathcal{L}_{\\text{contrastive}} + \\lambda_q \\|\\mathbf{w}^q\\|_1 + \\lambda_d \\|\\mathbf{w}^d\\|_1"
         },
         {
           "id": "s-16-3-4-formula4",
@@ -771,10 +753,8 @@
             "section": "16.3.4",
             "pages": "312-313"
           },
-          "title": "原书公式 4",
           "expression": "\\mathcal{L}_{\\text{distill}} = \\text{KL}\\!\\left(\\sigma(s_{\\text{student}}) \\,\\|\\, \\sigma(s_{\\text{teacher}})\\right)",
-          "latex": "\\mathcal{L}_{\\text{distill}} = \\text{KL}\\!\\left(\\sigma(s_{\\text{student}}) \\,\\|\\, \\sigma(s_{\\text{teacher}})\\right)",
-          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+          "latex": "\\mathcal{L}_{\\text{distill}} = \\text{KL}\\!\\left(\\sigma(s_{\\text{student}}) \\,\\|\\, \\sigma(s_{\\text{teacher}})\\right)"
         },
         {
           "id": "s-16-3-4-formula5",
@@ -786,10 +766,8 @@
             "section": "16.3.4",
             "pages": "312-313"
           },
-          "title": "原书公式 5",
           "expression": "\\lambda_q > \\lambda_d \\quad \\text{(e.g., } \\lambda_q = 3 \\times 10^{-4},\\; \\lambda_d = 1 \\times 10^{-4}\\text{)}",
-          "latex": "\\lambda_q > \\lambda_d \\quad \\text{(e.g., } \\lambda_q = 3 \\times 10^{-4},\\; \\lambda_d = 1 \\times 10^{-4}\\text{)}",
-          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+          "latex": "\\lambda_q > \\lambda_d \\quad \\text{(e.g., } \\lambda_q = 3 \\times 10^{-4},\\; \\lambda_d = 1 \\times 10^{-4}\\text{)}"
         },
         {
           "id": "s-16-3-4-formula6",
@@ -801,10 +779,8 @@
             "section": "16.3.4",
             "pages": "312-313"
           },
-          "title": "原书公式 6",
           "expression": "\\mathcal{L}_{\\text{FLOPS}} = \\sum_{t \\in \\mathcal{V}} \\left(\\overline{a}_t^q\\right)^2 + \\sum_{t \\in \\mathcal{V}} \\left(\\overline{a}_t^d\\right)^2",
-          "latex": "\\mathcal{L}_{\\text{FLOPS}} = \\sum_{t \\in \\mathcal{V}} \\left(\\overline{a}_t^q\\right)^2 + \\sum_{t \\in \\mathcal{V}} \\left(\\overline{a}_t^d\\right)^2",
-          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+          "latex": "\\mathcal{L}_{\\text{FLOPS}} = \\sum_{t \\in \\mathcal{V}} \\left(\\overline{a}_t^q\\right)^2 + \\sum_{t \\in \\mathcal{V}} \\left(\\overline{a}_t^d\\right)^2"
         },
         {
           "id": "s-16-3-4-table1",
@@ -911,10 +887,8 @@
             "section": "16.3.5",
             "pages": "313-314"
           },
-          "title": "原书公式 1",
           "expression": "s(q, d) = \\sum_{i \\in |\\mathbf{q}|} \\max_{j \\in |\\mathbf{d}|} \\mathbf{q}_i^\\top \\mathbf{d}_j",
-          "latex": "s(q, d) = \\sum_{i \\in |\\mathbf{q}|} \\max_{j \\in |\\mathbf{d}|} \\mathbf{q}_i^\\top \\mathbf{d}_j",
-          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+          "latex": "s(q, d) = \\sum_{i \\in |\\mathbf{q}|} \\max_{j \\in |\\mathbf{d}|} \\mathbf{q}_i^\\top \\mathbf{d}_j"
         },
         {
           "id": "s-16-3-5-formula2",
@@ -926,10 +900,8 @@
             "section": "16.3.5",
             "pages": "313-314"
           },
-          "title": "原书公式 2",
           "expression": "\\mathcal{L}_{\\text{ColBERT}} = -\\log \\frac{\\exp(s(q, d^+))}{\\exp(s(q, d^+)) + \\sum_{k=1}^{N} \\exp(s(q, d^-_k))}",
-          "latex": "\\mathcal{L}_{\\text{ColBERT}} = -\\log \\frac{\\exp(s(q, d^+))}{\\exp(s(q, d^+)) + \\sum_{k=1}^{N} \\exp(s(q, d^-_k))}",
-          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+          "latex": "\\mathcal{L}_{\\text{ColBERT}} = -\\log \\frac{\\exp(s(q, d^+))}{\\exp(s(q, d^+)) + \\sum_{k=1}^{N} \\exp(s(q, d^-_k))}"
         },
         {
           "id": "s-16-3-5-formula3",
@@ -941,10 +913,8 @@
             "section": "16.3.5",
             "pages": "313-314"
           },
-          "title": "原书公式 3",
           "expression": "\\begin{aligned}\\mathbf{q}_i &= \\text{Linear}(E_Q(q)_i) \\in \\mathbb{R}^{128}, \\quad i = 1, \\ldots, |q| \\\\\n  \\mathbf{d}_j &= \\text{Linear}(E_D(d)_j) \\in \\mathbb{R}^{128}, \\quad j = 1, \\ldots, |d|\\end{aligned}",
-          "latex": "\\begin{aligned}\\mathbf{q}_i &= \\text{Linear}(E_Q(q)_i) \\in \\mathbb{R}^{128}, \\quad i = 1, \\ldots, |q| \\\\\n  \\mathbf{d}_j &= \\text{Linear}(E_D(d)_j) \\in \\mathbb{R}^{128}, \\quad j = 1, \\ldots, |d|\\end{aligned}",
-          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+          "latex": "\\begin{aligned}\\mathbf{q}_i &= \\text{Linear}(E_Q(q)_i) \\in \\mathbb{R}^{128}, \\quad i = 1, \\ldots, |q| \\\\\n  \\mathbf{d}_j &= \\text{Linear}(E_D(d)_j) \\in \\mathbb{R}^{128}, \\quad j = 1, \\ldots, |d|\\end{aligned}"
         }
       ]
     },
@@ -1112,10 +1082,8 @@
             "section": "16.4.1",
             "pages": "315"
           },
-          "title": "原书公式 1",
           "expression": "N_{\\text{chunks}} = \\left\\lceil \\frac{L - O}{W - O} \\right\\rceil",
-          "latex": "N_{\\text{chunks}} = \\left\\lceil \\frac{L - O}{W - O} \\right\\rceil",
-          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+          "latex": "N_{\\text{chunks}} = \\left\\lceil \\frac{L - O}{W - O} \\right\\rceil"
         },
         {
           "id": "s-16-4-1-code1",
@@ -1377,10 +1345,8 @@
             "section": "16.5.1",
             "pages": "316"
           },
-          "title": "原书公式 1",
           "expression": "\\hat{d} = \\text{LLM}(q), \\quad \\mathbf{e}_{\\text{query}} = f_\\phi(\\hat{d})",
-          "latex": "\\hat{d} = \\text{LLM}(q), \\quad \\mathbf{e}_{\\text{query}} = f_\\phi(\\hat{d})",
-          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+          "latex": "\\hat{d} = \\text{LLM}(q), \\quad \\mathbf{e}_{\\text{query}} = f_\\phi(\\hat{d})"
         },
         {
           "id": "s-16-5-1-code1",
@@ -1429,10 +1395,8 @@
             "section": "16.5.2",
             "pages": "317"
           },
-          "title": "原书公式 1",
           "expression": "s_{\\text{cross}}(q, d) = \\text{CrossEncoder}([q; d])",
-          "latex": "s_{\\text{cross}}(q, d) = \\text{CrossEncoder}([q; d])",
-          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+          "latex": "s_{\\text{cross}}(q, d) = \\text{CrossEncoder}([q; d])"
         },
         {
           "id": "s-16-5-2-code1",
@@ -2029,10 +1993,8 @@
             "section": "16.7.6",
             "pages": "324-325"
           },
-          "title": "原书公式 1",
           "expression": "\\underbrace{\\text{think}_1}_{\\text{reasoning}} \\to \\underbrace{\\texttt{<search>}q_1\\texttt{</search>}}_{\\text{action}} \\to \\underbrace{[\\text{results}_1]}_{\\text{observation}} \\to \\text{think}_2 \\to \\texttt{<search>}q_2\\texttt{</search>} \\to \\cdots \\to \\text{answer}",
-          "latex": "\\underbrace{\\text{think}_1}_{\\text{reasoning}} \\to \\underbrace{\\texttt{<search>}q_1\\texttt{</search>}}_{\\text{action}} \\to \\underbrace{[\\text{results}_1]}_{\\text{observation}} \\to \\text{think}_2 \\to \\texttt{<search>}q_2\\texttt{</search>} \\to \\cdots \\to \\text{answer}",
-          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+          "latex": "\\underbrace{\\text{think}_1}_{\\text{reasoning}} \\to \\underbrace{\\texttt{<search>}q_1\\texttt{</search>}}_{\\text{action}} \\to \\underbrace{[\\text{results}_1]}_{\\text{observation}} \\to \\text{think}_2 \\to \\texttt{<search>}q_2\\texttt{</search>} \\to \\cdots \\to \\text{answer}"
         },
         {
           "id": "s-16-7-6-table1",
@@ -2194,10 +2156,8 @@
             "section": "16.8.1",
             "pages": "325-326"
           },
-          "title": "原书公式 1",
           "expression": "\\text{Recall@}K = \\frac{|\\mathcal{R}_K \\cap \\mathcal{R}^*|}{|\\mathcal{R}^*|}",
-          "latex": "\\text{Recall@}K = \\frac{|\\mathcal{R}_K \\cap \\mathcal{R}^*|}{|\\mathcal{R}^*|}",
-          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+          "latex": "\\text{Recall@}K = \\frac{|\\mathcal{R}_K \\cap \\mathcal{R}^*|}{|\\mathcal{R}^*|}"
         },
         {
           "id": "s-16-8-1-formula2",
@@ -2209,10 +2169,8 @@
             "section": "16.8.1",
             "pages": "325-326"
           },
-          "title": "原书公式 2",
           "expression": "\\text{Precision@}K = \\frac{|\\mathcal{R}_K \\cap \\mathcal{R}^*|}{K}",
-          "latex": "\\text{Precision@}K = \\frac{|\\mathcal{R}_K \\cap \\mathcal{R}^*|}{K}",
-          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+          "latex": "\\text{Precision@}K = \\frac{|\\mathcal{R}_K \\cap \\mathcal{R}^*|}{K}"
         },
         {
           "id": "s-16-8-1-formula3",
@@ -2224,10 +2182,8 @@
             "section": "16.8.1",
             "pages": "325-326"
           },
-          "title": "原书公式 3",
           "expression": "\\text{MRR} = \\frac{1}{|Q|} \\sum_{i=1}^{|Q|} \\frac{1}{\\text{rank}_i}",
-          "latex": "\\text{MRR} = \\frac{1}{|Q|} \\sum_{i=1}^{|Q|} \\frac{1}{\\text{rank}_i}",
-          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+          "latex": "\\text{MRR} = \\frac{1}{|Q|} \\sum_{i=1}^{|Q|} \\frac{1}{\\text{rank}_i}"
         },
         {
           "id": "s-16-8-1-formula4",
@@ -2239,10 +2195,8 @@
             "section": "16.8.1",
             "pages": "325-326"
           },
-          "title": "原书公式 4",
           "expression": "\\text{NDCG@}K = \\frac{\\text{DCG@}K}{\\text{IDCG@}K}, \\quad\n  \\text{DCG@}K = \\sum_{i=1}^{K} \\frac{\\text{rel}_i}{\\log_2(i+1)}",
-          "latex": "\\text{NDCG@}K = \\frac{\\text{DCG@}K}{\\text{IDCG@}K}, \\quad\n  \\text{DCG@}K = \\sum_{i=1}^{K} \\frac{\\text{rel}_i}{\\log_2(i+1)}",
-          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+          "latex": "\\text{NDCG@}K = \\frac{\\text{DCG@}K}{\\text{IDCG@}K}, \\quad\n  \\text{DCG@}K = \\sum_{i=1}^{K} \\frac{\\text{rel}_i}{\\log_2(i+1)}"
         }
       ]
     },
@@ -2288,10 +2242,8 @@
             "section": "16.8.2",
             "pages": "326"
           },
-          "title": "原书公式 1",
           "expression": "\\text{Faithfulness} = \\frac{\\text{\\# claims supported by context}}{\\text{\\# total claims in answer}}",
-          "latex": "\\text{Faithfulness} = \\frac{\\text{\\# claims supported by context}}{\\text{\\# total claims in answer}}",
-          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+          "latex": "\\text{Faithfulness} = \\frac{\\text{\\# claims supported by context}}{\\text{\\# total claims in answer}}"
         },
         {
           "id": "s-16-8-2-formula2",
@@ -2303,10 +2255,8 @@
             "section": "16.8.2",
             "pages": "326"
           },
-          "title": "原书公式 2",
           "expression": "\\text{AnswerRelevance} = \\frac{1}{N} \\sum_{i=1}^{N} \\cos\\!\\left(E(q), E(\\hat{q}_i)\\right)",
-          "latex": "\\text{AnswerRelevance} = \\frac{1}{N} \\sum_{i=1}^{N} \\cos\\!\\left(E(q), E(\\hat{q}_i)\\right)",
-          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+          "latex": "\\text{AnswerRelevance} = \\frac{1}{N} \\sum_{i=1}^{N} \\cos\\!\\left(E(q), E(\\hat{q}_i)\\right)"
         },
         {
           "id": "s-16-8-2-formula3",
@@ -2318,10 +2268,8 @@
             "section": "16.8.2",
             "pages": "326"
           },
-          "title": "原书公式 3",
           "expression": "\\begin{aligned}\\text{ContextPrecision@}K &= \\frac{1}{K} \\sum_{k=1}^{K} \\text{Precision@}k \\cdot \\mathbf{1}[\\text{doc}_k \\text{ is relevant}] \\\\\n  \\text{ContextRecall} &= \\frac{\\text{\\# ground-truth claims attributable to context}}{\\text{\\# total ground-truth claims}}\\end{aligned}",
-          "latex": "\\begin{aligned}\\text{ContextPrecision@}K &= \\frac{1}{K} \\sum_{k=1}^{K} \\text{Precision@}k \\cdot \\mathbf{1}[\\text{doc}_k \\text{ is relevant}] \\\\\n  \\text{ContextRecall} &= \\frac{\\text{\\# ground-truth claims attributable to context}}{\\text{\\# total ground-truth claims}}\\end{aligned}",
-          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+          "latex": "\\begin{aligned}\\text{ContextPrecision@}K &= \\frac{1}{K} \\sum_{k=1}^{K} \\text{Precision@}k \\cdot \\mathbf{1}[\\text{doc}_k \\text{ is relevant}] \\\\\n  \\text{ContextRecall} &= \\frac{\\text{\\# ground-truth claims attributable to context}}{\\text{\\# total ground-truth claims}}\\end{aligned}"
         }
       ]
     },
@@ -2849,10 +2797,8 @@
             "section": "16.10.2",
             "pages": "330"
           },
-          "title": "原书公式 1",
           "expression": "\\mathcal{L}_{\\text{RAFT}} = -\\mathbb{E}_{(q,a,d^*,\\{d_i^-\\})} \\left[\n    \\log P_\\theta\\!\\left(\\text{CoT}(d^*) \\oplus a \\;\\middle|\\; q, d^*, \\{d_i^-\\}\\right)\n  \\right]",
-          "latex": "\\mathcal{L}_{\\text{RAFT}} = -\\mathbb{E}_{(q,a,d^*,\\{d_i^-\\})} \\left[\n    \\log P_\\theta\\!\\left(\\text{CoT}(d^*) \\oplus a \\;\\middle|\\; q, d^*, \\{d_i^-\\}\\right)\n  \\right]",
-          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+          "latex": "\\mathcal{L}_{\\text{RAFT}} = -\\mathbb{E}_{(q,a,d^*,\\{d_i^-\\})} \\left[\n    \\log P_\\theta\\!\\left(\\text{CoT}(d^*) \\oplus a \\;\\middle|\\; q, d^*, \\{d_i^-\\}\\right)\n  \\right]"
         }
       ]
     },
@@ -2898,10 +2844,8 @@
             "section": "16.10.3",
             "pages": "331"
           },
-          "title": "原书公式 1",
           "expression": "\\nabla_\\theta \\mathcal{L} = \\nabla_\\theta \\left[\n    -\\log \\sum_{d \\in \\mathcal{D}} P_\\theta(a \\mid q, d) \\cdot P_\\phi(d \\mid q)\n  \\right]",
-          "latex": "\\nabla_\\theta \\mathcal{L} = \\nabla_\\theta \\left[\n    -\\log \\sum_{d \\in \\mathcal{D}} P_\\theta(a \\mid q, d) \\cdot P_\\phi(d \\mid q)\n  \\right]",
-          "reading": "此处保留原书公式并以 MathML/KaTeX 渲染；变量含义与适用条件仍在逐式补充校订。"
+          "latex": "\\nabla_\\theta \\mathcal{L} = \\nabla_\\theta \\left[\n    -\\log \\sum_{d \\in \\mathcal{D}} P_\\theta(a \\mid q, d) \\cdot P_\\phi(d \\mid q)\n  \\right]"
         },
         {
           "id": "s-16-10-3-failure",
@@ -3104,7 +3048,7 @@
     "Evaluation 必须分开测 retrieval、generation 与 end-to-end task；Production 还必须管理增量索引、版本、缓存、并发与可观测性。"
   ],
   "metrics": {
-    "chineseCharacters": 6736,
+    "chineseCharacters": 5812,
     "sourceCoverage": 100,
     "sectionCount": 54,
     "blockCount": 154

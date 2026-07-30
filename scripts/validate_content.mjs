@@ -147,6 +147,14 @@ assert.ok(
   chapter16Formulas.every((block) => block.latex),
   "Ch.16 formula block missing LaTeX",
 );
+assert.ok(
+  chapter16Formulas.every(
+    (block) =>
+      !block.reading?.includes("变量含义与适用条件仍在逐式补充校订") &&
+      !/^原书公式 \d+$/.test(block.title ?? ""),
+  ),
+  "Ch.16 formula blocks must not publish repeated placeholder copy",
+);
 assert.deepEqual(
   chapter16Figures.map((block) => block.src),
   ["/paper/figure-16-1.webp", "/paper/figure-16-2.webp"],

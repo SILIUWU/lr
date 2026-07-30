@@ -14,7 +14,7 @@ export const chapterCatalog = catalog.map((chapter) => {
       }
     : chapter.chapter === 16
       ? {
-          chineseCharacters: 6703,
+          chineseCharacters: 5779,
           sourceCoverage: 100,
           blockCount: 154,
           sectionCount: 54,

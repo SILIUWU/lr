@@ -125,9 +125,16 @@ function Formula({ block }: { block: FormulaBlock }) {
   );
 }
 
-function BlockRenderer({ block }: { block: ReadingBlock }) {
+function BlockRenderer({
+  block,
+  hideRepeatedSource = false,
+}: {
+  block: ReadingBlock;
+  hideRepeatedSource?: boolean;
+}) {
   const showSourceLine =
-    block.type !== "paragraph" || block.origin !== "source_translation";
+    !hideRepeatedSource &&
+    (block.type !== "paragraph" || block.origin !== "source_translation");
 
   return (
     <section
@@ -413,8 +420,15 @@ export function ChapterReader({ chapter }: { chapter: ChapterContent }) {
                 <SectionHeading section={section} />
                 <div className="reader-block-list">
                   {section.blocks.length ? (
-                    section.blocks.map((block) => (
-                      <BlockRenderer block={block} key={block.id} />
+                    section.blocks.map((block, index) => (
+                      <BlockRenderer
+                        block={block}
+                        hideRepeatedSource={
+                          block.type === "formula" &&
+                          section.blocks[index - 1]?.type === "formula"
+                        }
+                        key={block.id}
+                      />
                     ))
                   ) : (
                     <aside className="reader-review-pending">
@@ -437,6 +451,17 @@ export function ChapterReader({ chapter }: { chapter: ChapterContent }) {
               </section>
             ))}
           </div>
+
+          {chapter.status === "in_progress" && (
+            <aside className="reader-chapter-incomplete">
+              <strong>你已读完的是当前公开内容，不是原章全文</strong>
+              <p>
+                本章原书范围为 PDF pp. {chapter.pages}。目前已完成全部目录结构映射，
+                但仍有 subsection 只发布了压缩译述；完整论证、案例细节、公式释义和限制条件正在逐节补充。
+                页面到底仅表示“当前版本结束”，不代表全章翻译完成。
+              </p>
+            </aside>
+          )}
 
           {chapter.glossary.length > 0 && (
             <section className="reader-glossary">
