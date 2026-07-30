@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { chapterMap, getAdjacentLessons } from "@/lib/course-data";
 import { catalogChapter, catalogHref } from "@/lib/chapter-catalog";
 import type { EvidenceKind, Lesson } from "@/lib/types";
+import { withBasePath } from "@/lib/site-path";
 import { useCourse } from "./course-provider";
 import { InteractiveLab } from "./interactive-labs";
 import { QuizCard } from "./quiz-card";
@@ -74,7 +75,7 @@ function PaperFigure({
   return (
     <figure className="paper-figure">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={figure.src} alt={figure.caption} />
+      <img src={withBasePath(figure.src)} alt={figure.caption} />
       <figcaption>
         <div>
           <strong>{figure.number}</strong>

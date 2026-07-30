@@ -6,6 +6,7 @@ import type {
   FormulaBlock,
   ReadingBlock,
 } from "@/lib/types";
+import { withBasePath } from "@/lib/site-path";
 import { chapterHref } from "@/lib/chapter-content";
 import { ReaderTools } from "./reader-tools";
 
@@ -128,7 +129,7 @@ function BlockRenderer({ block }: { block: ReadingBlock }) {
         <figure className="native-figure">
           {block.src ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={block.src} alt={block.alt} />
+            <img src={withBasePath(block.src)} alt={block.alt} />
           ) : (
             <div className="figure-transcript" role="img" aria-label={block.alt}>
               <span>FIGURE TRANSCRIPT</span>
