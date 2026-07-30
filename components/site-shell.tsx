@@ -2,46 +2,59 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useMemo, useState } from "react";
-import { lessons, searchLessons } from "@/lib/course-data";
-import { readingsForLesson } from "@/lib/reading-content";
+import { useEffect, useMemo, useState } from "react";
+import { lessons } from "@/lib/course-data";
 import { useCourse } from "./course-provider";
+
+type SearchEntry = {
+  chapter: number;
+  sectionId: string;
+  sectionNumber?: string | null;
+  title: string;
+  enTitle: string;
+  search: string;
+};
 
 const mainNav = [
   { href: "/", label: "知识地图", icon: "⌁" },
+  { href: "/#chapter-directory", label: "30 章阅读", icon: "¶" },
   { href: "/review", label: "到期复习", icon: "↻" },
   { href: "/notes", label: "批注与提问包", icon: "✎" },
   { href: "/progress", label: "学习进度", icon: "◔" },
 ];
-
-const readingSearchIndex = Object.fromEntries(
-  lessons.map((lesson) => [
-    lesson.slug,
-    readingsForLesson(lesson.slug)
-      .flatMap((reading) => [
-        reading.title,
-        reading.zhTitle,
-        reading.overview,
-        ...reading.sections.flatMap((section) => [
-          section.title,
-          section.english,
-          ...section.paragraphs,
-          section.checkpoint ?? "",
-        ]),
-      ])
-      .join(" "),
-  ]),
-);
 
 export function SiteShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { state, toggleTheme } = useCourse();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const results = useMemo(
-    () => searchLessons(query, readingSearchIndex).slice(0, 6),
-    [query],
-  );
+  const [searchIndex, setSearchIndex] = useState<SearchEntry[]>([]);
+  useEffect(() => {
+    if (!query.trim() || searchIndex.length) return;
+    let active = true;
+    void import("@/content/search-index.json").then((module) => {
+      if (active) setSearchIndex(module.default as SearchEntry[]);
+    });
+    return () => {
+      active = false;
+    };
+  }, [query, searchIndex.length]);
+  const results = useMemo(() => {
+    const normalized = query.trim().toLocaleLowerCase("zh-CN");
+    if (!normalized) return [];
+    return searchIndex
+      .filter((entry) => entry.search.includes(normalized))
+      .sort((a, b) => {
+        const aTitle =
+          a.title.toLocaleLowerCase("zh-CN").includes(normalized) ||
+          a.enTitle.toLocaleLowerCase("zh-CN").includes(normalized);
+        const bTitle =
+          b.title.toLocaleLowerCase("zh-CN").includes(normalized) ||
+          b.enTitle.toLocaleLowerCase("zh-CN").includes(normalized);
+        return Number(bTitle) - Number(aTitle);
+      })
+      .slice(0, 8);
+  }, [query, searchIndex]);
   const closeNavigation = () => {
     setDrawerOpen(false);
     setQuery("");
@@ -93,15 +106,25 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
             id="course-search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="搜索 RAG、MCP、GRPO…"
+            placeholder="搜索全文、术语或 section…"
           />
           {query && (
             <div className="search-results" role="status">
               {results.length ? (
                 results.map((lesson) => (
-                  <Link key={lesson.slug} href={`/learn/${lesson.slug}`} onClick={closeNavigation}>
-                    <small>{lesson.chapters}</small>
+                  <Link
+                    key={`${lesson.chapter}-${lesson.sectionId}`}
+                    href={`/read/ch-${String(lesson.chapter).padStart(2, "0")}#${lesson.sectionId}`}
+                    onClick={closeNavigation}
+                  >
+                    <small>
+                      CH.{String(lesson.chapter).padStart(2, "0")}
+                      {lesson.sectionNumber
+                        ? ` · §${lesson.sectionNumber}`
+                        : ""}
+                    </small>
                     {lesson.title}
+                    <em>{lesson.enTitle}</em>
                   </Link>
                 ))
               ) : (

@@ -1,0 +1,797 @@
+{
+  "chapter": 4,
+  "title": "RL Foundations for Language Models",
+  "zhTitle": "面向语言模型的 RL 基础",
+  "pages": "139-141",
+  "minutes": 12,
+  "overview": "监督微调(SFT)教一个模型来模仿演示，但模仿有一个上限:模型永远不能超过其训练数据的质量。强化学习突破了这个障碍。通过产生新颖的文本、获得奖励反馈和向高回报行为更新，经过RL训练的模型能够发现没有任何人类示范者写出更有用、更准确、更符合人类喜好的产出[280]的战略。这是每个前沿模型背后的机制:GPT-4 [274]，克劳德， Llama-3 [118]，以及DeepSeek-R1 [72] 都应用了SFT之后的RL作为关键步骤，将一个有能力但无预设的模型转变为一个对齐的助手。",
+  "status": "in_progress",
+  "sections": [
+    {
+      "id": "s-4-introduction",
+      "number": null,
+      "level": 1,
+      "enTitle": "Chapter introduction",
+      "zhTitle": "章节导入",
+      "pages": "139",
+      "blocks": [
+        {
+          "id": "s-4-introduction-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 4,
+            "section": null,
+            "pages": "139"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 本章导入「章节导入」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-4-introduction-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": null,
+            "pages": "139"
+          },
+          "text": "监督微调(SFT)教一个模型来模仿演示，但模仿有一个上限:模型永远不能超过其训练数据的质量。强化学习突破了这个障碍。通过产生新颖的文本、获得奖励反馈和向高回报行为更新，经过RL训练的模型能够发现没有任何人类示范者写出更有用、更准确、更符合人类喜好的产出[280]的战略。这是每个前沿模型背后的机制:GPT-4 [274]，克劳德， Llama-3 [118]，以及DeepSeek-R1 [72] 都应用了SFT之后的RL作为关键步骤，将一个有能力但无预设的模型转变为一个对齐的助手。",
+          "originalExcerpt": "Supervised fine-tuning (SFT) teaches a model to imitate demonstrations, but imitation has a ceiling: the model can never exceed the quality of its training data. Reinforcement learning breaks this barrier. By generating novel text, receiving reward feedback, and updating toward higher-reward behaviours, an RL-trained model can discover strategies that no hum..."
+        }
+      ]
+    },
+    {
+      "id": "s-4-1",
+      "number": "4.1",
+      "level": 1,
+      "enTitle": "Two Paradigms for RL in LLMs",
+      "zhTitle": "法学硕士学位中两个关于RL的示范",
+      "pages": "139",
+      "blocks": [
+        {
+          "id": "s-4-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 4,
+            "section": "4.1",
+            "pages": "139"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §4.1「法学硕士学位中两个关于RL的示范」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-4-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.1",
+            "pages": "139"
+          },
+          "text": "语言模型的RL方法分为两个广泛的范式，每个范式适合不同的目标:",
+          "originalExcerpt": "RL methods for language models fall into two broad paradigms, each suited to different goals:"
+        },
+        {
+          "id": "s-4-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.1",
+            "pages": "139"
+          },
+          "text": "范式1:通过人类优惠调整(RLHF/DPO)，将RL应用于LLM的最初动机是调整模式，有助于、无害和诚实。强化从人类反馈中学习[57、280、442]从双向人类判断中培训一种奖励模式(“哪一种反应更好?”)，然后优化政策，以最大限度地扩大学到的奖励。 DPO [302] 简化了这一点，完全取消了奖励模式，将优惠直接转化为有监督的损失，两种方法都产生符合指示并尊重安全限制的一致助手。",
+          "originalExcerpt": "Paradigm 1: Alignment via Human Preferences (RLHF/DPO). The original motivation for applying RL to LLMs was alignment—making models helpful, harmless, and honest. Reinforcement Learning from Human Feedback (RLHF) [57, 280, 442] trains a reward model from pairwise human judgments (“which response is better?”) and then optimizes the policy to maximize that lea..."
+        },
+        {
+          "id": "s-4-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.1",
+            "pages": "139"
+          },
+          "text": "范式2:通过可验证的奖励增强能力。 最近， RL不仅用于校正，还用于教学新的能力 — — 特别是推理、数学和代码生成。这里的奖励不是来自人类的偏好，而是来自可核实的结果:模型是否给出了正确的答案?代码是否通过了所有的测试?DeepSeek-R1 [72] 证明GRPO具有基于规则的奖励(格式正确性+答题精确性)，可以训练模型，在没有人类偏好数据的情况下发展尖端的思想链推理。共同基金会尽管目标不同，但两者的核心机制是:",
+          "originalExcerpt": "Paradigm 2: Capability Enhancement via Verifiable Rewards (RLVR). More recently, RL has been used not just for alignment but for teaching new capabilities—particularly reasoning, mathematics, and code generation. Here the reward comes not from human preferences but from verifiable outcomes: did the model produce the correct answer? Did the code pass all test..."
+        },
+        {
+          "id": "s-4-1-b4",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 4,
+            "section": "4.1",
+            "pages": "139"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "• A policy πθ (the LLM) that generates text autoregressively"
+        },
+        {
+          "id": "s-4-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.1",
+            "pages": "139"
+          },
+          "text": "• 奖励信号r(x， y)(从偏好中吸取或从核查中计算)",
+          "originalExcerpt": "• A reward signal r(x, y) (learned from preferences or computed from verification)"
+        },
+        {
+          "id": "s-4-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.1",
+            "pages": "139"
+          },
+          "text": "• 防止解决方案恶化的参考政策受到KL限制",
+          "originalExcerpt": "• A KL constraint against a reference policy to prevent degenerate solutions"
+        },
+        {
+          "id": "s-4-1-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.1",
+            "pages": "139"
+          },
+          "text": "• 政策梯度优化(PPO或GRPO)，以更新模式，提高奖励",
+          "originalExcerpt": "• Policy gradient optimization (PPO or GRPO) to update the model toward higher reward"
+        },
+        {
+          "id": "s-4-1-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.1",
+            "pages": "139"
+          },
+          "text": "本部分各章详细发展了每个组成部分。",
+          "originalExcerpt": "The chapters in this part develop each component in detail."
+        }
+      ]
+    },
+    {
+      "id": "s-4-2",
+      "number": "4.2",
+      "level": 1,
+      "enTitle": "Text Generation as an MDP",
+      "zhTitle": "文本生成为 MDP",
+      "pages": "140",
+      "blocks": [
+        {
+          "id": "s-4-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 4,
+            "section": "4.2",
+            "pages": "140"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §4.2「文本生成为 MDP」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-4-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.2",
+            "pages": "140"
+          },
+          "text": "使得RL适用于语言模型的关键见解是将自递生成重塑为马可夫决定过程:LLM-as-Agent Analogy 思考LLM是一次写一个响应的Agent。每一步，它都查看至今为止写作的一切(状态)，选择下一个单词(动作)，页面会增加一个符号(过渡)，当回复完成后，法官会给它评分(奖励)。目标:学习一种写作策略(一种政策)，一贯获得高分。",
+          "originalExcerpt": "The key insight that makes RL applicable to language models is recasting autoregressive generation as a Markov Decision Process: The LLM-as-Agent Analogy Think of the LLM as an agent writing a response one token at a time. At each step, it looks at everything written so far (the state), chooses the next word (the action), and the page grows by one token (the..."
+        },
+        {
+          "id": "s-4-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.2",
+            "pages": "140"
+          },
+          "text": "• State st=(x,y1,…,yt−1)：由输入 x 与截至当前已经生成的全部 token 构成的中间状态。",
+          "originalExcerpt": "• State st = (x, y1 , . . . , yt−1 ): the prompt concatenated with all tokens generated so far."
+        },
+        {
+          "id": "s-4-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.2",
+            "pages": "140"
+          },
+          "text": "^ 动作 {1， .， {V}}: 从词汇中选择下一个符号( 32K–128K选项)。",
+          "originalExcerpt": "• Action at ∈ {1, . . . , |V|}: choosing the next token from the vocabulary (32K–128K options)."
+        },
+        {
+          "id": "s-4-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.2",
+            "pages": "140"
+          },
+          "text": "• 过渡P(st+1 |st， at ):决定性——只是附加选定的符号。",
+          "originalExcerpt": "• Transition P (st+1 |st , at ): deterministic—just append the chosen token. No environment"
+        },
+        {
+          "id": "s-4-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.2",
+            "pages": "140"
+          },
+          "text": "• 奖励r:通常只在一代人结束时才给予(sparse)。",
+          "originalExcerpt": "• Reward r: typically given only at the end of generation (sparse). For RLHF: the reward"
+        },
+        {
+          "id": "s-4-2-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.2",
+            "pages": "140"
+          },
+          "text": "模型分数。对于RLVR:最终答案的正确性。",
+          "originalExcerpt": "model score. For RLVR: correctness of the final answer."
+        },
+        {
+          "id": "s-4-2-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.2",
+            "pages": "140"
+          },
+          "text": "· 政策(在",
+          "originalExcerpt": "• Policy πθ (at |st ): the LLM’s next-token probability distribution—exactly what the softmax"
+        },
+        {
+          "id": "s-4-2-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.2",
+            "pages": "140"
+          },
+          "text": "输出已经计算。",
+          "originalExcerpt": "output already computes."
+        },
+        {
+          "id": "s-4-2-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.2",
+            "pages": "140"
+          },
+          "text": "• 贴现 = 1.0: 事件是有限的(一次答复)，因此不需要贴现。",
+          "originalExcerpt": "• Discount γ = 1.0: episodes are finite (one response), so no discounting needed."
+        },
+        {
+          "id": "s-4-2-b11",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 4,
+            "section": "4.2",
+            "pages": "140"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "This mapping is powerful because the LLM already is a policy—its softmax output defines πθ (at |st ) for every state. We don’t need to build a separate policy network; we just need to adjust the weights θ so the model assigns higher probability to token sequences that earn higher reward."
+        }
+      ]
+    },
+    {
+      "id": "s-4-3",
+      "number": "4.3",
+      "level": 1,
+      "enTitle": "The RLHF Pipeline",
+      "zhTitle": "RLHF管道",
+      "pages": "140-141",
+      "blocks": [
+        {
+          "id": "s-4-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 4,
+            "section": "4.3",
+            "pages": "140-141"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §4.3「RLHF管道」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-4-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.3",
+            "pages": "140"
+          },
+          "text": "经典的RLHF输油管[280]由四个阶段组成:",
+          "originalExcerpt": "The classic RLHF pipeline [280] consists of four stages:"
+        },
+        {
+          "id": "s-4-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.3",
+            "pages": "140"
+          },
+          "text": "1. 监督的精细操作(SFT):培训高质量演示的基础模型",
+          "originalExcerpt": "1. Supervised Fine-Tuning (SFT): Train a base model on high-quality demonstrations to"
+        },
+        {
+          "id": "s-4-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.3",
+            "pages": "140"
+          },
+          "text": "制定能够遵循指示的“SFT”政策。",
+          "originalExcerpt": "produce a policy πSFT that can follow instructions."
+        },
+        {
+          "id": "s-4-3-b4",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 4,
+            "section": "4.3",
+            "pages": "140"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "2. Reward Model Training: Collect human preference comparisons (yw ≻ yl for the same"
+        },
+        {
+          "id": "s-4-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.3",
+            "pages": "140"
+          },
+          "text": "prompt），并使用布拉德利-特里目标来训练奖励型号Rφ(x， y)。",
+          "originalExcerpt": "prompt) and train a reward model Rϕ (x, y) using the Bradley-Terry objective."
+        },
+        {
+          "id": "s-4-3-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.3",
+            "pages": "140"
+          },
+          "text": "3. RL优化:利用奖励模式作为信号，通过PPO或",
+          "originalExcerpt": "3. RL Optimization: Use the reward model as a signal to optimize the policy via PPO or"
+        },
+        {
+          "id": "s-4-3-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.3",
+            "pages": "140"
+          },
+          "text": "反资助恐怖主义法的KL限制。",
+          "originalExcerpt": "GRPO, subject to a KL constraint against πSFT ."
+        },
+        {
+          "id": "s-4-3-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.3",
+            "pages": "140"
+          },
+          "text": "4. 评估和迭代:评估一致模式，收集新的故障案例，并进行迭代。",
+          "originalExcerpt": "4. Evaluation and Iteration: Evaluate the aligned model, collect new failure cases, and iterate."
+        },
+        {
+          "id": "s-4-3-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.3",
+            "pages": "140"
+          },
+          "text": "对于RLVR(合理/Agent训练)，第1至2阶段被替换:SFT模型被训练为推理痕迹， Reward Model被一个验证器取代(例如检查数学正确性)。第三阶段保持不变——PPO或GRPO在奖励信号上优化。 LLM RL与经典RL的区别如何 LLM设置与经典RL在重要方面不同:",
+          "originalExcerpt": "For RLVR (reasoning/agentic training), stages 1–2 are replaced: the SFT model is trained on reasoning traces, and the reward model is replaced by a verifier (e.g., checking mathematical correctness). Stage 3 remains the same—PPO or GRPO optimization against the reward signal. How LLM RL Differs from Classical RL The LLM setting differs from classical RL in i..."
+        },
+        {
+          "id": "s-4-3-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.3",
+            "pages": "140"
+          },
+          "text": "· 决定性的过渡: \" 下一个国家 \" 仅仅是以前象征的凝聚——",
+          "originalExcerpt": "• Deterministic transitions: The “next state” is just the concatenation of previous tokens—"
+        },
+        {
+          "id": "s-4-3-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.3",
+            "pages": "140"
+          },
+          "text": "没有扭曲的环境。",
+          "originalExcerpt": "no stochastic environment."
+        },
+        {
+          "id": "s-4-3-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.3",
+            "pages": "140"
+          },
+          "text": "• 奖励:通常在一代人结束时给予一次反馈(结果奖励)",
+          "originalExcerpt": "• Sparse reward: Feedback is typically given once at the end of generation (outcome reward)"
+        },
+        {
+          "id": "s-4-3-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.3",
+            "pages": "140"
+          },
+          "text": "或关键步骤(过程奖励)。",
+          "originalExcerpt": "or at key steps (process reward)."
+        },
+        {
+          "id": "s-4-3-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.3",
+            "pages": "141"
+          },
+          "text": "• 大规模行动空间:每一步都有32K-128K可能的标志，但探索是隐含的",
+          "originalExcerpt": "• Massive action space: 32K–128K possible tokens at every step, but exploration is implicit"
+        },
+        {
+          "id": "s-4-3-b15",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.3",
+            "pages": "141"
+          },
+          "text": "以温度取样。",
+          "originalExcerpt": "via temperature sampling."
+        },
+        {
+          "id": "s-4-3-b16",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.3",
+            "pages": "141"
+          },
+          "text": "• KL主播:LLM RL受限制与SFT政策保持密切联系，防止奖励",
+          "originalExcerpt": "• KL anchor: LLM RL is constrained to stay close to the SFT policy, preventing reward"
+        },
+        {
+          "id": "s-4-3-b17",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.3",
+            "pages": "141"
+          },
+          "text": "以减少勘探成本为代价进行黑客入侵。",
+          "originalExcerpt": "hacking at the cost of reduced exploration."
+        },
+        {
+          "id": "s-4-3-b18",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.3",
+            "pages": "141"
+          },
+          "text": "· 不需要值函数:GPRO完全取消批评者网络，使用组-",
+          "originalExcerpt": "• No value function needed: GRPO eliminates the critic network entirely, using group-"
+        },
+        {
+          "id": "s-4-3-b19",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.3",
+            "pages": "141"
+          },
+          "text": "奖励相对正常化。",
+          "originalExcerpt": "relative normalization of rewards instead."
+        },
+        {
+          "id": "s-4-3-b20",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.3",
+            "pages": "141"
+          },
+          "text": "这些差异解释了为什么PPO和GRPO在有限责任公司DQN型方法上占主导地位。",
+          "originalExcerpt": "These differences explain why PPO and GRPO dominate over DQN-style approaches for LLMs."
+        }
+      ]
+    },
+    {
+      "id": "s-4-4",
+      "number": "4.4",
+      "level": 1,
+      "enTitle": "Roadmap of This Part",
+      "zhTitle": "本部分的路线图",
+      "pages": "141",
+      "blocks": [
+        {
+          "id": "s-4-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 4,
+            "section": "4.4",
+            "pages": "141"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §4.4「本部分的路线图」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-4-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.4",
+            "pages": "141"
+          },
+          "text": "接下来的章节构建了完整的RL-For-LLMs工具包:",
+          "originalExcerpt": "The chapters ahead build the complete RL-for-LLMs toolkit:"
+        },
+        {
+          "id": "s-4-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.4",
+            "pages": "141"
+          },
+          "text": "1. PPO(第5章)——剪辑的代位目标， GAE用于优势估计，评论家",
+          "originalExcerpt": "1. PPO (Chapter 5) — The clipped surrogate objective, GAE for advantage estimation, the critic"
+        },
+        {
+          "id": "s-4-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.4",
+            "pages": "141"
+          },
+          "text": "和全RLHF训练环路 和GPT -4和克劳德后面的工作马",
+          "originalExcerpt": "network, and the full RLHF training loop. The workhorse behind GPT-4 and Claude."
+        },
+        {
+          "id": "s-4-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.4",
+            "pages": "141"
+          },
+          "text": "2. DPO(第6章)——完全通过将优惠转化为对比性的方式通过RL",
+          "originalExcerpt": "2. DPO (Chapter 6) — Bypassing RL entirely by converting preferences into a contrastive"
+        },
+        {
+          "id": "s-4-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.4",
+            "pages": "141"
+          },
+          "text": "监督损失，比在线RL简单但不够灵活。",
+          "originalExcerpt": "supervised loss. Simpler but less flexible than online RL."
+        },
+        {
+          "id": "s-4-4-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.4",
+            "pages": "141"
+          },
+          "text": "3. GRPO(第七章)——DeepSeek的无批评者算法，使用团体级奖励，也不-",
+          "originalExcerpt": "3. GRPO (Chapter 7) — DeepSeek’s critic-free algorithm that uses group-level reward nor-"
+        },
+        {
+          "id": "s-4-4-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.4",
+            "pages": "141"
+          },
+          "text": "恶意化 深 Seek-R1背后的方法和推理模型训练的主要选择。",
+          "originalExcerpt": "malization. The method behind DeepSeek-R1 and the dominant choice for reasoning model training."
+        },
+        {
+          "id": "s-4-4-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.4",
+            "pages": "141"
+          },
+          "text": "4. 优化优惠变体(第8章)——在线DPO、KTO、Best-Of-N，以及",
+          "originalExcerpt": "4. Preference optimization variants (Chapter 8) — Online DPO, KTO, Best-of-N, and"
+        },
+        {
+          "id": "s-4-4-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.4",
+            "pages": "141"
+          },
+          "text": "方法选择指南。",
+          "originalExcerpt": "guidance on method selection."
+        },
+        {
+          "id": "s-4-4-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.4",
+            "pages": "141"
+          },
+          "text": "5. 奖励建模(第9章)——布拉德利-泰利建模，过程与结果奖，",
+          "originalExcerpt": "5. Reward modeling (Chapter 9) — Bradley-Terry models, process vs. outcome rewards,"
+        },
+        {
+          "id": "s-4-4-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.4",
+            "pages": "141"
+          },
+          "text": "基于规则的RLVR奖励，以及多目标组合。",
+          "originalExcerpt": "rule-based rewards for RLVR, and multi-objective combinations."
+        },
+        {
+          "id": "s-4-4-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.4",
+            "pages": "141"
+          },
+          "text": "6。 SFT最佳做法(第10章)——顺序包装、聊天模板、数据混合，",
+          "originalExcerpt": "6. SFT best practices (Chapter 10) — Sequence packing, chat templates, data mixing, and"
+        },
+        {
+          "id": "s-4-4-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.4",
+            "pages": "141"
+          },
+          "text": "SFT的质量如何决定了RL的上限。",
+          "originalExcerpt": "how SFT quality determines the RL ceiling."
+        },
+        {
+          "id": "s-4-4-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.4",
+            "pages": "141"
+          },
+          "text": "7。系统工程(第11章)——分布式培训:平行战略，",
+          "originalExcerpt": "7. Systems engineering (Chapter 11) — Distributed training at scale: parallelism strategies,"
+        },
+        {
+          "id": "s-4-4-b15",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 4,
+            "section": "4.4",
+            "pages": "141"
+          },
+          "text": "—— 培训脱钩，以及数百GPU的基础设施。",
+          "originalExcerpt": "generation–training decoupling, and infrastructure for hundreds of GPUs."
+        }
+      ]
+    }
+  ],
+  "glossary": [
+    {
+      "term": "Agent",
+      "zh": "智能体",
+      "meaning": "由模型、状态、工具和运行循环共同构成的目标导向系统。"
+    },
+    {
+      "term": "reward model",
+      "zh": "Reward Model",
+      "meaning": "把人类或规则偏好映射为可优化标量信号的模型。"
+    },
+    {
+      "term": "token",
+      "zh": "词元",
+      "meaning": "模型处理和生成文本时使用的离散单位。"
+    }
+  ],
+  "summary": [
+    "监督微调(SFT)教一个模型来模仿演示，但模仿有一个上限:模型永远不能超过其训练数据的质量。强化学习突破了这个障碍。通过产生新颖的文本、获得奖励反馈和向高回报行为更新，经过RL训练的模型能够发现没有任何人类示范者写出更有用、更准确、更符合人类喜好的产出[280]的战略。这是每个前沿模型背后的机制:GPT-4 [274]，克劳德， Llama-3 [118]，以及DeepSeek-R1 [72] 都应用了SFT之后的RL作为关键步骤，将一个有能力但无预设的模型转变为一个对齐的助手。",
+    "语言模型的RL方法分为两个广泛的范式，每个范式适合不同的目标:",
+    "范式1:通过人类优惠调整(RLHF/DPO)，将RL应用于LLM的最初动机是调整模式，有助于、无害和诚实。强化从人类反馈中学习[57、280、442]从双向人类判断中培训一种奖励模式(“哪一种反应更好?”)，然后优化政策，以最大限度地扩大学到的奖励。 DPO [302] 简化了这一点，完全取消了奖励模式，将优惠直接转化为有监督的损失，两种方法都产生符合指示并尊重安全限制的一致助手。"
+  ],
+  "metrics": {
+    "chineseCharacters": 2595,
+    "sourceCoverage": 100,
+    "sectionCount": 5,
+    "blockCount": 59
+  }
+}

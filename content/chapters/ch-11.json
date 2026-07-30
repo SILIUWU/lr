@@ -1,0 +1,4958 @@
+{
+  "chapter": 11,
+  "title": "System Architecture & Infrastructure at Scale",
+  "zhTitle": "大规模系统架构与基础设施",
+  "pages": "205-228",
+  "minutes": 48,
+  "overview": "利用从人类反馈中学习强化知识来培训法学硕士，既是系统工程挑战，也是算法挑战。与标准监督的微调不同——它涉及单一模式、单一前向后向的传球和深知的缩放——RLHF需要同时加载多个模式(政策、参考、奖励模式、价值头)，通过复杂的推出-积分-训练循环进行协调，并分布在几十至数百个GPU之间。本章涵盖使大规模高频培训成为可能的系统一级的细节:内存预算编制，并行主义策略(数据，腾讯，管道，序列，及其组合)，生成瓶颈，解耦的架构，重量同步，断层耐受性，以及生产监测。",
+  "status": "in_progress",
+  "sections": [
+    {
+      "id": "s-11-introduction",
+      "number": null,
+      "level": 1,
+      "enTitle": "Chapter introduction",
+      "zhTitle": "章节导入",
+      "pages": "205",
+      "blocks": [
+        {
+          "id": "s-11-introduction-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": null,
+            "pages": "205"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 本章导入「章节导入」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-11-introduction-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": null,
+            "pages": "205"
+          },
+          "text": "利用从人类反馈中学习强化知识来培训法学硕士，既是系统工程挑战，也是算法挑战。与标准监督的微调不同——它涉及单一模式、单一前向后向的传球和深知的缩放——RLHF需要同时加载多个模式(政策、参考、奖励模式、价值头)，通过复杂的推出-积分-训练循环进行协调，并分布在几十至数百个GPU之间。本章涵盖使大规模高频培训成为可能的系统一级的细节:内存预算编制，并行主义策略(数据，腾讯，管道，序列，及其组合)，生成瓶颈，解耦的架构，重量同步，断层耐受性，以及生产监测。",
+          "originalExcerpt": "Training LLMs with reinforcement learning from human feedback is as much a systems engineering challenge as it is an algorithmic one. Unlike standard supervised fine-tuning—which involves a single model, a single forward-backward pass, and well-understood scaling—RLHF requires multiple models (policy, reference, reward model, value head) to be loaded simulta..."
+        }
+      ]
+    },
+    {
+      "id": "s-11-1",
+      "number": "11.1",
+      "level": 1,
+      "enTitle": "The 4-Model Memory Challenge",
+      "zhTitle": "四模记忆挑战",
+      "pages": "205",
+      "blocks": [
+        {
+          "id": "s-11-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.1",
+            "pages": "205"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.1「四模记忆挑战」 时，把每个 failure mode 拆成触发条件、可观测信号、影响范围、缓解措施和剩余风险。原书给出的警告不是附录信息，而是决定系统是否能进入生产环境的设计约束。"
+        },
+        {
+          "id": "s-11-1-b1",
+          "type": "figure",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.1",
+            "pages": "205",
+            "figure": "Figure 11.1"
+          },
+          "src": null,
+          "alt": "图11.1:70B PPO内存预算:RLHF及其内存足迹所需的四种型号，总计:1470–1560GB。最低值:19–20 A100-80GB(naive)。与ZeRO-3: 适合于8个节点。",
+          "caption": "图11.1:70B PPO内存预算:RLHF及其内存足迹所需的四种型号，总计:1470–1560GB。最低值:19–20 A100-80GB(naive)。与ZeRO-3: 适合于8个节点。",
+          "adapted": false
+        },
+        {
+          "id": "s-11-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.1",
+            "pages": "205"
+          },
+          "text": "记忆预算现实检查 – 70B BF16",
+          "originalExcerpt": "Memory Budget Reality Check – 70B BF16"
+        },
+        {
+          "id": "s-11-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.1",
+            "pages": "205"
+          },
+          "text": "政策权重(BF16)140 GB FP32主重280 GB Adam 优化器(m + v， FP32)560 GB 梯度(BF16)140 GB 参考型号140 GB(或INT8中的70 GB) 奖励型号140 GB(或INT8中的70 GB) 激活(批次128，以下2048)50–100 GB KV缓存生成 20–60 GB 总1470–1560 GB →80 GB/GPU = 19–20 A100s 最小值(没有平行管理间接费用)。",
+          "originalExcerpt": "Policy weights (BF16) 140 GB FP32 master weights 280 GB Adam optimizer (m + v, FP32) 560 GB Gradients (BF16) 140 GB Reference model 140 GB (or 70 GB in INT8) Reward model 140 GB (or 70 GB in INT8) Activations (batch 128, seq 2048) 50–100 GB KV cache for generation 20–60 GB Total 1470–1560 GB ÷ 80 GB/GPU = 19–20 A100s minimum (without any parallelism overhead..."
+        }
+      ]
+    },
+    {
+      "id": "s-11-2",
+      "number": "11.2",
+      "level": 1,
+      "enTitle": "Parallelism Strategies in Detail",
+      "zhTitle": "详细平行战略",
+      "pages": "206",
+      "blocks": [
+        {
+          "id": "s-11-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2",
+            "pages": "206"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.2「详细平行战略」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-11-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2",
+            "pages": "206"
+          },
+          "text": "训练LLM需要在许多GPU中分布计算。 存在根本不同的轴线，可以与之平行，每个轴线都有不同的权衡。本节详细介绍了每项战略，并提供了数学表达、图表和实用指导。",
+          "originalExcerpt": "Training large language models requires distributing computation across many GPUs. There are fundamentally different axes along which to parallelize, each with distinct trade-offs. This section provides detailed coverage of each strategy with mathematical formulations, diagrams, and practical guidance."
+        },
+        {
+          "id": "s-11-2-b2",
+          "type": "figure",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2",
+            "pages": "206",
+            "figure": "Figure 11.2"
+          },
+          "src": null,
+          "alt": "图11.2:四个平行战略概览，生产系统通常同时结合其中2-3个。",
+          "caption": "图11.2:四个平行战略概览，生产系统通常同时结合其中2-3个。",
+          "adapted": false
+        }
+      ]
+    },
+    {
+      "id": "s-11-2-1",
+      "number": "11.2.1",
+      "level": 2,
+      "enTitle": "Data Parallelism (DP) and Distributed Data Parallelism (DDP)",
+      "zhTitle": "数据并行性(DP)和分布式数据并行性(DDP)",
+      "pages": "206-207",
+      "blocks": [
+        {
+          "id": "s-11-2-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.1",
+            "pages": "206-207"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.2.1「数据并行性(DP)和分布式数据并行性(DDP)」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-11-2-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.1",
+            "pages": "206"
+          },
+          "text": "数据并行主义是分布式训练最简单和最常见的形式[209]。每个GPU持有一个完整的模型副本，处理不同的微型批量，并同步梯度。",
+          "originalExcerpt": "Data Parallelism is the simplest and most common form of distributed training [209]. Each GPU holds a complete copy of the model, processes a different mini-batch, and synchronizes gradients."
+        },
+        {
+          "id": "s-11-2-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.1",
+            "pages": "206"
+          },
+          "text": "Vanilla DP (PyTorch DataParallel)。一个单一进程方法，一个“主”GPU分散输入，收集输出，并广播梯度。由GIL和PCIe带宽限制在主GPU上。",
+          "originalExcerpt": "Vanilla DP (PyTorch DataParallel). A single-process approach where one “master” GPU scatters input, gathers outputs, and broadcasts gradients. Limited by GIL and PCIe bandwidth to the master GPU."
+        },
+        {
+          "id": "s-11-2-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.1",
+            "pages": "206"
+          },
+          "text": "分布式数据并行主义(DDP， DiversedDataParallel)。多进程:每个GPU运行自己的进程。渐变通过环-全Reduce在背景中同步 [321]，而后向计算则继续。",
+          "originalExcerpt": "Distributed Data Parallelism (DDP, DistributedDataParallel). Multi-process: each GPU runs its own process. Gradients are synchronized via ring-AllReduce [321] in the background while backward computation continues."
+        },
+        {
+          "id": "s-11-2-1-b4",
+          "type": "figure",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.1",
+            "pages": "206",
+            "figure": "Figure 11.3"
+          },
+          "src": null,
+          "alt": "图11.3: DDP:每个GPU都持有完整的模型复制，处理不同的批次。渐变通过环AllReduce进行平均，与后向计算重叠。",
+          "caption": "图11.3: DDP:每个GPU都持有完整的模型复制，处理不同的批次。渐变通过环AllReduce进行平均，与后向计算重叠。",
+          "adapted": false
+        },
+        {
+          "id": "s-11-2-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.1",
+            "pages": "206"
+          },
+          "text": "DDP 的关键属性 :",
+          "originalExcerpt": "Key properties of DDP:"
+        },
+        {
+          "id": "s-11-2-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.1",
+            "pages": "206"
+          },
+          "text": "· 内存:每个GPU存储全型号+优化器+梯度。对于70B BF16: ∼560 GB/GPU -",
+          "originalExcerpt": "• Memory: Each GPU stores full model + optimizer + gradients. For 70B BF16: ∼560 GB/GPU—"
+        },
+        {
+          "id": "s-11-2-1-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.1",
+            "pages": "206"
+          },
+          "text": "无法不优化内存。",
+          "originalExcerpt": "impossible without memory optimizations."
+        },
+        {
+          "id": "s-11-2-1-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.1",
+            "pages": "206"
+          },
+          "text": "• 通信:每步一个梯度调高器。大小=模型参数×2",
+          "originalExcerpt": "• Communication: One AllReduce of gradient tensor per step. Size = model parameters × 2"
+        },
+        {
+          "id": "s-11-2-1-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.1",
+            "pages": "206"
+          },
+          "text": "字节( BF16)。 Ring AllReduce 成本: 2 ^ NN− 1 → M 字节每GPU传输。",
+          "originalExcerpt": "bytes (BF16). Ring AllReduce cost: 2 · NN−1 · M bytes transferred per GPU."
+        },
+        {
+          "id": "s-11-2-1-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.1",
+            "pages": "206"
+          },
+          "text": "• 缩放:近线性，最高为 ∼64 GPU。除此之外，通信开始占据主导地位。",
+          "originalExcerpt": "• Scaling: Near-linear up to ∼64 GPUs. Beyond that, communication starts to dominate."
+        },
+        {
+          "id": "s-11-2-1-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.1",
+            "pages": "206"
+          },
+          "text": "• 渐变桶: DDP 参数组合成桶( 默认 25 MB) 并开始",
+          "originalExcerpt": "• Gradient bucketing: DDP groups parameters into buckets (default 25 MB) and starts"
+        },
+        {
+          "id": "s-11-2-1-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.1",
+            "pages": "206"
+          },
+          "text": "等桶的梯度成熟后立即开始所有“重复”的通信，",
+          "originalExcerpt": "AllReduce as soon as a bucket’s gradients are ready—overlapping communication with backward computation."
+        },
+        {
+          "id": "s-11-2-1-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.1",
+            "pages": "207"
+          },
+          "text": "导入。以 dist 方式从。 nn 中同时导入 Di s tr i bu te d d aP ar a ll e l 作为 DDP。",
+          "originalExcerpt": "import torch . distributed as dist from torch . nn . parallel import Di s tr i bu te d Da t aP ar a ll e l as DDP"
+        },
+        {
+          "id": "s-11-2-1-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.1",
+            "pages": "207"
+          },
+          "text": "dist。 ini t process group(后端=\"nccl\") #NCCL for GPU通信模式=模型。 to (local rank) model=DDP(模式，设备 ids=[local rank])， gra di e nt as bu ck e t vie w= true，#内存优化静态 graph= True) #启用com优化",
+          "originalExcerpt": "dist . ini t_ process_group ( backend = \" nccl \" ) # NCCL for GPU communication model = model . to ( local_rank ) model = DDP ( model , device_ids =[ local_rank ] , g ra di e nt _ as _ bu ck e t_ v ie w = True , # Memory optimization static_graph = True ) # Enable comm optimizations"
+        },
+        {
+          "id": "s-11-2-1-b15",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.1",
+            "pages": "207"
+          },
+          "text": "DP vs DDP — 总是使用 DDP PyTorch 的遗产 DataParallel (DP) 绝不应用于 LLM 训练 :",
+          "originalExcerpt": "DP vs DDP — Always Use DDP PyTorch’s legacy DataParallel (DP) should never be used for LLM training:"
+        },
+        {
+          "id": "s-11-2-1-b16",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.1",
+            "pages": "207"
+          },
+          "text": "• 单一进程，受Python GIL的限制",
+          "originalExcerpt": "• Single-process, limited by Python GIL"
+        },
+        {
+          "id": "s-11-2-1-b17",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.1",
+            "pages": "207"
+          },
+          "text": "• 所有梯度通过GPU 0(瓶颈)漏斗",
+          "originalExcerpt": "• All gradients funnel through GPU 0 (bottleneck)"
+        },
+        {
+          "id": "s-11-2-1-b18",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.1",
+            "pages": "207"
+          },
+          "text": "• 2-3× 连一个节点都比DDP慢",
+          "originalExcerpt": "• 2–3× slower than DDP even on a single node"
+        },
+        {
+          "id": "s-11-2-1-b19",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.1",
+            "pages": "207"
+          },
+          "text": "• 无法超出一台机器的尺度",
+          "originalExcerpt": "• Cannot scale beyond one machine"
+        },
+        {
+          "id": "s-11-2-1-b20",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.1",
+            "pages": "207"
+          },
+          "text": "DDP是最小的平行战略，对于LLMs > 7B， FSDP/ZeRO更受青睐。",
+          "originalExcerpt": "DDP is the minimum parallelism strategy. For LLMs >7B, FSDP/ZeRO is preferred."
+        }
+      ]
+    },
+    {
+      "id": "s-11-2-2",
+      "number": "11.2.2",
+      "level": 2,
+      "enTitle": "Tensor Parallelism (TP)",
+      "zhTitle": "日相平行论(TP)",
+      "pages": "207-209",
+      "blocks": [
+        {
+          "id": "s-11-2-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.2",
+            "pages": "207-209"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.2.2「日相平行论(TP)」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-11-2-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.2",
+            "pages": "207"
+          },
+          "text": "Tensor并行主义(Megatron-LM风格[327])将单个的权重矩阵分割到GPU中，每个GPU计算一个部分结果，一个AllReduce将它们组合起来。",
+          "originalExcerpt": "Tensor Parallelism (Megatron-LM style [327]) splits individual weight matrices across GPUs. Each GPU computes a partial result, and an AllReduce combines them."
+        },
+        {
+          "id": "s-11-2-2-b2",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.2",
+            "pages": "207"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "Column-Parallel Linear Layer. The weight matrix W ∈ Rd×h is split column-wise across T GPUs: W = [W0 | W1 | · · · | WT −1 ], Wi ∈ Rd×h/T (11.1) Each GPU i computes Yi = XWi independently (no communication). The output is split along the hidden dimension."
+        },
+        {
+          "id": "s-11-2-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.2",
+            "pages": "207"
+          },
+          "text": "Row-Parallel Linear Layer。重量矩阵按分行键: W = [W0; W1;.; WT−1] Wi = + rd/T ×h。输入 X 也必须被分割。每个 GPU计算一个部分和数，然后一个 AllReduce 产生最后输出。",
+          "originalExcerpt": "Row-Parallel Linear Layer. The weight matrix is split row-wise: W = [W0 ; W1 ; . . . ; WT −1 ] where Wi ∈ Rd/T ×h . Input X must also be split. Each GPU computes a partial sum, then an AllReduce produces the final output."
+        },
+        {
+          "id": "s-11-2-2-b4",
+          "type": "figure",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.2",
+            "pages": "207",
+            "figure": "Figure 11.4"
+          },
+          "src": null,
+          "alt": "图11.4:列平行线性层(TP=2) 重量按列位分割;每个GPU独立计算XWi。 MLP用一个行平行层来配对这个，以避免冗余的AllReduce。",
+          "caption": "图11.4:列平行线性层(TP=2) 重量按列位分割;每个GPU独立计算XWi。 MLP用一个行平行层来配对这个，以避免冗余的AllReduce。",
+          "adapted": false
+        },
+        {
+          "id": "s-11-2-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.2",
+            "pages": "208"
+          },
+          "text": "带有TP的Transformer块。在Transformer层中，威震天-LM应用TP如下:",
+          "originalExcerpt": "Transformer Block with TP. In a Transformer layer, Megatron-LM applies TP as follows:"
+        },
+        {
+          "id": "s-11-2-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.2",
+            "pages": "208"
+          },
+          "text": "1. MLP:第一个线性(h ) − 4h的列平行，第二个线性(4h − h)的列平行。",
+          "originalExcerpt": "1. MLP: Column-parallel for the first linear (h → 4h), row-parallel for the second (4h → h). One"
+        },
+        {
+          "id": "s-11-2-2-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.2",
+            "pages": "208"
+          },
+          "text": "排行平行层后的所有红宝石。",
+          "originalExcerpt": "AllReduce after the row-parallel layer."
+        },
+        {
+          "id": "s-11-2-2-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.2",
+            "pages": "208"
+          },
+          "text": "2. 注意:Q、K、V预测是列平行的(分散在GPU之间)。",
+          "originalExcerpt": "2. Attention: Q, K, V projections are column-parallel (split heads across GPUs). Output"
+        },
+        {
+          "id": "s-11-2-2-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.2",
+            "pages": "208"
+          },
+          "text": "投影是行平行的。输出投影后， 一次全红调。",
+          "originalExcerpt": "projection is row-parallel. One AllReduce after output projection."
+        },
+        {
+          "id": "s-11-2-2-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.2",
+            "pages": "208"
+          },
+          "text": "3. 总计:每层Transformer2个全Reduce(一个用于注意，一个用于MLP)。",
+          "originalExcerpt": "3. Total: 2 AllReduce per transformer layer (one for attention, one for MLP)."
+        },
+        {
+          "id": "s-11-2-2-b11",
+          "type": "figure",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.2",
+            "pages": "208",
+            "figure": "Figure 11.5"
+          },
+          "src": null,
+          "alt": "图11.5: 变形器块中的天线平行通信模式。每层需要两个全Reduce操作(红色标记)——一个注意后，一个注意后，一个注意后。",
+          "caption": "图11.5: 变形器块中的天线平行通信模式。每层需要两个全Reduce操作(红色标记)——一个注意后，一个注意后，一个注意后。",
+          "adapted": false
+        },
+        {
+          "id": "s-11-2-2-b12",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.2",
+            "pages": "208"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "Why TP is Restricted to Intra-Node Each transformer layer requires 2 AllReduce operations (marked as f and g above). For a 70B model with 80 layers, that’s 160 AllReduce operations per forward pass (320 including backward). At NVLink speeds (600 GB/s), each AllReduce takes <0.5 ms. But over InfiniBand (50 GB/s), the same operation takes ∼4 ms, making the tot..."
+        },
+        {
+          "id": "s-11-2-2-b13",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.2",
+            "pages": "209"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "Rule: TP degree ≤ GPUs per node (typically TP ≤ 8). Use DP/FSDP for inter-node scaling."
+        },
+        {
+          "id": "s-11-2-2-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.2",
+            "pages": "209"
+          },
+          "text": "TP 度选择",
+          "originalExcerpt": "TP Degree Selection"
+        },
+        {
+          "id": "s-11-2-2-b15",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.2",
+            "pages": "209"
+          },
+          "text": "• TP=1:无抗热平行性。模型符合一个GPU(典型的为 13B 与 BF16 )。",
+          "originalExcerpt": "• TP=1: No tensor parallelism. Model fits on one GPU (typically ≤ 13B with BF16)."
+        },
+        {
+          "id": "s-11-2-2-b16",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.2",
+            "pages": "209"
+          },
+          "text": "• TP=2:最小分数。对2个GPU的13-34B推论是好的。低管理费用(<5%)。",
+          "originalExcerpt": "• TP=2: Minimal split. Good for 13–34B inference on 2 GPUs. Low overhead (<5%)."
+        },
+        {
+          "id": "s-11-2-2-b17",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.2",
+            "pages": "209"
+          },
+          "text": "• TP=4:34-70B推断的标准，8-12%。",
+          "originalExcerpt": "• TP=4: Standard for 34–70B inference. Overhead 8–12%."
+        },
+        {
+          "id": "s-11-2-2-b18",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.2",
+            "pages": "209"
+          },
+          "text": "• TP=8: 完全节点，70B+培训所需，12-18%。",
+          "originalExcerpt": "• TP=8: Full node. Required for 70B+ training. Overhead 12–18%."
+        },
+        {
+          "id": "s-11-2-2-b19",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.2",
+            "pages": "209"
+          },
+          "text": "• TP>8:跨节点TP。很少使用——仅用于单是PP不足的200B+型号。",
+          "originalExcerpt": "• TP>8: Cross-node TP. Rarely used—only for 200B+ models where PP alone is insufficient."
+        },
+        {
+          "id": "s-11-2-2-b20",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.2",
+            "pages": "209"
+          },
+          "text": "超标30–50%。",
+          "originalExcerpt": "Overhead 30–50%."
+        },
+        {
+          "id": "s-11-2-2-b21",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.2",
+            "pages": "209"
+          },
+          "text": "重要:注意头的数量必须可分解为TP学位。对于LLaMA-70B(64个头)，有效的TP=1，2，4，8，16，32，64.",
+          "originalExcerpt": "Important: Number of attention heads must be divisible by TP degree. For LLaMA-70B (64 heads), valid TP = 1, 2, 4, 8, 16, 32, 64."
+        }
+      ]
+    },
+    {
+      "id": "s-11-2-3",
+      "number": "11.2.3",
+      "level": 2,
+      "enTitle": "Sequence Parallelism (SP)",
+      "zhTitle": "序列平行主义(SP)",
+      "pages": "209-210",
+      "blocks": [
+        {
+          "id": "s-11-2-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.3",
+            "pages": "209-210"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.2.3「序列平行主义(SP)」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-11-2-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.3",
+            "pages": "209"
+          },
+          "text": "序列并行主义 [191] 解决了Tensor并行主义独自无法解决的记忆瓶颈:在LayerNorm和Dropout层中的激活内存。",
+          "originalExcerpt": "Sequence Parallelism [191] addresses a memory bottleneck that Tensor Parallelism alone cannot solve: the activation memory in LayerNorm and Dropout layers."
+        },
+        {
+          "id": "s-11-2-3-b2",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.3",
+            "pages": "209"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "The Problem. With TP, weight memory is split across GPUs. But LayerNorm and Dropout operate on the full hidden dimension and are replicated on every GPU. Their activations (needed for backward pass) consume memory proportional to b × s × d—the same on every GPU, unreduced by TP."
+        },
+        {
+          "id": "s-11-2-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.3",
+            "pages": "209"
+          },
+          "text": "解答。 将不需要跨 GPU 通信( LayerNorm， Dropout， 剩余连接) 的操作的序列维度分割。每个GPU都会为这些操作处理一个S/T序列片段，然后只在需要时收集完整序列(意向，线性层)。",
+          "originalExcerpt": "The Solution. Split the sequence dimension for operations that don’t require cross-GPU communication (LayerNorm, Dropout, residual connections). Each GPU processes a s/T slice of the sequence for these operations, then gathers the full sequence only where needed (attention, linear layers)."
+        },
+        {
+          "id": "s-11-2-3-b4",
+          "type": "figure",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.3",
+            "pages": "209",
+            "figure": "Figure 11.6"
+          },
+          "src": null,
+          "alt": "图11.6:序列平行主义通过沿序列维度进行分裂来减少LayerNorm/Dropout的激活内存。通信(AllGather/ReduceScotter)取代标准TP中使用的AllReduce——相同的总字节传输，但内存被保存。",
+          "caption": "图11.6:序列平行主义通过沿序列维度进行分裂来减少LayerNorm/Dropout的激活内存。通信(AllGather/ReduceScotter)取代标准TP中使用的AllReduce——相同的总字节传输，但内存被保存。",
+          "adapted": false
+        },
+        {
+          "id": "s-11-2-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.3",
+            "pages": "209"
+          },
+          "text": "SP通信是\"自由\"标准TP在每个子层之后使用AllReduce，相当于LeptScreatter + AllGather。 SP只是对这些原始物进行重新排序:",
+          "originalExcerpt": "SP Communication is “Free” Standard TP uses AllReduce after each sub-layer, which is equivalent to ReduceScatter + AllGather. SP simply reorders these primitives:"
+        },
+        {
+          "id": "s-11-2-3-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.3",
+            "pages": "209"
+          },
+          "text": "• TP 不带SP: AllReduce(=减少散射 + AllGather) → 所有GPU的相同数据 →",
+          "originalExcerpt": "• TP without SP: AllReduce (= ReduceScatter + AllGather) → same data on all GPUs →"
+        },
+        {
+          "id": "s-11-2-3-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.3",
+            "pages": "209"
+          },
+          "text": "完全的Transformer上层。",
+          "originalExcerpt": "LayerNorm on full tensor (wasteful)."
+        },
+        {
+          "id": "s-11-2-3-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.3",
+            "pages": "209"
+          },
+          "text": "• TP 含 SP: 减少散射 → 每个GPU有1/T 序列 → 部分的层核",
+          "originalExcerpt": "• TP with SP: ReduceScatter → each GPU has 1/T of sequence → LayerNorm on partial"
+        },
+        {
+          "id": "s-11-2-3-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.3",
+            "pages": "209"
+          },
+          "text": "在进入下一个 Tensor Parallel layer 前，需要通过 AllGather 重新聚合被切分的 tensor。",
+          "originalExcerpt": "tensor → AllGather before next TP layer."
+        },
+        {
+          "id": "s-11-2-3-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.3",
+            "pages": "210"
+          },
+          "text": "通信总音量完全相同！ SP 纯粹是一个内存优化， 零额外通信成本。 在使用 TP 时， 总是应该启用。 SP 的内存节省( 70B 型号， TP=8， 批量=4， 下限=2048 ) :",
+          "originalExcerpt": "The total communication volume is identical! SP is purely a memory optimization with zero additional communication cost. It should always be enabled when using TP. Memory savings from SP (70B model, TP=8, batch=4, seq=2048):"
+        },
+        {
+          "id": "s-11-2-3-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.3",
+            "pages": "210"
+          },
+          "text": "激活节省=(T−1)×b×s×d×nlayers = 7×4×2048×8192×80×2 =59GB/GPU(11.2) 元件组 元件组 元件组 元件组 元件组 元件组 元件组 元件组 元件组 元件组 元件组 元件组 元件组 元件组 元件组 元件组 元件组 元件组 元件组 元组 元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组元组",
+          "originalExcerpt": "Activation savings = (T −1)×b×s×d×nlayers ×2 bytes = 7×4×2048×8192×80×2 ≈ 59 GB/GPU (11.2)"
+        }
+      ]
+    },
+    {
+      "id": "s-11-2-4",
+      "number": "11.2.4",
+      "level": 2,
+      "enTitle": "Pipeline Parallelism (PP)",
+      "zhTitle": "管道平行主义( PP)",
+      "pages": "210-211",
+      "blocks": [
+        {
+          "id": "s-11-2-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.4",
+            "pages": "210-211"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.2.4「管道平行主义( PP)」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-11-2-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.4",
+            "pages": "210"
+          },
+          "text": "管道平行主义将模型垂直地分层，将连续的层组分配到不同的设备(阶段)。激活流经各个阶段;梯度流向后。",
+          "originalExcerpt": "Pipeline Parallelism splits the model vertically by layers, assigning consecutive groups of layers to different devices (stages). Activations flow forward through stages; gradients flow backward."
+        },
+        {
+          "id": "s-11-2-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.4",
+            "pages": "210"
+          },
+          "text": "泡泡问题。 纯管道执行会创造“泡泡”- 空闲时间， 而一个阶段会等待上一个阶段的输入， 或者从下一个阶段的梯度:",
+          "originalExcerpt": "The Bubble Problem. Naive pipeline execution creates “bubbles”—idle time while a stage waits for input from the previous stage or gradients from the next:"
+        },
+        {
+          "id": "s-11-2-4-b3",
+          "type": "figure",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.4",
+            "pages": "210",
+            "figure": "Figure 11.7"
+          },
+          "src": null,
+          "alt": "Figure 11.7：Pipeline bubble 对比。仅一个 microbatch 的朴素 pipeline 会产生大量空闲时间；增加 microbatch 数量可让相邻 stage 重叠工作，当 M 远大于 pipeline stage 数 P 时，bubble fraction 接近零。",
+          "caption": "Figure 11.7：Pipeline bubble 对比。仅一个 microbatch 的朴素 pipeline 会产生大量空闲时间；增加 microbatch 数量可让相邻 stage 重叠工作，当 M 远大于 pipeline stage 数 P 时，bubble fraction 接近零。",
+          "adapted": false
+        },
+        {
+          "id": "s-11-2-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.4",
+            "pages": "210"
+          },
+          "text": "泡泡分数公式。对于P 管道级和每步 M 微管: P− 1 P− 1 泡泡分数= + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + +",
+          "originalExcerpt": "Bubble Fraction Formula. For P pipeline stages and M micro-batches per step: P −1 P −1 Bubble fraction = ≈ (when M ≫ P ) (11.3) P +M −1 M To keep bubble overhead <10%, you need M ≥ 10 · (P − 1). For PP=4: at least 30 micro-batches."
+        },
+        {
+          "id": "s-11-2-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.4",
+            "pages": "210"
+          },
+          "text": "表11.1:管道调度战略",
+          "originalExcerpt": "Table 11.1: Pipeline scheduling strategies"
+        },
+        {
+          "id": "s-11-2-4-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.4",
+            "pages": "210"
+          },
+          "text": "排程泡内存特征 P−1 GPipe M + P−1 M−1 M−激活简单;全向后后后退 [152] P−1 1F1B M + P−1 P−激活互换; 单向后退 [152] P−1F1B M + P−1P−1 P−激活 Explaved; 单向后退[152] P−1F1B M +P−1P−1P−1 P−激活 +1P− Explaved; 单向后退[152]; 单向后退[152] ; 单向后退[1]; 双向后退[1] ; 双向后退[1] ; 双向后退[1] ; 双向后退[1] ; 双向后退[1F1B ; 双向后退[1] ; 双向后退[1P ; ; 双向后退[1 ; ; 双向后退[1F 双向后退稳定态内存的边界[263]P−1 互离 1F1B M・V+P−1 P−激活 虚拟级(V);进一步减少泡[264] 零泡(ZB-H1) ≈0 P−激活 向后分裂为B级和W级[296]管道调度。1F1B:生产标准 1F1B(一前向-一后向)调度[263]在大多数生产系统中都使用(Megatron-LM [264]， DeepSpeed [304]): 温室:前进通道填充管道(P-1微管)。稳态: 每个时段可选择一个前向和一个后向。 这会将峰值激活内存限制在 P 微管( vs M for Gipe)。 冷却: 剩余后向通道排出管道。内存优势:GPipe必须同时存储所有M微管的激活器。1F1B只存储稳定状态下的P组激活器——当M=32但P=4时非常关键。",
+          "originalExcerpt": "Schedule Bubble Memory Characteristics P −1 GPipe M +P −1 M × activations Simple; all-forward then allbackward [152] P −1 1F1B M +P −1 P × activations Interleaved; steady-state memory bounded [263] P −1 Interleaved 1F1B M ·V +P −1 P × activations Virtual stages (V ); further reduces bubble [264] Zero-Bubble (ZB-H1) ≈0 P × activations Splits backward into B a..."
+        },
+        {
+          "id": "s-11-2-4-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.4",
+            "pages": "211"
+          },
+          "text": "PP。与TP(全Reduce)不同的是， PP只要求邻相之间点对点的激活通信:",
+          "originalExcerpt": "Communication in PP. Unlike TP (AllReduce), PP only requires point-to-point communication of activations between adjacent stages:"
+        },
+        {
+          "id": "s-11-2-4-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.4",
+            "pages": "211"
+          },
+          "text": "数据每一次传输=bmicro × s × d × 2字节(BF16) (11.4)",
+          "originalExcerpt": "Data per transfer = bmicro × s × d × 2 bytes (BF16) (11.4)"
+        },
+        {
+          "id": "s-11-2-4-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.4",
+            "pages": "211"
+          },
+          "text": "对于微批=4，下游=2048， d=8192:4×2048×8192×2=128 MB每次转让。 InfiniBand 50 GB/s:每次转让2.6 ms——相对于每个阶段的计算来说，相对小。",
+          "originalExcerpt": "For micro-batch=4, seq=2048, d=8192: 4 × 2048 × 8192 × 2 = 128 MB per transfer. At InfiniBand 50 GB/s: 2.6 ms per transfer—small relative to compute per stage."
+        },
+        {
+          "id": "s-11-2-4-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.4",
+            "pages": "211"
+          },
+          "text": "负载平衡。 并非所有的层都有相同的计算 :",
+          "originalExcerpt": "Load Balancing. Not all layers have equal compute:"
+        },
+        {
+          "id": "s-11-2-4-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.4",
+            "pages": "211"
+          },
+          "text": "• 嵌入层:非常便宜(表)。",
+          "originalExcerpt": "• Embedding layer: Very cheap (lookup table)."
+        },
+        {
+          "id": "s-11-2-4-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.4",
+            "pages": "211"
+          },
+          "text": "• 变形器块:统一计算。",
+          "originalExcerpt": "• Transformer blocks: Uniform compute."
+        },
+        {
+          "id": "s-11-2-4-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.4",
+            "pages": "211"
+          },
+          "text": "• 最后LM头:中度(词汇投影的大型矩阵乘法)。",
+          "originalExcerpt": "• Final LM head: Moderate (large matrix multiply for vocabulary projection)."
+        },
+        {
+          "id": "s-11-2-4-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.4",
+            "pages": "211"
+          },
+          "text": "将更多的Transformer层分配到中间阶段，将较少的层分配到第一/末级以平衡计算。",
+          "originalExcerpt": "Assign more transformer layers to middle stages and fewer to the first/last stages to balance compute."
+        }
+      ]
+    },
+    {
+      "id": "s-11-2-5",
+      "number": "11.2.5",
+      "level": 2,
+      "enTitle": "Fully Sharded Data Parallelism (FSDP / ZeRO-3)",
+      "zhTitle": "完全硬化数据并行性(FSDP/ZeRO-3)",
+      "pages": "211-213",
+      "blocks": [
+        {
+          "id": "s-11-2-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.5",
+            "pages": "211-213"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.2.5「完全硬化数据并行性(FSDP/ZeRO-3)」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-11-2-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.5",
+            "pages": "211"
+          },
+          "text": "FSDP [431] (PyTorch) 和 ZeRO-3 [304] (DeepSpeed) 解决DDP中固有的内存重复:而不是每个GPU持有一个完整的参数副本，梯度，和优化状态，每个GPU只拥有一个1/N切片，并在需要时重建全升降机。",
+          "originalExcerpt": "FSDP [431] (PyTorch) and ZeRO-3 [304] (DeepSpeed) address the memory duplication inherent in DDP: instead of every GPU holding a full copy of parameters, gradients, and optimizer states, each GPU owns only a 1/N slice and reconstructs the full tensor on-the-fly when needed."
+        },
+        {
+          "id": "s-11-2-5-b2",
+          "type": "figure",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.5",
+            "pages": "211",
+            "figure": "Figure 11.8"
+          },
+          "src": null,
+          "alt": "图11.8: FSDP 将所有模型状态压缩到GPU。每个GPU拥有1/N 参数、优化状态和梯度。 完整的参数通过AllGather按需重建，然后每层计算。 FSDP 执行流量每层 :",
+          "caption": "图11.8: FSDP 将所有模型状态压缩到GPU。每个GPU拥有1/N 参数、优化状态和梯度。 完整的参数通过AllGather按需重建，然后每层计算。 FSDP 执行流量每层 :",
+          "adapted": false
+        },
+        {
+          "id": "s-11-2-5-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.5",
+            "pages": "211"
+          },
+          "text": "1. 前进:全银河参数 → 计算 → 丢弃非自有硬体。",
+          "originalExcerpt": "1. Forward: AllGather parameters → compute → discard non-owned shards."
+        },
+        {
+          "id": "s-11-2-5-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.5",
+            "pages": "211"
+          },
+          "text": "2. 向后:全Gather参数(又) → 计算梯度 → 减小散射梯度",
+          "originalExcerpt": "2. Backward: AllGather parameters (again) → compute gradients → ReduceScatter gradients"
+        },
+        {
+          "id": "s-11-2-5-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.5",
+            "pages": "211"
+          },
+          "text": "~ 丢弃非自有参数的硬体。",
+          "originalExcerpt": "(each GPU gets its gradient shard) → discard non-owned parameter shards."
+        },
+        {
+          "id": "s-11-2-5-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.5",
+            "pages": "211"
+          },
+          "text": "3. 优化步骤:每个GPU只使用梯度硬度和",
+          "originalExcerpt": "3. Optimizer step: Each GPU updates only its owned shard using its gradient shard and"
+        },
+        {
+          "id": "s-11-2-5-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.5",
+            "pages": "211"
+          },
+          "text": "优化状态。",
+          "originalExcerpt": "optimizer states."
+        },
+        {
+          "id": "s-11-2-5-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.5",
+            "pages": "211"
+          },
+          "text": "由 flasdoles 导入。分发的 fsdp 导入 F u y S ar d e d d d el， 由 fisdp 导入 FSDP。分发的 fsdp 导入 ShardingStrategy， 混合精度， 后向前 从。分发的 fsdp 导入 n r 导入 n o r e r。 u r r r models models models models models models models models models models models models models models models models models models model model model model model model model model model model model model model model model model model model model model model model model model model import import import import import import import import import import import import import import import import import import import import import import import import import import import import",
+          "originalExcerpt": "from functools import partial from torch . distributed . fsdp import F u ll y S h ar d e d Da t a P ar a l l el as FSDP from torch . distributed . fsdp import ShardingStrategy , MixedPrecision , BackwardPrefetch from torch . distributed . fsdp . wrap import t r a n s f o r m e r _ a u t o _ w r a p _ p o l i c y from transformers . models . llama . modeling_..."
+        },
+        {
+          "id": "s-11-2-5-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.5",
+            "pages": "212"
+          },
+          "text": "表11.2:内存比较:DDP对FSDP/ZeRO级(70B型，8GPU)。基线:BF16参数(140GB)+BF16格度(140GB)+FP32主+m+v(840GB)=每GPU1120GB。",
+          "originalExcerpt": "Table 11.2: Memory comparison: DDP vs FSDP/ZeRO stages (70B model, 8 GPUs). Baseline: BF16 params (140 GB) + BF16 grads (140 GB) + FP32 master+m+v (840 GB) = 1120 GB per GPU."
+        },
+        {
+          "id": "s-11-2-5-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.5",
+            "pages": "212"
+          },
+          "text": "战略 硬化内存/GPU 通信 DDP(无硬化) 无 1120 GB × AllReduce(仅分级) ZeRO-1 优化器表示 385 GB × AllReduce(分级器) ZeRO-2 优化器 + gradi- 368 GB × AllReduce(分级器) ents ZeRO-3 / FSDP Everything 140 GB → AllGather + 减速器(每层)",
+          "originalExcerpt": "Strategy Sharded Memory/GPU Communication DDP (no sharding) Nothing 1120 GB × AllReduce (gradients only) ZeRO-1 Optimizer states 385 GB × AllReduce (gradients) ZeRO-2 Optimizer + gradi- 368 GB × AllReduce (gradients) ents ZeRO-3 / FSDP Everything 140 GB ✓ AllGather + ReduceScatter (per layer)"
+        },
+        {
+          "id": "s-11-2-5-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.5",
+            "pages": "212"
+          },
+          "text": "# FSDP 自动 wrap = 部分(Transformer 自动 wrap policy， tra nsfo r cl s ={ LlamaDecoderLayer }) mp policy = 混合精度(param dtype = 火炬。 bfloat16)， 减少 dtype = 火炬。 bfloat16， 缓冲 dtype = 火炬。 bfloat16，) 互联网档案馆的存檔，存档日期2014-09-02.",
+          "originalExcerpt": "# Wrap model with FSDP auto_wrap = partial ( transformer_auto_wrap_policy , tra nsfo rmer _laye r_cl s ={ LlamaDecoderLayer }) mp_policy = MixedPrecision ( param_dtype = torch . bfloat16 , reduce_dtype = torch . bfloat16 , buffer_dtype = torch . bfloat16 , )"
+        },
+        {
+          "id": "s-11-2-5-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.5",
+            "pages": "212"
+          },
+          "text": "model = FSDP(型号， shar ding 战略 = 硬化战略)。 FulL SHARD，#ZeRO -3 混合 精度=mp policy，自动 围攻 政策=自动 围攻，# 包每一Transformer层使用 orig params = True，# 需要火炬。编译兼容性 limi t all gathers = True，# 捆绑峰值内存 (一次飞行中的所有Gather) 前置 预置=真，# 在当前层后置区间预置下层参数 预置=后置。后卫， 后卫 )",
+          "originalExcerpt": "model = FSDP ( model , shar ding_strategy = ShardingStrategy . FULL_SHARD , # ZeRO -3 mixed_precision = mp_policy , auto_wrap_policy = auto_wrap , # Wrap each transformer layer use_orig_params = True , # Required for torch . compile compatibility limi t_all_gathers = True , # Bound peak memory (1 AllGather in flight at a time ) forward_prefetch = True , # Pr..."
+        },
+        {
+          "id": "s-11-2-5-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.5",
+            "pages": "212"
+          },
+          "text": "FSDP通信卷 FSDP每步传输的数据比DDP多3×:",
+          "originalExcerpt": "FSDP Communication Volume FSDP communicates 3× more data than DDP per step:"
+        },
+        {
+          "id": "s-11-2-5-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.5",
+            "pages": "212"
+          },
+          "text": "• DDP:1 梯度全调=2M字节，共跨环(其中M=模型大小在",
+          "originalExcerpt": "• DDP: 1 AllReduce of gradients = 2M bytes total across ring (where M = model size in"
+        },
+        {
+          "id": "s-11-2-5-b16",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.5",
+            "pages": "212"
+          },
+          "text": "• FSDP: 2 AllGather(向前+后向)+1 减Sclockter=3M字节。",
+          "originalExcerpt": "• FSDP: 2 AllGather (forward + backward) + 1 ReduceScatter = 3M bytes."
+        },
+        {
+          "id": "s-11-2-5-b17",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.5",
+            "pages": "212"
+          },
+          "text": "这是一种记忆-通信的权衡。 当(a) 模型与DDP不兼容GPU内存，或者(b) 通信与计算(现代框架实现70-90%的重叠)的完善， FSDP是值得的。",
+          "originalExcerpt": "This is the memory–communication trade-off. FSDP is worthwhile when: (a) model doesn’t fit in GPU memory with DDP, or (b) communication is well-overlapped with compute (modern frameworks achieve 70–90% overlap)."
+        },
+        {
+          "id": "s-11-2-5-b18",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.5",
+            "pages": "212"
+          },
+          "text": "11.2.6 3D并行性:将战略生产系统在规模(70B+)上结合了TP， PP，和DP/FSDP同时:生产食谱:64 A100-80GB(8节点)内节点(NVLink 600GB/s)上的70B:TP=8 用于生成， FSDP在节点内用于培训。",
+          "originalExcerpt": "11.2.6 3D Parallelism: Combining Strategies Production systems at scale (70B+) combine TP, PP, and DP/FSDP simultaneously: Production Recipe: 70B on 64 A100-80GB (8 nodes) Intra-node (NVLink 600GB/s): TP=8 for generation, FSDP within node for training."
+        },
+        {
+          "id": "s-11-2-5-b19",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.5",
+            "pages": "212"
+          },
+          "text": "间节点(InfiniBand 400Gb/s):FSDP横跨节点(8-way数据平行)。",
+          "originalExcerpt": "Inter-node (InfiniBand 400Gb/s): FSDP across nodes (8-way data parallel)."
+        },
+        {
+          "id": "s-11-2-5-b20",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.5",
+            "pages": "212"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "Result: Each GPU holds ∼70GB. Policy weights gathered per-layer during forward/backward."
+        },
+        {
+          "id": "s-11-2-5-b21",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.5",
+            "pages": "212"
+          },
+          "text": "管道平行:只有当模型超过100B+并且无法适应TP+ZeRO时。 添加复杂度(bulble overty 10–20 % ) 和排程性头痛。",
+          "originalExcerpt": "Pipeline Parallel: Only if model exceeds 100B+ and won’t fit with TP+ZeRO. Adds complexity (bubble overhead 10–20%) and scheduling headaches."
+        },
+        {
+          "id": "s-11-2-5-b22",
+          "type": "figure",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.5",
+            "pages": "213",
+            "figure": "Figure 11.9"
+          },
+          "src": null,
+          "alt": "图11.9:16 GPU的3D并行布局:TP=4(每个框内，使用NVLink)， PP=2(橙箭头，阶段)， DP=2(红箭头，梯度同步)，每个维度利用通信层次的不同级别。",
+          "caption": "图11.9:16 GPU的3D并行布局:TP=4(每个框内，使用NVLink)， PP=2(橙箭头，阶段)， DP=2(红箭头，梯度同步)，每个维度利用通信层次的不同级别。",
+          "adapted": false
+        },
+        {
+          "id": "s-11-2-5-b23",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.5",
+            "pages": "213"
+          },
+          "text": "决定流程图:",
+          "originalExcerpt": "Decision flowchart:"
+        },
+        {
+          "id": "s-11-2-5-b24",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.5",
+            "pages": "213"
+          },
+          "text": "1. 该模型是否适合1GPU？− 使用DDP。",
+          "originalExcerpt": "1. Does the model fit on 1 GPU? → Use DDP."
+        },
+        {
+          "id": "s-11-2-5-b25",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.5",
+            "pages": "213"
+          },
+          "text": "2. 是否与FSDP合用1节点？使用FSDP(ZeRO-3)。",
+          "originalExcerpt": "2. Does it fit on 1 node with FSDP? → Use FSDP (ZeRO-3)."
+        },
+        {
+          "id": "s-11-2-5-b26",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.5",
+            "pages": "213"
+          },
+          "text": "3. 是否与TP+FSDP合用1节点？→使用TP(内节点)+FSDP(间节点)。",
+          "originalExcerpt": "3. Does it fit on 1 node with TP+FSDP? → Use TP (intra-node) + FSDP (inter-node)."
+        },
+        {
+          "id": "s-11-2-5-b27",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.5",
+            "pages": "213"
+          },
+          "text": "4. 仍然不合适？– 在整个节点添加 PP。 这是最后的手段。",
+          "originalExcerpt": "4. Still doesn’t fit? → Add PP across nodes. This is the last resort."
+        },
+        {
+          "id": "s-11-2-5-b28",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.5",
+            "pages": "213"
+          },
+          "text": "表11.3: 国家平行策略比较摘要 策略 分裂 通信 扩展限制 超头 当使用DP/DDP 批量 AllReduce(分级) →64 GPU 5–10% 模型适合 1 GPU FSDP Params+Opt+Gather+RS 100% 的 GPU 10–20% 默认 →13B TP 重矩阵 AllReduce (2/layer) 8 GPU (1节点) 12–18% 大型模型推论+列车 SP 激活(seq) 重用TP comms 相同 →% 总是与TP PP 层(阶段)相加的 + + + + 100% 偏差 → 15–30% 100B+ 模型",
+          "originalExcerpt": "Table 11.3: Parallelism strategy comparison summary Strategy Splits Communication Scaling Limit Overhead When to Use DP/DDP Batch AllReduce (grads) ∼64 GPUs 5–10% Model fits on 1 GPU FSDP Params+Opt+Grad AllGather+RS 100s of GPUs 10–20% Default for >13B TP Weight matrices AllReduce (2/layer) 8 GPUs (1 node) 12–18% Large model inference+train SP Activations (..."
+        }
+      ]
+    },
+    {
+      "id": "s-11-2-7",
+      "number": "11.2.7",
+      "level": 2,
+      "enTitle": "Decoupled DiLoCo: Training Across Datacenters",
+      "zhTitle": "解除了DiLoCo:跨数据中心培训",
+      "pages": "213-214",
+      "blocks": [
+        {
+          "id": "s-11-2-7-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.7",
+            "pages": "213-214"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.2.7「解除了DiLoCo:跨数据中心培训」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-11-2-7-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.7",
+            "pages": "213"
+          },
+          "text": "常规分布式培训假设在一个单一数据中心内有100+Gbps InfiniBand的高频宽互联。这一要求使得无法利用标准的互联网链接对地理分布的数据中心进行培训。脱钩的DiLoCo [114] (Google DeepMind，2026年4月)打破了这一假设，使得各地区能够进行具有商品带宽的大规模培训。 DiLoCo: 核心Idea DiLoCo(以压缩方式分配本地SGD)以定期的外延更新取代连续的梯度同步:",
+          "originalExcerpt": "Conventional distributed training assumes high-bandwidth interconnects—100+ Gbps InfiniBand within a single datacenter. This requirement makes it impossible to train across geographically distributed datacenters using standard internet links. Decoupled DiLoCo [114] (Google DeepMind, April 2026) breaks this assumption, enabling large-scale training across reg..."
+        },
+        {
+          "id": "s-11-2-7-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.7",
+            "pages": "213"
+          },
+          "text": "1. 每个工人我都在其本地数据中独立地为H级内步训练。",
+          "originalExcerpt": "1. Each worker i trains independently for H inner steps on its local data shard."
+        },
+        {
+          "id": "s-11-2-7-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.7",
+            "pages": "213"
+          },
+          "text": "2. H步骤之后，工人通过计算外部更新同步:",
+          "originalExcerpt": "2. After H steps, workers synchronize by computing an outer update:"
+        },
+        {
+          "id": "s-11-2-7-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.7",
+            "pages": "213"
+          },
+          "text": "N × × (H) (0) × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × × ×",
+          "originalExcerpt": "N \u0010 1 X (H) (0) \u0011 ∆outer = θi − θ i N i=1"
+        },
+        {
+          "id": "s-11-2-7-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.7",
+            "pages": "213"
+          },
+          "text": "(0) N为工人人数， Qi为共用的起始检查站。",
+          "originalExcerpt": "(0) where N is the number of workers and θi is the shared starting checkpoint."
+        },
+        {
+          "id": "s-11-2-7-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.7",
+            "pages": "213"
+          },
+          "text": "3. 外部更新通过全球优化器(如Nesterov动力)应用，以及所有",
+          "originalExcerpt": "3. The outer update is applied via a global optimizer (e.g., Nesterov momentum), and all"
+        },
+        {
+          "id": "s-11-2-7-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.7",
+            "pages": "213"
+          },
+          "text": "工人重新安装到新的共享。",
+          "originalExcerpt": "workers reset to the new shared θ."
+        },
+        {
+          "id": "s-11-2-7-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.7",
+            "pages": "213"
+          },
+          "text": "只有外延更新(每H步一个模型大小的拉伸)才能穿过网络——而不是每步梯度。",
+          "originalExcerpt": "Only the outer update (one model-sized tensor per H steps) crosses the network—not per-step gradients."
+        },
+        {
+          "id": "s-11-2-7-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.7",
+            "pages": "214"
+          },
+          "text": "脱钩的DiLoCo通过进一步脱钩来扩展:工人不需要同步。 相反，更新是跨区域的同步，在到达时由协调员应用外部更新。这能容忍广域网的可变间隔。 脱钩的DiLoCo: 经验结果 A 12B参数模型在4个美国地理区域通过标准互联网链接(2–5 Gbps) 进行了培训:",
+          "originalExcerpt": "Decoupled DiLoCo extends this by further decoupling the outer synchronization: workers do not need to synchronize simultaneously. Instead, updates are asynchronous across regions, with a coordinator applying outer updates as they arrive. This tolerates the variable latency of wide-area networks. Decoupled DiLoCo: Empirical Results A 12B parameter model was t..."
+        },
+        {
+          "id": "s-11-2-7-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.7",
+            "pages": "214"
+          },
+          "text": "• 宽幅降幅:比同步分布式训练的带宽减少236×。",
+          "originalExcerpt": "• Bandwidth reduction: 236× less bandwidth than synchronous distributed training."
+        },
+        {
+          "id": "s-11-2-7-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.7",
+            "pages": "214"
+          },
+          "text": "• 速度:20×时钟时数比完全同步的SGD(受 stale 困扰)快",
+          "originalExcerpt": "• Speed: 20× faster wall-clock time than fully asynchronous SGD (which suffers from stale"
+        },
+        {
+          "id": "s-11-2-7-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.7",
+            "pages": "214"
+          },
+          "text": "• 模型质量:对标准语文模型板凳进行单一数据中心培训",
+          "originalExcerpt": "• Model quality: Matches single-datacenter training on standard language modeling bench-"
+        },
+        {
+          "id": "s-11-2-7-b15",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.7",
+            "pages": "214"
+          },
+          "text": "^ 过失容忍:工人失败只延迟外延更新，而不是整个训练运行。",
+          "originalExcerpt": "• Fault tolerance: Worker failures only delay the outer update, not the entire training run."
+        },
+        {
+          "id": "s-11-2-7-b16",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.7",
+            "pages": "214"
+          },
+          "text": "为何此事:主权AI和多层脱钩的DiLoCo具有超越效率的重大影响:",
+          "originalExcerpt": "Why This Matters: Sovereign AI and Multi-Cloud Decoupled DiLoCo has significant implications beyond efficiency:"
+        },
+        {
+          "id": "s-11-2-7-b17",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.7",
+            "pages": "214"
+          },
+          "text": "• 主权AI:国家或组织可以从自己的数据中心中提供计算资料",
+          "originalExcerpt": "• Sovereign AI: Nations or organizations can contribute compute from their own datacenters"
+        },
+        {
+          "id": "s-11-2-7-b18",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.7",
+            "pages": "214"
+          },
+          "text": "而不通过中央设施提供敏感数据。",
+          "originalExcerpt": "without routing sensitive data through a central facility."
+        },
+        {
+          "id": "s-11-2-7-b19",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.7",
+            "pages": "214"
+          },
+          "text": "• 多云培训:在阿瓦斯、全球合作方案和阿祖尔西穆尔塔内-各地利用点点实例",
+          "originalExcerpt": "• Multi-cloud training: Leverage spot instances across AWS, GCP, and Azure simultane-"
+        },
+        {
+          "id": "s-11-2-7-b20",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.7",
+            "pages": "214"
+          },
+          "text": "一路绕着停机坪走",
+          "originalExcerpt": "ously, routing around outages."
+        },
+        {
+          "id": "s-11-2-7-b21",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.7",
+            "pages": "214"
+          },
+          "text": "数据中心复原力:数据中心故障仅丧失工人对",
+          "originalExcerpt": "• Datacenter resilience: A datacenter failure loses only that worker’s contribution for the"
+        },
+        {
+          "id": "s-11-2-7-b22",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.7",
+            "pages": "214"
+          },
+          "text": "当前的 H 步窗口， 而不是整个运行。",
+          "originalExcerpt": "current H-step window, not the entire run."
+        },
+        {
+          "id": "s-11-2-7-b23",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.7",
+            "pages": "214"
+          },
+          "text": "• 不同硬件:不同GPU世代的工人可以参加，每个工人",
+          "originalExcerpt": "• Heterogeneous hardware: Workers with different GPU generations can participate, each"
+        },
+        {
+          "id": "s-11-2-7-b24",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.7",
+            "pages": "214"
+          },
+          "text": "以自己的速度运行。",
+          "originalExcerpt": "running at their own pace."
+        },
+        {
+          "id": "s-11-2-7-b25",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.2.7",
+            "pages": "214"
+          },
+          "text": "关键见解是，现代优化器是强健的，不经常的，吵闹的外在更新——内在训练步骤提供了足够的局部信号，即外在同步只需要纠正分布漂移。",
+          "originalExcerpt": "The key insight is that modern optimizers are robust to infrequent, noisy outer updates—the inner training steps provide sufficient local signal that the outer synchronization only needs to correct for distribution drift."
+        }
+      ]
+    },
+    {
+      "id": "s-11-3",
+      "number": "11.3",
+      "level": 1,
+      "enTitle": "The Generation Bottleneck: Quantitative Analysis",
+      "zhTitle": "世代博特伦克:定量分析",
+      "pages": "214-215",
+      "blocks": [
+        {
+          "id": "s-11-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.3",
+            "pages": "214-215"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.3「世代博特伦克:定量分析」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-11-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.3",
+            "pages": "214"
+          },
+          "text": "屋顶线分析:为什么世代是内存-Bond A100规格:312 TFLOPS(BF16 收录核心)，2 TB/s HBM带宽。屋顶线交叉:312T/2T = 156 FLOP/字节。156 FLOP/字节以下的操作是内存的。自动递归生成:每个符号，改为所有重量(140GB，70B)，并做2×70B=每枚符号140G FLOP(批量=1) 算术强度:140G FLOP/140GB=1 FLOP/字节。这是在屋顶线下156×!使用量:1，156 = 峰值FLOPS使用的0.6%。 GPU闲置99.4%，等待内存读取。 Token rate: 2TB/s/140GB = 14.3 令牌/秒(单流，批量=1)。512令牌: 512/14.3 = 35.8秒每回(批量=1， TP=1)。键盘帮助: 带TP=4 = = = 64 读重一次， 生成64个符号平行。算术强度: 64 × 1 = 64 FLOP/字节。更好， 但依然低于屋顶线！优化堆栈( 累积速度 ):",
+          "originalExcerpt": "Roofline Analysis: Why Generation is Memory-Bound A100 specs: 312 TFLOPS (BF16 tensor cores), 2 TB/s HBM bandwidth. Roofline crossover: 312T/2T = 156 FLOP/byte. Operations below 156 FLOP/byte are memory-bound. Autoregressive generation: For each token, read all weights (140GB for 70B) and do 2 × 70B = 140G FLOPs per token (at batch=1). Arithmetic intensity: ..."
+        },
+        {
+          "id": "s-11-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.3",
+            "pages": "214"
+          },
+          "text": "1. vLLM + Paged 注意 [195] (2–4×):消除 KV 缓存碎裂， 允许更大的",
+          "originalExcerpt": "1. vLLM + PagedAttention [195] (2–4×): Eliminates KV cache fragmentation, enables larger"
+        },
+        {
+          "id": "s-11-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.3",
+            "pages": "215"
+          },
+          "text": "表11.4: 国家70B型号的生成吞吐量(512个令牌，各种配置) 配置批量时间/批量托克/s/GPU Notes=1，批量1 36s 14 基线，最差的病例TP=4，批量1 9s 57 线性TP缩放 gen TP=4，批量3 2 15s 1092 近最佳批量TP=4，批量=128， vLLM 128 45s 1456 连续批量TP=4，批量=128， INT8 128 25s 2621 2× 带宽节制",
+          "originalExcerpt": "Table 11.4: Generation throughput for 70B model (512 tokens, various configurations) Config Batch Time/batch Tok/s/GPU Notes TP=1, batch=1 1 36s 14 Baseline, worst case TP=4, batch=1 1 9s 57 Linear TP scaling for gen TP=4, batch=32 32 15s 1092 Near-optimal batching TP=4, batch=128, vLLM 128 45s 1456 Continuous batching TP=4, batch=128, INT8 128 25s 2621 2× b..."
+        },
+        {
+          "id": "s-11-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.3",
+            "pages": "215"
+          },
+          "text": "2. 连续批量[412] (1.5-2x):不要等待最长的顺序;开始新的顺序为:",
+          "originalExcerpt": "2. Continuous batching [412] (1.5–2×): Don’t wait for longest sequence; start new ones as"
+        },
+        {
+          "id": "s-11-3-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.3",
+            "pages": "215"
+          },
+          "text": "3. 分样解码 [205] (2–3×):小样草案提出5个符，大样子验证。",
+          "originalExcerpt": "3. Speculative decoding [205] (2–3×): Small draft model proposes 5 tokens, large model verifies"
+        },
+        {
+          "id": "s-11-3-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.3",
+            "pages": "215"
+          },
+          "text": "以向前移动的方式。平均接受 3–4.",
+          "originalExcerpt": "in one forward pass. Accept 3–4 on average."
+        },
+        {
+          "id": "s-11-3-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.3",
+            "pages": "215"
+          },
+          "text": "4. gen(2×)的INT8/FP8重量:带宽需要减半。",
+          "originalExcerpt": "4. INT8/FP8 weights for gen (2×): Halve bandwidth needs. Quality loss is minimal since"
+        },
+        {
+          "id": "s-11-3-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.3",
+            "pages": "215"
+          },
+          "text": "我们正在采样(不是计算训练的确切数)",
+          "originalExcerpt": "we’re sampling (not computing exact logits for training)"
+        },
+        {
+          "id": "s-11-3-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.3",
+            "pages": "215"
+          },
+          "text": "5. CUDA图(1.1-1.3×):消除固定形状业务的内核发射管理费用",
+          "originalExcerpt": "5. CUDA graphs (1.1–1.3×): Eliminate kernel launch overhead for fixed-shape operations"
+        },
+        {
+          "id": "s-11-3-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.3",
+            "pages": "215"
+          },
+          "text": "6。前缀缓存( 共享前缀提示的1.5x): 不要重算系统提示 KV 缓存",
+          "originalExcerpt": "6. Prefix caching (1.5× for shared-prefix prompts): Don’t recompute system prompt KV cache"
+        },
+        {
+          "id": "s-11-3-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.3",
+            "pages": "215"
+          },
+          "text": "生产 vLLM 生成设置从 vllm 导入 LLM， 抽样Params",
+          "originalExcerpt": "# Production vLLM generation setup from vllm import LLM , SamplingParams"
+        },
+        {
+          "id": "s-11-3-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.3",
+            "pages": "215"
+          },
+          "text": "发动机=LLM(型号= \"./政策 检查点 \"， t e o r 并行 大小=4， # TP = 4 – exactle g pu m e mo ry ut il iza ti on =0.92)，#留置室用于 KV缓存 m a x u m 蝙蝠ched to ke ns =16384，#飞行中最大标志值x num seqs =256，#最大并行序列 dtype = \" bfloat16 \"， e bl e f 预 x ca bincust g= true，#卡切系统 提示 KV speculative model= \"./草案 1B \"，# 光谱解码num =， Seculati ke ns =5s seclock s=set= spition， seup 16 spit= spit= spit sient= sient",
+          "originalExcerpt": "engine = LLM ( model = \" ./ policy_checkpoint \" , t e n s o r _parallel_size =4 , # TP =4 per instance g p u _ m e mo ry_ ut il iza ti on =0.92 , # Leave headroom for KV cache m a x _ n u m_ bat ch ed _to ke ns =16384 , # Max tokens in flight max_num_seqs =256 , # Max concurrent sequences dtype = \" bfloat16 \" , e n a b l e _ pref ix_ca chin g = True , # Cach..."
+        },
+        {
+          "id": "s-11-3-b15",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.3",
+            "pages": "215"
+          },
+          "text": "# 生成 RLHF 批次采样的响应 params = 采样Params (温度=0.7， 顶+p = 0.9， 最大 tokens = 512， logprobs = 1， # 需要日志 - Probs 用于 PPO 比率计算) 输出 = 引擎。生成( 提示， 采样 params ) # 提取 :响应， 每个符号的日志 probs( PPO / GRPO 需要)",
+          "originalExcerpt": "# Generate responses for RLHF batch sampling_params = SamplingParams ( temperature =0.7 , top_p =0.9 , max_tokens =512 , logprobs =1 , # Need log - probs for PPO ratio calculation ) outputs = engine . generate ( prompts , sampling_params ) # Extract : responses , log_probs for each token ( needed for PPO / GRPO )"
+        }
+      ]
+    },
+    {
+      "id": "s-11-4",
+      "number": "11.4",
+      "level": 1,
+      "enTitle": "Decoupled Architecture: Production Design",
+      "zhTitle": "脱钩建筑:生产设计",
+      "pages": "215-216",
+      "blocks": [
+        {
+          "id": "s-11-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.4",
+            "pages": "215-216"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.4「脱钩建筑:生产设计」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-11-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.4",
+            "pages": "215"
+          },
+          "text": "生产RLHF系统如DeepSpeed-Chat [410] 和OpenRLHF [148] 使用分离生成，积分，训练的解耦架构，形成独立可扩展的集群。为什么要脱钩?生成是内存带宽绑定(需要快速的HBM，废品计算)。",
+          "originalExcerpt": "Production RLHF systems such as DeepSpeed-Chat [410] and OpenRLHF [148] use a decoupled architecture that separates generation, scoring, and training into independently scalable clusters. Why Decouple? Generation is memory-bandwidth bound (need fast HBM, waste compute)."
+        },
+        {
+          "id": "s-11-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.4",
+            "pages": "215"
+          },
+          "text": "训练是计算结合的(需要拉伸芯，后置道时的废带宽)。",
+          "originalExcerpt": "Training is compute-bound (need tensor cores, waste bandwidth during backprop)."
+        },
+        {
+          "id": "s-11-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.4",
+            "pages": "215"
+          },
+          "text": "相同的硬件不能同时优化:如果将所有东西拼凑在一起，那么在生成过程中会浪费计算，或者在培训过程中会浪费带宽。脱钩让每个集群使用最佳硬件/配置。实际的好处是:",
+          "originalExcerpt": "Same hardware can’t optimize both: If you put everything together, you either waste compute during generation or waste bandwidth during training. Decoupling lets each cluster use optimal hardware/config. Practical benefits:"
+        },
+        {
+          "id": "s-11-4-b4",
+          "type": "figure",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.4",
+            "pages": "216",
+            "figure": "Figure 11.10"
+          },
+          "src": null,
+          "alt": "图11.10:脱钩的高频结构:每个组群都优化了工作量，分数推出后在经验缓冲中积累，然后用于培训。",
+          "caption": "图11.10:脱钩的高频结构:每个组群都优化了工作量，分数推出后在经验缓冲中积累，然后用于培训。",
+          "adapted": false
+        },
+        {
+          "id": "s-11-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.4",
+            "pages": "216"
+          },
+          "text": "• 独立地扩大生成和培训规模",
+          "originalExcerpt": "• Scale generation and training independently"
+        },
+        {
+          "id": "s-11-4-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.4",
+            "pages": "216"
+          },
+          "text": "• 一代组群是无国籍的 —— 微不足道的过失容忍",
+          "originalExcerpt": "• Generation cluster is stateless → trivial fault tolerance"
+        },
+        {
+          "id": "s-11-4-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.4",
+            "pages": "216"
+          },
+          "text": "• 可将gen(步骤N+1)与培训(步骤N)重叠 + 30-40% 速度",
+          "originalExcerpt": "• Can overlap gen(step N + 1) with training(step N ) → 30–40% speedup"
+        },
+        {
+          "id": "s-11-4-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.4",
+            "pages": "216"
+          },
+          "text": "• 不同的量化:INT8用于发电(带宽)， BF16用于培训(精度)",
+          "originalExcerpt": "• Different quantization: INT8 for generation (bandwidth), BF16 for training (precision)"
+        }
+      ]
+    },
+    {
+      "id": "s-11-5",
+      "number": "11.5",
+      "level": 1,
+      "enTitle": "Weight Synchronization Strategies",
+      "zhTitle": "重量同步策略",
+      "pages": "216",
+      "blocks": [
+        {
+          "id": "s-11-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.5",
+            "pages": "216"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.5「重量同步策略」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-11-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.5",
+            "pages": "216"
+          },
+          "text": "战略 硬带 质量影响 同步(每一步) 0 步 140 GB/步 完美但太慢 周期(每50步) 25 avg 2.8 GB/步 摊销 < 2% 质量损失 三角洲压缩(INT8) 25 avg 0.4 GB/步 质量损失 < 3% Async 流 5– 10 步 14 GB/步(背景) < 1% 质量损失",
+          "originalExcerpt": "Strategy Staleness Bandwidth Quality Impact Synchronous (every step) 0 steps 140 GB/step Perfect but too slow Periodic (every 50 steps) 25 avg 2.8 GB/step amortized <2% quality loss Delta compression (INT8) 25 avg 0.4 GB/step <3% quality loss Async streaming 5–10 steps 14 GB/step (background) <1% quality loss"
+        },
+        {
+          "id": "s-11-5-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.5",
+            "pages": "216"
+          },
+          "text": "为什么Staleness对PPO/GPRO PPO的剪切目标是针对政策外的数据设计的!剪辑[1−ε，1+ε]约束了 Staleness 数据的影响。 以 10–50 步的 Staleness :",
+          "originalExcerpt": "Why Staleness is OK for PPO/GRPO PPO’s clipped objective was designed for off-policy data! The clip [1 − ϵ, 1 + ϵ] bounds the impact of stale data. With 10–50 steps of staleness:"
+        },
+        {
+          "id": "s-11-5-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.5",
+            "pages": "216"
+          },
+          "text": "• 每步政策变化0.1-1 %(带有适当的LR)",
+          "originalExcerpt": "• Policy changes ∼0.1–1% per step (with proper LR)"
+        },
+        {
+          "id": "s-11-5-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.5",
+            "pages": "216"
+          },
+          "text": "• 50多个步骤:政策波动率为 5%",
+          "originalExcerpt": "• Over 50 steps: ∼5% policy drift"
+        },
+        {
+          "id": "s-11-5-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.5",
+            "pages": "216"
+          },
+          "text": "• PPO剪辑处理器，按设计可移动20%",
+          "originalExcerpt": "• PPO clip handles up to 20% drift by design"
+        },
+        {
+          "id": "s-11-5-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.5",
+            "pages": "216"
+          },
+          "text": "• 经验:50步僵化的质量损失小于2%",
+          "originalExcerpt": "• Empirically: quality loss <2% for 50-step staleness"
+        },
+        {
+          "id": "s-11-5-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.5",
+            "pages": "216"
+          },
+          "text": "Bandwidth数学:70B BF16=140GB。 InfiniBand 400Gb/s=50GB/s – 全同步 2.8s。使用delta压缩:<0.5s。 Async=free(在背景运行)。",
+          "originalExcerpt": "Bandwidth math: 70B BF16 = 140GB. InfiniBand 400Gb/s = 50GB/s → full sync in 2.8s. With delta compression: <0.5s. Async = free (runs in background)."
+        }
+      ]
+    },
+    {
+      "id": "s-11-6",
+      "number": "11.6",
+      "level": 1,
+      "enTitle": "Memory Optimization Techniques",
+      "zhTitle": "内存优化技术",
+      "pages": "216-217",
+      "blocks": [
+        {
+          "id": "s-11-6-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.6",
+            "pages": "216-217"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.6「内存优化技术」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-11-6-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.6",
+            "pages": "216"
+          },
+          "text": "ZeRO Stage What Gets Sharted memory/GPU(70B，8 GPU) 无(数据平行)无(完全复制)每GPU(不可能)560GB ZeRO-1优化器只声明175GB ZeRO-2优化器态+渐变器 105GB ZeRO-3(FSDP)优化器+渐变器+帕-70GB(类似在A100-80GB!) 超速拉客机附加技术:",
+          "originalExcerpt": "ZeRO Stage What Gets Sharded Memory/GPU (70B, 8 GPUs) None (Data Parallel)Nothing (full replica) 560GB per GPU (impossible) ZeRO-1 Optimizer states only 175GB ZeRO-2 Optimizer states + Gradients 105GB ZeRO-3 (FSDP) Optimizer + Gradients + Pa- 70GB (fits in A100-80GB!) rameters Additional techniques:"
+        },
+        {
+          "id": "s-11-6-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.6",
+            "pages": "216"
+          },
+          "text": "渐次检查[49]:不要储存所有激活;在后行时重算。",
+          "originalExcerpt": "• Gradient checkpointing [49]: Don’t store all activations; recompute during backward pass."
+        },
+        {
+          "id": "s-11-6-b3",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 11,
+            "section": "11.6",
+            "pages": "217"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "Saves ∼60% activation memory, costs ∼33% extra compute. Selective: only checkpoint attention layers (memory-heavy), keep FFN activations (compute-heavy to recompute)."
+        },
+        {
+          "id": "s-11-6-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.6",
+            "pages": "217"
+          },
+          "text": "• 混合精度[255]:在BF16中前进(2字节/param)，在FP32中优化状态(4字节)",
+          "originalExcerpt": "• Mixed precision [255]: Forward in BF16 (2 bytes/param), optimizer states in FP32 (4 bytes"
+        },
+        {
+          "id": "s-11-6-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.6",
+            "pages": "217"
+          },
+          "text": "积分在FP32中的主重。",
+          "originalExcerpt": "each for m,v). Master weights in FP32 for accumulation."
+        },
+        {
+          "id": "s-11-6-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.6",
+            "pages": "217"
+          },
+          "text": "• CPU卸载(ZeRO-Infinity [305]):将优化状态移至CPU RAM。50%内存",
+          "originalExcerpt": "• CPU offloading (ZeRO-Infinity [305]): Move optimizer states to CPU RAM. 50% memory"
+        },
+        {
+          "id": "s-11-6-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.6",
+            "pages": "217"
+          },
+          "text": "节省但速度较慢(PCIe 64GB/s瓶颈)。",
+          "originalExcerpt": "savings but 2–3× slower (PCIe 64GB/s bottleneck)."
+        },
+        {
+          "id": "s-11-6-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.6",
+            "pages": "217"
+          },
+          "text": "——激活卸载:向前移动激活器到CPU，返回后退。",
+          "originalExcerpt": "• Activation offloading: Move activations to CPU during forward, bring back for backward."
+        },
+        {
+          "id": "s-11-6-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.6",
+            "pages": "217"
+          },
+          "text": "只有当记忆真正重要的时候",
+          "originalExcerpt": "Only when memory is truly critical."
+        },
+        {
+          "id": "s-11-6-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.6",
+            "pages": "217"
+          },
+          "text": "• 闪烁注意[64，65]:O(n)内存，而不是O(n2)，以备注意。",
+          "originalExcerpt": "• Flash Attention [64, 65]: O(n) memory instead of O(n2 ) for attention. 2–4× faster + massive"
+        },
+        {
+          "id": "s-11-6-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.6",
+            "pages": "217"
+          },
+          "text": "用于长序列的内存节省。",
+          "originalExcerpt": "memory savings for long sequences."
+        }
+      ]
+    },
+    {
+      "id": "s-11-6-1",
+      "number": "11.6.1",
+      "level": 2,
+      "enTitle": "Flash Attention’s Impact on RLHF",
+      "zhTitle": "闪光关注对高频的影响",
+      "pages": "217-218",
+      "blocks": [
+        {
+          "id": "s-11-6-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.6.1",
+            "pages": "217-218"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.6.1「闪光关注对高频的影响」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-11-6-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.6.1",
+            "pages": "217"
+          },
+          "text": "为何RLHF RLHF的闪光注意事项涉及生成长序列(滚出)然后对其进行培训。",
+          "originalExcerpt": "Why Flash Attention Matters for RLHF RLHF involves generating long sequences (rollouts) and then training on them. Without Flash Attention:"
+        },
+        {
+          "id": "s-11-6-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.6.1",
+            "pages": "217"
+          },
+          "text": "• 对一个 4K-token、32 个 attention head 的序列，仅 attention matrix 就约需 4 GB 显存。",
+          "originalExcerpt": "• A 4K-token sequence with 32 heads requires ∼4 GB just for attention matrices"
+        },
+        {
+          "id": "s-11-6-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.6.1",
+            "pages": "217"
+          },
+          "text": "• 在PPO/GRPO培训期间，这严重限制了批量规模",
+          "originalExcerpt": "• This severely limits batch size during PPO/GRPO training"
+        },
+        {
+          "id": "s-11-6-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.6.1",
+            "pages": "217"
+          },
+          "text": "• 逐步检查注意力激活费用高昂",
+          "originalExcerpt": "• Gradient checkpointing of attention activations is expensive"
+        },
+        {
+          "id": "s-11-6-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.6.1",
+            "pages": "217"
+          },
+          "text": "闪亮注意:",
+          "originalExcerpt": "With Flash Attention:"
+        },
+        {
+          "id": "s-11-6-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.6.1",
+            "pages": "217"
+          },
+          "text": "• 注意记忆为O(n) – 以Q， K， V， O 抗震器为主",
+          "originalExcerpt": "• Attention memory is O(n) – dominated by Q, K, V, O tensors"
+        },
+        {
+          "id": "s-11-6-1-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.6.1",
+            "pages": "217"
+          },
+          "text": "• 较长的推出(8K-32K令牌)在相同的GPU内存下成为可行",
+          "originalExcerpt": "• Longer rollouts (8K–32K tokens) become feasible with the same GPU memory"
+        },
+        {
+          "id": "s-11-6-1-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.6.1",
+            "pages": "217"
+          },
+          "text": "• 后传重算Q、K、V的注意牌(没有存储n2矩阵)",
+          "originalExcerpt": "• Backward pass recomputes attention tiles from Q, K, V (no stored n2 matrix)"
+        },
+        {
+          "id": "s-11-6-1-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.6.1",
+            "pages": "217"
+          },
+          "text": "• 这是长文本RLHF(例如推理模型)的关键增强器",
+          "originalExcerpt": "• This is the key enabler for long-context RLHF (e.g., reasoning models)"
+        },
+        {
+          "id": "s-11-6-1-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.6.1",
+            "pages": "217"
+          },
+          "text": "Flash Recent和Gradient Concording Flash Recent的后传对Q， K， V(存储)的注意牌进行重算。这意味着闪电关注已经对 O(n2) 关注矩阵执行一种激活重算形式。 您不需要额外检查关注层 — — 这样做会不必要地重算Q、K、V。",
+          "originalExcerpt": "Flash Attention and Gradient Checkpointing Flash Attention’s backward pass recomputes the attention tiles on-the-fly from Q, K, V (which are stored). This means Flash Attention already implements a form of activation recomputation for the O(n2 ) attention matrix. You do not need to additionally checkpoint the attention layer – doing so would recompute Q, K, ..."
+        },
+        {
+          "id": "s-11-6-1-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.6.1",
+            "pages": "217"
+          },
+          "text": "# DeepSpeed ZeRO - 3 配置，用于 70 B RLHF 训练 ds config = { \" bf16 \" : { \" 启用 \" : 真 }， \" 0 优化 \" : { \" 阶段 \" : 3， \" 重叠 comm \" :正确，# 重叠的通信与计算 \" c 直线 gr dients \" : 真，# 更好的内存布局 \" 减少 散射 \" :真，# 比减少 \" 减少 bucket size \" 更有效:5e7，#每桶50M参数 \" preach buck et size \" :5e7，#prefetch 下一桶 \" p a r r r i s r r r r e e e e :1e5，#在所有GPU上保留小参数 \" offload 优化器 \" :{ \" 设备 \" :\" cpu \"， \" pin memory \" : true }， # CPU 卸载 \" sub group size \" : 1 e9， # 减少破碎 }， \" 梯度 积分 步数 \" : 4， \" gradi ent clipping \" : 1.0， \" 火车 micro batch siges per gpu \" : 2，",
+          "originalExcerpt": "# DeepSpeed ZeRO -3 configuration for 70 B RLHF training ds_config = { \" bf16 \" : { \" enabled \" : True } , \" zero_ optimization \" : { \" stage \" : 3 , \" overlap_comm \" : True , # Overlap communication with compute \" c ontiguous_gr adients \" : True , # Better memory layout \" reduce_scatter \" : True , # More efficient than allreduce \" reduce_bucket_size \" : 5 e..."
+        },
+        {
+          "id": "s-11-6-1-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.6.1",
+            "pages": "218"
+          },
+          "text": "\" w i l clock blyst \" :真， } 时间轴: 时间轴: 时间轴: 时间轴: 时间轴: 时间轴: 时间轴: 时间轴: 时间轴: 时间轴: 时间轴: 时间轴: 时间轴: 时间轴: 时间轴: 时间轴: 时间轴: 时间轴: 时间轴: 时间轴: 时间轴: 时间轴: 时间轴: 时间轴: 时间轴: 时间轴: 时间轴: 时间轴:",
+          "originalExcerpt": "\" w a l l _ clock_breakdown \" : True , }"
+        }
+      ]
+    },
+    {
+      "id": "s-11-7",
+      "number": "11.7",
+      "level": 1,
+      "enTitle": "Fault Tolerance at Scale",
+      "zhTitle": "规模上的错觉容忍度",
+      "pages": "218",
+      "blocks": [
+        {
+          "id": "s-11-7-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.7",
+            "pages": "218"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.7「规模上的错觉容忍度」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-11-7-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.7",
+            "pages": "218"
+          },
+          "text": "硬件失败现实 个人 GPU MTBF: -1~10000小时。 512 GPU集群 MTBF: 1000/512 — 20小时。 但是， 软件/网络: 4–8小时。 进行多日培训: 5–15次失败。无法承受过失，失败就杀死一切。生产过失承受堆:",
+          "originalExcerpt": "Hardware Failure Reality Individual GPU MTBF: ∼10,000 hours. 512-GPU cluster MTBF: 10000/512 ≈ 20 hours. But with software/network: 4–8 hours realistically. Multi-day training run: Will see 5–15 failures. Without fault tolerance, one failure kills everything. Production fault tolerance stack:"
+        },
+        {
+          "id": "s-11-7-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.7",
+            "pages": "218"
+          },
+          "text": "1. 检测:NCCL超时(60s)， GPU心跳(10s)， NVML健康监测， ECC错误",
+          "originalExcerpt": "1. Detection: NCCL timeout (60s), GPU heartbeat (10s), NVML health monitoring, ECC error"
+        },
+        {
+          "id": "s-11-7-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.7",
+            "pages": "218"
+          },
+          "text": "2. 检查: 每50-100步同步一次。非屏蔽( 背面线程)。 保存: 模型",
+          "originalExcerpt": "2. Checkpointing: Async every 50–100 steps. Non-blocking (background thread). Save: model"
+        },
+        {
+          "id": "s-11-7-b5",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 11,
+            "section": "11.7",
+            "pages": "218"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "weights, optimizer states (Adam m/v), scheduler state, RNG states, KL coefficient, replay buffer. Keep last 3 checkpoints. Time: ∼30s for 70B (parallel write to NVMe)."
+        },
+        {
+          "id": "s-11-7-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.7",
+            "pages": "218"
+          },
+          "text": "3. 恢复:(a) 生成组=无国籍，刚刚重新启动并装入最新重量。 (b) 培训",
+          "originalExcerpt": "3. Recovery: (a) Generation cluster = stateless, just restart and load latest weights. (b) Training"
+        },
+        {
+          "id": "s-11-7-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.7",
+            "pages": "218"
+          },
+          "text": "组:装入检查点，重建NCCL进程组，排除失败的节点，重新分配FSDP的硬盘，从上次检查点恢复。",
+          "originalExcerpt": "cluster: load checkpoint, rebuild NCCL process group excluding failed node, redistribute FSDP shards, resume from last checkpoint."
+        },
+        {
+          "id": "s-11-7-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.7",
+            "pages": "218"
+          },
+          "text": "4. 弹性训练:火炬弹性/Kubernetes自动缩放。在几分钟内替换失败的节点。",
+          "originalExcerpt": "4. Elastic training: Torch Elastic / Kubernetes auto-scaling. Replace failed node within minutes."
+        },
+        {
+          "id": "s-11-7-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.7",
+            "pages": "218"
+          },
+          "text": "培训继续临时使用N-1GPU。",
+          "originalExcerpt": "Training continues with N − 1 GPUs temporarily."
+        },
+        {
+          "id": "s-11-7-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.7",
+            "pages": "218"
+          },
+          "text": "5. 预防:GPU健康预检(开始前进行GEMM应激测试)。",
+          "originalExcerpt": "5. Prevention: GPU health pre-screening (run GEMM stress test before starting). Hot spares"
+        },
+        {
+          "id": "s-11-7-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.7",
+            "pages": "218"
+          },
+          "text": "备用状态。冗余网络路径(双轨 InfiniBand)。",
+          "originalExcerpt": "on standby. Redundant network paths (dual-rail InfiniBand)."
+        }
+      ]
+    },
+    {
+      "id": "s-11-8",
+      "number": "11.8",
+      "level": 1,
+      "enTitle": "End-to-End Latency Breakdown",
+      "zhTitle": "端到端",
+      "pages": "218",
+      "blocks": [
+        {
+          "id": "s-11-8-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.8",
+            "pages": "218"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.8「端到端」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-11-8-b1",
+          "type": "figure",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.8",
+            "pages": "218",
+            "figure": "Figure 11.11"
+          },
+          "src": null,
+          "alt": "图11.11:无重叠(单体) 脱钩:gen与训练重叠，有效1.4×加速。",
+          "caption": "图11.11:无重叠(单体) 脱钩:gen与训练重叠，有效1.4×加速。",
+          "adapted": false
+        },
+        {
+          "id": "s-11-8-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.8",
+            "pages": "218"
+          },
+          "text": "阶段时间(70B) 通过优化生成(128×512 tok) 30–45s 内存带宽vLLLM，光谱解码， INT 奖赏评分 5–8s 计算(批次为-INT8 RM，批次=128 ward) 参考日志 4–6s 计算(批次为-INT8 ref，或LORA(免费) 病房) PPO更新(4 ocs) 8–12s 计算(背面) FSDP，闪光关注同步 0–3s 网络(async) 三角洲压缩， Aync Tot(monolitic) 50–75s 总计(破译，重叠) 35–50s 源与预推重置重置重置重置重置重置重置重置重置重置重置重置重置重置重置重置重置重置重置重置重置重置重置重置重置重置重置重置重置重置重置重置重置重置重置重置重置重置",
+          "originalExcerpt": "Phase Time (70B) Bound By Optimization Generation (128×512 tok) 30–45s Memory bandwidth vLLM, spec decoding, INT Reward scoring 5–8s Compute (batch for- INT8 RM, batch=128 ward) Reference log-probs 4–6s Compute (batch for- INT8 ref, or LoRA (free) ward) PPO update (4 epochs) 8–12s Compute (backprop) FSDP, Flash Attention Weight sync 0–3s Network (async) Delt..."
+        }
+      ]
+    },
+    {
+      "id": "s-11-9",
+      "number": "11.9",
+      "level": 1,
+      "enTitle": "Monitoring and Observability",
+      "zhTitle": "监测和可观察性",
+      "pages": "219",
+      "blocks": [
+        {
+          "id": "s-11-9-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.9",
+            "pages": "219"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.9「监测和可观察性」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-11-9-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.9",
+            "pages": "219"
+          },
+          "text": "高频培训质量衡量标准期间跟踪的关键计量(每10个步骤记录):",
+          "originalExcerpt": "Key Metrics to Track During RLHF Training Quality metrics (log every 10 steps):"
+        },
+        {
+          "id": "s-11-9-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.9",
+            "pages": "219"
+          },
+          "text": "• 平均报酬(应增加然后高原)",
+          "originalExcerpt": "• Mean reward (should increase then plateau)"
+        },
+        {
+          "id": "s-11-9-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.9",
+            "pages": "219"
+          },
+          "text": "• 与参考文献的KL差异(应保留3-10)",
+          "originalExcerpt": "• KL divergence from reference (should stay 3–10)"
+        },
+        {
+          "id": "s-11-9-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.9",
+            "pages": "219"
+          },
+          "text": "• 反应长度分布(观察长度黑客)",
+          "originalExcerpt": "• Response length distribution (watch for length hacking)"
+        },
+        {
+          "id": "s-11-9-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.9",
+            "pages": "219"
+          },
+          "text": "• 环(应缓慢减少，而不是崩溃)",
+          "originalExcerpt": "• Entropy (should decrease slowly, not collapse)"
+        },
+        {
+          "id": "s-11-9-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.9",
+            "pages": "219"
+          },
+          "text": "系统度量衡( 记录每一步):",
+          "originalExcerpt": "System metrics (log every step):"
+        },
+        {
+          "id": "s-11-9-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.9",
+            "pages": "219"
+          },
+          "text": "• 性别平价利用率(目标:培训期间 > 80%，基因期间 > 60%)",
+          "originalExcerpt": "• GPU utilization (target: >80% during training, >60% during gen)"
+        },
+        {
+          "id": "s-11-9-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.9",
+            "pages": "219"
+          },
+          "text": "• 每GPU记忆水印(在OOM发生前捕获)",
+          "originalExcerpt": "• Memory watermark per GPU (catch OOM before it happens)"
+        },
+        {
+          "id": "s-11-9-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.9",
+            "pages": "219"
+          },
+          "text": "• 发电吞吐量(罐/罐，应稳定)",
+          "originalExcerpt": "• Generation throughput (tokens/sec, should be stable)"
+        },
+        {
+          "id": "s-11-9-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.9",
+            "pages": "219"
+          },
+          "text": "• 渐进规范(sikes = 出现不稳定)",
+          "originalExcerpt": "• Gradient norm (spikes = instability incoming)"
+        },
+        {
+          "id": "s-11-9-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.9",
+            "pages": "219"
+          },
+          "text": "• NCCL通信时间(检测网络退化)",
+          "originalExcerpt": "• NCCL communication time (detect network degradation)"
+        }
+      ]
+    },
+    {
+      "id": "s-11-10",
+      "number": "11.10",
+      "level": 1,
+      "enTitle": "Network Topology and Communication Patterns",
+      "zhTitle": "网络地形学和通信模式",
+      "pages": "219",
+      "blocks": [
+        {
+          "id": "s-11-10-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.10",
+            "pages": "219"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.10「网络地形学和通信模式」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-11-10-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.10",
+            "pages": "219"
+          },
+          "text": "高效的分布式培训需要理解连接GPU的分级通信结构。现代集群使用双层架构:超快的节点内链和较慢但可扩展的节点间网。",
+          "originalExcerpt": "Efficient distributed training requires understanding the hierarchical communication fabric that connects GPUs. Modern clusters use a two-tier architecture: ultra-fast intra-node links and slower but scalable inter-node networks."
+        }
+      ]
+    },
+    {
+      "id": "s-11-10-1",
+      "number": "11.10.1",
+      "level": 2,
+      "enTitle": "Intra-Node: NVLink and NVSwitch",
+      "zhTitle": "节点内: NVLink 和 NVSwitch",
+      "pages": "219",
+      "blocks": [
+        {
+          "id": "s-11-10-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.10.1",
+            "pages": "219"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.10.1「节点内: NVLink 和 NVSwitch」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-11-10-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.10.1",
+            "pages": "219"
+          },
+          "text": "表11.5:NVLink世代及其对LLM培训的影响",
+          "originalExcerpt": "Table 11.5: NVLink generations and their impact on LLM training"
+        },
+        {
+          "id": "s-11-10-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.10.1",
+            "pages": "219"
+          },
+          "text": "每链接生成 BW 总BW平台 NVLink 3.0 50 GB/s 12 600 GB/s A100(DGX A100) NVLink 4.0 50 GB/s 18 900 GB/s H100(DGX H100) NVLink 5.0 100 GB/s 18 1800 GB/s B200(DGX B200)",
+          "originalExcerpt": "Generation BW per link Links/GPU Total BW Platform NVLink 3.0 50 GB/s 12 600 GB/s A100 (DGX A100) NVLink 4.0 50 GB/s 18 900 GB/s H100 (DGX H100) NVLink 5.0 100 GB/s 18 1800 GB/s B200 (DGX B200)"
+        },
+        {
+          "id": "s-11-10-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.10.1",
+            "pages": "219"
+          },
+          "text": "在单一节点(典型的8 GPU)内， NVSwitch在所有GPU对之间提供全比分带宽。这意味着任何GPU都可以以全NVLink速度同时与任何其他人通信——对于Tensor并行主义至关重要，因为每一层都需要一个全Reduce，横跨所有8个GPU。 NVSwitch vs PCIe Topology with NVSwitch (DGX/HGX):所有8个GPU在600–1800 GB/s时全程连接。 AllReduce for TP每层需要 ~0.2ms。没有NVSwitch(只使用PCIe服务器):GPU通过CPU PCIe根复合体以32–64 GB/s进行通信。8 GPU的TP变慢10–30x。永远不要在PCIe的系统中使用TP>2.",
+          "originalExcerpt": "Within a single node (typically 8 GPUs), NVSwitch provides full-bisection bandwidth between all GPU pairs. This means any GPU can communicate with any other at full NVLink speed simultaneously—critical for Tensor Parallelism where every layer requires an AllReduce across all 8 GPUs. NVSwitch vs PCIe Topology With NVSwitch (DGX/HGX): All 8 GPUs connected all-..."
+        }
+      ]
+    },
+    {
+      "id": "s-11-10-2",
+      "number": "11.10.2",
+      "level": 2,
+      "enTitle": "Inter-Node: InfiniBand and RoCE",
+      "zhTitle": "节点间:InfiniBand和RoCE",
+      "pages": "219-220",
+      "blocks": [
+        {
+          "id": "s-11-10-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.10.2",
+            "pages": "219-220"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.10.2「节点间:InfiniBand和RoCE」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-11-10-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.10.2",
+            "pages": "219"
+          },
+          "text": "对于FSDP/ZeRO-3全Gather和减少散射系统跨节点操作，节点间网络占主导地位。",
+          "originalExcerpt": "For FSDP/ZeRO-3 AllGather and ReduceScatter operations across nodes, the inter-node network dominates."
+        },
+        {
+          "id": "s-11-10-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.10.2",
+            "pages": "220"
+          },
+          "text": "表11.6: 国家液压聚体培训的节点联网选项 技术 频带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带宽带",
+          "originalExcerpt": "Table 11.6: Inter-node networking options for LLM training clusters Technology Bandwidth Latency Notes InfiniBand NDR 400 Gb/s (50 GB/s) 1–2 µs Gold standard, RDMA, lossless InfiniBand NDR (dual-rail) 800 Gb/s (100 GB/s) 1–2 µs Used in H100 clusters RoCE v2 100–400 Gb/s 2–5 µs Cheaper, needs PFC/ECN tuning Ethernet (TCP) 100–400 Gb/s 10–50 µs Not suitable fo..."
+        }
+      ]
+    },
+    {
+      "id": "s-11-10-3",
+      "number": "11.10.3",
+      "level": 2,
+      "enTitle": "Communication Primitives and Their Costs",
+      "zhTitle": "通信主要费用及其费用",
+      "pages": "220-221",
+      "blocks": [
+        {
+          "id": "s-11-10-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.10.3",
+            "pages": "220-221"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.10.3「通信主要费用及其费用」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-11-10-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.10.3",
+            "pages": "220"
+          },
+          "text": "了解每个集体的使用时间有助于诊断瓶颈:表11.7:在分布式远程学习培训中的国家竞争和消费者保护委员会的集体运作",
+          "originalExcerpt": "Understanding when each collective is used helps diagnose bottlenecks: Table 11.7: NCCL collective operations in distributed LLM training"
+        },
+        {
+          "id": "s-11-10-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.10.3",
+            "pages": "220"
+          },
+          "text": "集体数据在 AllReduce 2 → NN−1 → MTP 时被移动， DP Sum梯度或激活跨越 GPU N−1 AllGather N →M FSDP 前重建全参数的变位器，在 matmul N−1 减Sclockter N →M FSDP 后向后分配梯度硬块 后向下传输启动到下个管道阶段 发送/RPP 点到相邻阶段之间",
+          "originalExcerpt": "Collective Data Moved Used By When AllReduce 2 · NN−1 · M TP, DP Sum gradients or activations across GPUs N −1 AllGather N ·M FSDP forward Reconstruct full parameter tensor before matmul N −1 ReduceScatter N ·M FSDP backward Distribute gradient shards after backprop Broadcast M PP Send activations to next pipeline stage Send/Recv M PP Point-to-point between ..."
+        },
+        {
+          "id": "s-11-10-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.10.3",
+            "pages": "220"
+          },
+          "text": "其中 M 是消息大小(字节)， N 是参与者数。",
+          "originalExcerpt": "where M is the message size (bytes) and N is the number of participants."
+        },
+        {
+          "id": "s-11-10-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.10.3",
+            "pages": "221"
+          },
+          "text": "通信-计算重叠 现代框架(FSDP， DeepSpeed) 与计算积极重叠 通信: 前进通过: 虽然层 I 计算， AllGather prefets 参数用于层 i + 1. 完成层 I 后， 其参数立即被丢弃(“ 自由后向 ”)。 后向传: 虽然层 I 计算梯度， 减少散射发送层 i + 1 的梯度。这种重叠在适当调谐时隐藏了70-90%的通信延迟。调制键:预调 因素( 提前调制的多层)， 减少 bucket 大小( 梯度减速的宽度)， 后调 prefetch (“ 前调” 与“ 后调” 后调策略)。",
+          "originalExcerpt": "Communication-Computation Overlap Modern frameworks (FSDP, DeepSpeed) aggressively overlap communication with computation: Forward pass: While layer i computes, AllGather prefetches parameters for layer i + 1. After layer i finishes, its parameters are immediately discarded (“free-after-forward”). Backward pass: While layer i computes gradients, ReduceScatte..."
+        }
+      ]
+    },
+    {
+      "id": "s-11-10-4",
+      "number": "11.10.4",
+      "level": 2,
+      "enTitle": "Network Topology Design",
+      "zhTitle": "网络地形设计",
+      "pages": "221",
+      "blocks": [
+        {
+          "id": "s-11-10-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.10.4",
+            "pages": "221"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.10.4「网络地形设计」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-11-10-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.10.4",
+            "pages": "221"
+          },
+          "text": "生产集群使用脂肪树或铁路优化的地形:",
+          "originalExcerpt": "Production clusters use fat-tree or rail-optimized topologies:"
+        },
+        {
+          "id": "s-11-10-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.10.4",
+            "pages": "221"
+          },
+          "text": "• 肥树:每个级别都有完整的双节带宽。",
+          "originalExcerpt": "• Fat-tree: Full bisection bandwidth at every level. Any node can communicate with any other"
+        },
+        {
+          "id": "s-11-10-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.10.4",
+            "pages": "221"
+          },
+          "text": "具有最昂贵的(许多开关)，但最灵活。",
+          "originalExcerpt": "at full speed. Expensive (many switches) but maximally flexible."
+        },
+        {
+          "id": "s-11-10-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.10.4",
+            "pages": "221"
+          },
+          "text": "• 铁路优化:每个节点上的GPU i连接到同一个叶开关(“rail i”)。",
+          "originalExcerpt": "• Rail-optimized: GPU i on every node connects to the same leaf switch (“rail i”). AllReduce"
+        },
+        {
+          "id": "s-11-10-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.10.4",
+            "pages": "221"
+          },
+          "text": "铁路内部的交通费用低廉。 铁路的跨铁路交通费用昂贵。 由Meta的RSC和Google的TPU舱使用。",
+          "originalExcerpt": "within a rail is cheap; cross-rail traffic is expensive. Used by Meta’s RSC and Google’s TPU pods."
+        },
+        {
+          "id": "s-11-10-4-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.10.4",
+            "pages": "221"
+          },
+          "text": "• 3D torus / 飞龙:用于高氯酸聚(Frontier， Aurora)，地形意识工作",
+          "originalExcerpt": "• 3D torus / Dragonfly: Used in HPC clusters (Frontier, Aurora). Topology-aware job"
+        },
+        {
+          "id": "s-11-10-4-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.10.4",
+            "pages": "221"
+          },
+          "text": "安置至关重要。",
+          "originalExcerpt": "placement is critical."
+        },
+        {
+          "id": "s-11-10-4-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.10.4",
+            "pages": "221"
+          },
+          "text": "任务布置事项在一个 512 个GPU 集群上，随机的节点分配会因网络拥堵导致2–3×减速。总是请求毗连的节点块。生产调度器(Slurm， Kubernetes)应执行地点:训练工作中的所有节点应在同一叶切换机上或相互间的一个跳动内。",
+          "originalExcerpt": "Job Placement Matters On a 512-GPU cluster, random node assignment can cause 2–3× slowdown due to network congestion. Always request contiguous node blocks. Production schedulers (Slurm, Kubernetes) should enforce locality: all nodes in a training job should be on the same leaf switch or within one hop of each other."
+        }
+      ]
+    },
+    {
+      "id": "s-11-11",
+      "number": "11.11",
+      "level": 1,
+      "enTitle": "Training Throughput and Model FLOPs Utilization",
+      "zhTitle": "培训产出和示范FLOPs",
+      "pages": "221",
+      "blocks": [
+        {
+          "id": "s-11-11-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.11",
+            "pages": "221"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.11「培训产出和示范FLOPs」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-11-11-structure-note",
+          "type": "callout",
+          "origin": "source_definition",
+          "source": {
+            "chapter": 11,
+            "section": "11.11",
+            "pages": "221"
+          },
+          "title": "原书结构说明",
+          "text": "§11.11 在原书中是父级目录节，具体论证由紧随其后的子节展开。本站保留这一锚点和来源页码，以维持与原书目录的一一对应，不把目录标题扩写成不存在的正文。"
+        },
+        {
+          "id": "s-11-11-source-note",
+          "type": "callout",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 11,
+            "section": "11.11",
+            "pages": "221"
+          },
+          "text": "本节主要由公式、图表或代码构成，网页转写仍在人工核对中；当前状态不会标记为精读完成。"
+        }
+      ]
+    },
+    {
+      "id": "s-11-11-1",
+      "number": "11.11.1",
+      "level": 2,
+      "enTitle": "Measuring Training Efficiency: MFU",
+      "zhTitle": "衡量培训效率:MFU",
+      "pages": "221-222",
+      "blocks": [
+        {
+          "id": "s-11-11-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.11.1",
+            "pages": "221-222"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.11.1「衡量培训效率:MFU」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-11-11-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.11.1",
+            "pages": "221"
+          },
+          "text": "FLOPs模型利用[55]是培训效率的标准衡量标准:",
+          "originalExcerpt": "Model FLOPs Utilization (MFU) [55] is the standard metric for training efficiency:"
+        },
+        {
+          "id": "s-11-11-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.11.1",
+            "pages": "221"
+          },
+          "text": "观测到的吞吐量(tokens/sec) × 每令牌 MFU = (11.5) 峰值硬件 FLOPS 对于一个有P参数， s序列长度，和b批量大小的Transformer:",
+          "originalExcerpt": "Observed throughput (tokens/sec) × FLOPs per token MFU = (11.5) Peak hardware FLOPS For a transformer with P parameters, s sequence length, and b batch size:"
+        },
+        {
+          "id": "s-11-11-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.11.1",
+            "pages": "221"
+          },
+          "text": "· 6P+12 级 · 型号 · s(11.6)",
+          "originalExcerpt": "FLOPs per token ≈ 6P + 12 · nlayers · dmodel · s (11.6)"
+        },
+        {
+          "id": "s-11-11-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.11.1",
+            "pages": "221"
+          },
+          "text": "6的系数来自:2(乘-加)×3(向前+向后，其中后++向前 )。 第二个术语是关注的O(s2)成本。 为何MFU 降低比规模更大的模型需要更多的平行性，它引入:",
+          "originalExcerpt": "The factor of 6 comes from: 2 (multiply-add) × 3 (forward + backward, where backward ≈ 2× forward). The second term accounts for attention’s O(s2 ) cost. Why MFU Decreases with Scale Larger models require more parallelism, which introduces:"
+        },
+        {
+          "id": "s-11-11-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.11.1",
+            "pages": "221"
+          },
+          "text": "1. 通信开销：FSDP 的 AllGather/ReduceScatter 在 64 张 GPU 规模下约占 10%–15%。",
+          "originalExcerpt": "1. Communication overhead: AllGather/ReduceScatter for FSDP (∼10–15% at 64 GPUs)"
+        },
+        {
+          "id": "s-11-11-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.11.1",
+            "pages": "221"
+          },
+          "text": "2. 管道气泡:PP引入微型电池的起始/末段闲置时间(++15-25%，含+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++",
+          "originalExcerpt": "2. Pipeline bubbles: PP introduces idle time at start/end of micro-batches (∼15–25% with"
+        },
+        {
+          "id": "s-11-11-1-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.11.1",
+            "pages": "221"
+          },
+          "text": "3. 辅助模型的内存:参考/RM使用GPU内存，可容纳更大的内存",
+          "originalExcerpt": "3. Memory for auxiliary models: Reference/RM take GPU memory that could hold larger"
+        },
+        {
+          "id": "s-11-11-1-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.11.1",
+            "pages": "221"
+          },
+          "text": "4. 负载不平衡:并非所有层都有等值的计算(嵌入式与Transformer块)",
+          "originalExcerpt": "4. Load imbalance: Not all layers have equal compute (embeddings vs transformer blocks)"
+        },
+        {
+          "id": "s-11-11-1-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.11.1",
+            "pages": "222"
+          },
+          "text": "表11.8:规模和硬件的小额供资和微型企业筹资基准",
+          "originalExcerpt": "Table 11.8: MFU benchmarks across scales and hardware"
+        },
+        {
+          "id": "s-11-11-1-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.11.1",
+            "pages": "222"
+          },
+          "text": "型号硬件 MCU Tokens/sec/GPU配置 LLaMA-7B 8×A100 57% 3200 FSDP， FlashAttn， BF16 LLaMA-13B 16×A100 52% 1 750 FSDP， FlashAtn， BF16 LLaMA-70B 64×A100 45% FSDP+TP=8， FlashAtn GPT-4(最高) 10，000+ H100 40–50% 3D并行 PALM-540B 6144 TPv4 46 % DP+TP+PP",
+          "originalExcerpt": "Model Hardware MFU Tokens/sec/GPU Configuration LLaMA-7B 8×A100 57% 3,200 FSDP, FlashAttn, BF16 LLaMA-13B 16×A100 52% 1,750 FSDP, FlashAttn, BF16 LLaMA-70B 64×A100 45% 380 FSDP+TP=8, FlashAttn GPT-4 (est.) 10,000+ H100 40–50% — 3D parallelism PaLM-540B 6144 TPUv4 46% — DP+TP+PP"
+        },
+        {
+          "id": "s-11-11-1-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.11.1",
+            "pages": "222"
+          },
+          "text": "拇指规则: 培训目标为 MOFU > 40%。 如果低于 30%， 则进行剖析分析。",
+          "originalExcerpt": "Rule of thumb: Target MFU > 40% for training. If below 30%, diagnose with profiling."
+        }
+      ]
+    },
+    {
+      "id": "s-11-11-2",
+      "number": "11.11.2",
+      "level": 2,
+      "enTitle": "Compute-Optimal Batch Sizing",
+      "zhTitle": "计算- 平面批量大小",
+      "pages": "222",
+      "blocks": [
+        {
+          "id": "s-11-11-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.11.2",
+            "pages": "222"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.11.2「计算- 平面批量大小」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-11-11-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.11.2",
+            "pages": "222"
+          },
+          "text": "有效的批量大小以非明显的方式与硬件的利用相互作用:",
+          "originalExcerpt": "The effective batch size interacts with hardware utilization in non-obvious ways:"
+        },
+        {
+          "id": "s-11-11-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.11.2",
+            "pages": "222"
+          },
+          "text": "有效批量大小=微小批量×分级 积分 DP学位(11.7)。",
+          "originalExcerpt": "Effective batch size = micro_batch × grad_accum × DP degree (11.7)"
+        },
+        {
+          "id": "s-11-11-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.11.2",
+            "pages": "222"
+          },
+          "text": "● 过于小:GPU利用不足(低算术强度)，通信占主导地位。",
+          "originalExcerpt": "• Too small: GPU underutilized (low arithmetic intensity), communication dominates."
+        },
+        {
+          "id": "s-11-11-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.11.2",
+            "pages": "222"
+          },
+          "text": "• 规模太大:每件符号的学习(临界批量大小超过)减少，废物计算。",
+          "originalExcerpt": "• Too large: Diminishing learning per token (critical batch size exceeded), wastes compute."
+        },
+        {
+          "id": "s-11-11-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.11.2",
+            "pages": "222"
+          },
+          "text": "· 甜点: 梯度噪声等于梯度信号的批量大小 Bcrit。",
+          "originalExcerpt": "• Sweet spot: The critical batch size Bcrit where gradient noise equals gradient signal. For"
+        },
+        {
+          "id": "s-11-11-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.11.2",
+            "pages": "222"
+          },
+          "text": "法学硕士， Brit 1-4M 令牌[250]。",
+          "originalExcerpt": "LLMs, Bcrit ∼ 1–4M tokens [250]."
+        },
+        {
+          "id": "s-11-11-2-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.11.2",
+            "pages": "222"
+          },
+          "text": "具体来说，该批产品包含推出(不仅仅是符号):",
+          "originalExcerpt": "For RLHF specifically, the batch contains rollouts (not just tokens):"
+        },
+        {
+          "id": "s-11-11-2-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.11.2",
+            "pages": "222"
+          },
+          "text": "RLHF批量=Nprompts × K代群×Lavg响应长度(11.8)。",
+          "originalExcerpt": "RLHF batch = Nprompts × Kgenerations × Lavg response length (11.8)"
+        },
+        {
+          "id": "s-11-11-2-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.11.2",
+            "pages": "222"
+          },
+          "text": "典型生产值:N=128个 prompt， K=1–4代， L=256–512个令牌~每步32K–256K个令牌。",
+          "originalExcerpt": "Typical production values: N = 128 prompts, K = 1–4 generations, L = 256–512 tokens → 32K–256K tokens per step."
+        }
+      ]
+    },
+    {
+      "id": "s-11-11-3",
+      "number": "11.11.3",
+      "level": 2,
+      "enTitle": "Profiling and Bottleneck Diagnosis",
+      "zhTitle": "剖析和博特伦克诊断",
+      "pages": "222-223",
+      "blocks": [
+        {
+          "id": "s-11-11-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.11.3",
+            "pages": "222-223"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.11.3「剖析和博特伦克诊断」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-11-11-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.11.3",
+            "pages": "222"
+          },
+          "text": "关键特征分析工具及其揭示的内容:工具抓取 最佳用于火炬。 profile 时间，内存 寻找慢操作，内存泄露 NVIDIA Nsight System 完整 GPU 时间表 视觉重叠，内核 ncl debug=INFO 集体大小/时间 分析通信瓶颈 火炬.cuda.memory stats 分配模式 查找破碎，峰值使用 DeepSpeed Flops 配置器 每一个层 FLOPs 识别负载不平衡 py-spy/scalene CPU 剖析数据加载，符号化瓶颈 诊断低 MFU 数据加载:核对表",
+          "originalExcerpt": "Key profiling tools and what they reveal: Tool Captures Best For torch.profiler Kernel timing, memory Finding slow ops, memory leaks NVIDIA Nsight Systems Full GPU timeline Visualizing overlap, gaps between kernels nccl_debug=INFO Collective sizes/times Diagnosing communication bottlenecks torch.cuda.memory_stats Allocation patterns Finding fragmentation, pe..."
+        },
+        {
+          "id": "s-11-11-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.11.3",
+            "pages": "222"
+          },
+          "text": "1. 全球定位系统利用率 < 80%？+ 数据加载瓶颈(检查CPU， I/O)。",
+          "originalExcerpt": "1. GPU utilization < 80%? → Data loading bottleneck (check CPU, I/O)."
+        },
+        {
+          "id": "s-11-11-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.11.3",
+            "pages": "222"
+          },
+          "text": "2. 内核之间的巨大差距？+ Python 高空，同步点。 使用 CUDA",
+          "originalExcerpt": "2. Large gaps between kernels? → Python overhead, synchronization points. Use CUDA"
+        },
+        {
+          "id": "s-11-11-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.11.3",
+            "pages": "222"
+          },
+          "text": "3. 通信 > 20%的步数时间？—— 减少TP度，增加批量规模，检查",
+          "originalExcerpt": "3. Communication > 20% of step time? → Reduce TP degree, increase batch size, check"
+        },
+        {
+          "id": "s-11-11-3-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.11.3",
+            "pages": "222"
+          },
+          "text": "4. 内存为 99%？？= 无法增加批量。 尝试梯度检查、 卸载。",
+          "originalExcerpt": "4. Memory at 99%? → Cannot increase batch. Try gradient checkpointing, offloading."
+        },
+        {
+          "id": "s-11-11-3-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.11.3",
+            "pages": "222"
+          },
+          "text": "5. 生成时的 OOM？+ KV 缓存太大。 降低最大 seq len 或批量大小",
+          "originalExcerpt": "5. OOM during generation? → KV cache too large. Reduce max_seq_len or batch size for"
+        }
+      ]
+    },
+    {
+      "id": "s-11-12",
+      "number": "11.12",
+      "level": 1,
+      "enTitle": "Cost Analysis and Cloud Deployment",
+      "zhTitle": "成本分析和云层部署",
+      "pages": "223",
+      "blocks": [
+        {
+          "id": "s-11-12-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.12",
+            "pages": "223"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.12「成本分析和云层部署」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-11-12-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.12",
+            "pages": "223"
+          },
+          "text": "了解高频培训的经济意义对规划至关重要。",
+          "originalExcerpt": "Understanding the economics of RLHF training is essential for planning."
+        }
+      ]
+    },
+    {
+      "id": "s-11-12-1",
+      "number": "11.12.1",
+      "level": 2,
+      "enTitle": "Hardware Cost Comparison",
+      "zhTitle": "硬件费用比较",
+      "pages": "223",
+      "blocks": [
+        {
+          "id": "s-11-12-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.12.1",
+            "pages": "223"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.12.1「硬件费用比较」 时，不要寻找脱离场景的“最佳方案”。应在质量、latency、计算与存储成本、数据要求、可控性和运维复杂度上逐项比较，并保留原书说明的适用前提与例外。"
+        },
+        {
+          "id": "s-11-12-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.12.1",
+            "pages": "223"
+          },
+          "text": "表11.9: 高频培训的大约云GPU费用(2024-2025年定价)",
+          "originalExcerpt": "Table 11.9: Approximate cloud GPU costs for RLHF training (2024–2025 pricing)"
+        },
+        {
+          "id": "s-11-12-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.12.1",
+            "pages": "223"
+          },
+          "text": "GPU On-Demand/hr Spot/hr 记忆使用案例 A100 80GB 2.50–3.50 1.00–1.50 80GB HBM2e 预算培训， gen Cluster H100 80GB 4.00–6.00 2.00–3.00 80GB HBM3 生产培训 H200 141GB 6.00–8.00 —141GB HBM3e 大上下文，更少的GPU配置 MI300X 192GB 3.50–5.0 1.50–2.50 192 GB HBM3 成本效益高的替代品",
+          "originalExcerpt": "GPU On-Demand/hr Spot/hr Memory Use Case A100 80GB $2.50–3.50 $1.00–1.50 80 GB HBM2e Budget training, gen cluster H100 80GB $4.00–6.00 $2.00–3.00 80 GB HBM3 Production training H200 141GB $6.00–8.00 — 141 GB HBM3e Large context, fewer- GPU configs MI300X 192GB $3.50–5.00 $1.50–2.50 192 GB HBM3 Cost-effective alternative"
+        }
+      ]
+    },
+    {
+      "id": "s-11-12-2",
+      "number": "11.12.2",
+      "level": 2,
+      "enTitle": "RLHF Training Cost Estimation",
+      "zhTitle": "RLHF 培训费用估计",
+      "pages": "223",
+      "blocks": [
+        {
+          "id": "s-11-12-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.12.2",
+            "pages": "223"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.12.2「RLHF 培训费用估计」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-11-12-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.12.2",
+            "pages": "223"
+          },
+          "text": "Nsteps × Tstep Cost = × NGPUs × CGPU/hr(11.9) 成本示例:70B 型号RLHF (10K 阶梯) 互联网档案馆的存檔，存档日期2013-09-02.",
+          "originalExcerpt": "Nsteps × Tstep Cost = × NGPUs × CGPU/hr (11.9) Cost Example: 70B Model RLHF (10K steps)"
+        },
+        {
+          "id": "s-11-12-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.12.2",
+            "pages": "223"
+          },
+          "text": "每步时间(脱钩)45秒 总训练时间1000×45/3600=125小时GPU(生成+训练) 64 A100-80GB每GPU小时费用(点)1.20 费用总额125×64×1.20美元=9 600美元按阶段分列:",
+          "originalExcerpt": "Steps 10,000 Time per step (decoupled) 45 seconds Total training time 10000 × 45/3600 = 125 hours GPUs (generation + training) 64 A100-80GB Cost per GPU-hour (spot) $1.20 Total cost 125 × 64 × $1.20 = $9,600 Breakdown by phase:"
+        },
+        {
+          "id": "s-11-12-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.12.2",
+            "pages": "223"
+          },
+          "text": "• 生成组群(32GPU):4 800美元(占时间的60%)",
+          "originalExcerpt": "• Generation cluster (32 GPUs): $4,800 (60% of time)"
+        },
+        {
+          "id": "s-11-12-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.12.2",
+            "pages": "223"
+          },
+          "text": "• 培训组群(32个全球PU):4 800美元(可重叠) 3 400美元(有效)",
+          "originalExcerpt": "• Training cluster (32 GPUs): $4,800 (could overlap → $3,400 effective)"
+        },
+        {
+          "id": "s-11-12-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.12.2",
+            "pages": "223"
+          },
+          "text": "• 分红(与基因GPU共用):包括以上",
+          "originalExcerpt": "• Scoring (shared with gen GPUs): included above"
+        },
+        {
+          "id": "s-11-12-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.12.2",
+            "pages": "223"
+          },
+          "text": "重叠:70B型机车机车完全对齐的有效成本为7 500美元。",
+          "originalExcerpt": "With overlap: Effective cost ≈ $7,500 for full RLHF alignment of a 70B model."
+        }
+      ]
+    },
+    {
+      "id": "s-11-12-3",
+      "number": "11.12.3",
+      "level": 2,
+      "enTitle": "Cost Optimization Strategies",
+      "zhTitle": "成本优化战略",
+      "pages": "223-224",
+      "blocks": [
+        {
+          "id": "s-11-12-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.12.3",
+            "pages": "223-224"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.12.3「成本优化战略」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-11-12-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.12.3",
+            "pages": "223"
+          },
+          "text": "• 出现/可避免的情况:节省50-70%。",
+          "originalExcerpt": "• Spot/preemptible instances: 50–70% savings. Requires robust checkpointing (save every 5"
+        },
+        {
+          "id": "s-11-12-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.12.3",
+            "pages": "223"
+          },
+          "text": "· 右比:不要使用H100来生成(记忆捆绑);A100获得类似的符号/美元",
+          "originalExcerpt": "• Right-sizing: Don’t use H100 for generation (memory-bound); A100 achieves similar tokens/$"
+        },
+        {
+          "id": "s-11-12-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.12.3",
+            "pages": "223"
+          },
+          "text": "• 定量推论:INT8/FP8用于生成，而分数则将GPU的数减半",
+          "originalExcerpt": "• Quantized inference: INT8/FP8 for generation and scoring halves GPU count for those"
+        },
+        {
+          "id": "s-11-12-3-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.12.3",
+            "pages": "223"
+          },
+          "text": "• 渐进培训:从8BAgent模式开始，奖励工程/调试(美元200)",
+          "originalExcerpt": "• Progressive training: Start with 8B proxy model for reward engineering/debugging (∼$200),"
+        },
+        {
+          "id": "s-11-12-3-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.12.3",
+            "pages": "223"
+          },
+          "text": "然后缩放到70B。",
+          "originalExcerpt": "then scale to 70B."
+        },
+        {
+          "id": "s-11-12-3-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.12.3",
+            "pages": "223"
+          },
+          "text": "• 无参考文献的LORA:完全取消参考模型(减少50%内存)。",
+          "originalExcerpt": "• LoRA for reference-free: Eliminates reference model entirely (50% memory reduction)."
+        },
+        {
+          "id": "s-11-12-3-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.12.3",
+            "pages": "224"
+          },
+          "text": "• 顺序缩短:256 ~512 ~ 1024代象征性课程节省40%",
+          "originalExcerpt": "• Shorter sequences first: Curriculum from 256→512→1024 token generations saves 40%"
+        }
+      ]
+    },
+    {
+      "id": "s-11-13",
+      "number": "11.13",
+      "level": 1,
+      "enTitle": "Distributed Checkpointing",
+      "zhTitle": "分布式检查",
+      "pages": "224",
+      "blocks": [
+        {
+          "id": "s-11-13-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.13",
+            "pages": "224"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.13「分布式检查」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-11-13-structure-note",
+          "type": "callout",
+          "origin": "source_definition",
+          "source": {
+            "chapter": 11,
+            "section": "11.13",
+            "pages": "224"
+          },
+          "title": "原书结构说明",
+          "text": "§11.13 在原书中是父级目录节，具体论证由紧随其后的子节展开。本站保留这一锚点和来源页码，以维持与原书目录的一一对应，不把目录标题扩写成不存在的正文。"
+        },
+        {
+          "id": "s-11-13-b1",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 11,
+            "section": "11.13",
+            "pages": "224"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "At scale, naive checkpointing becomes a bottleneck. A 70B model with optimizer state requires saving ∼840 GB per checkpoint (FP32 master weights + Adam m + v)."
+        }
+      ]
+    },
+    {
+      "id": "s-11-13-1",
+      "number": "11.13.1",
+      "level": 2,
+      "enTitle": "Checkpointing Strategies",
+      "zhTitle": "检查战略",
+      "pages": "224",
+      "blocks": [
+        {
+          "id": "s-11-13-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.13.1",
+            "pages": "224"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.13.1「检查战略」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-11-13-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.13.1",
+            "pages": "224"
+          },
+          "text": "表11.10:大型高频的检查方法",
+          "originalExcerpt": "Table 11.10: Checkpointing approaches for large-scale RLHF"
+        },
+        {
+          "id": "s-11-13-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.13.1",
+            "pages": "224"
+          },
+          "text": "策略 保存时间(70B) 存储/ckpt 特征 同步(所有级别) 30–60s(阻塞) 420 GB 简单，摊位 训练 Async (背景副本) <1s(非阻塞) 420 GB 重叠与下一步增量(delta) <1s 5–20 GB 仅保存已更改的参数 硬化(FSDP 原生) 5–10s 420 GB 硬化 每一个等级均保存其硬化",
+          "originalExcerpt": "Strategy Save Time (70B) Storage/ckpt Characteristics Synchronous (all ranks) 30–60s (blocking) 420 GB Simple, stalls training Async (background copy) <1s (non-blocking) 420 GB Overlaps with next step Incremental (delta) <1s 5–20 GB Only save changed params Sharded (FSDP native) 5–10s 420 GB sharded Each rank saves its shard"
+        }
+      ]
+    },
+    {
+      "id": "s-11-13-2",
+      "number": "11.13.2",
+      "level": 2,
+      "enTitle": "Production Checkpointing with torch.distributed.checkpoint",
+      "zhTitle": "使用火炬进行生产检查，分发检查点",
+      "pages": "224",
+      "blocks": [
+        {
+          "id": "s-11-13-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.13.2",
+            "pages": "224"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.13.2「使用火炬进行生产检查，分发检查点」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-11-13-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.13.2",
+            "pages": "224"
+          },
+          "text": "。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。",
+          "originalExcerpt": "import torch . distributed . checkpoint as dcp from torch . distributed . checkpoint . state_dict import get_state_dict , StateDictOptions"
+        },
+        {
+          "id": "s-11-13-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.13.2",
+            "pages": "224"
+          },
+          "text": "#保存:每个军衔在并行状态中写下它的硬度 dict={ \"模型\": get state dict(模式，选项=州指令选项(full state dict=false)) } dcp。保存(状态 dict=州指令，存储 writer=dcp)。 FileSystemWriter( \" / mnt/ 检查站/ step 5000 \" )， 计划员 = dcp。默认保存计划员 ()， # 处理 FSDP 自动变硬)",
+          "originalExcerpt": "# Save : each rank writes its shard in parallel state_dict = { \" model \" : get_state_dict ( model , options = StateDictOptions ( full_state_dict = False ) ) } dcp . save ( state_dict = state_dict , storage_writer = dcp . FileSystemWriter ( \" / mnt / checkpoints / step_5000 \" ) , planner = dcp . DefaultSavePlanner () , # Handles FSDP sharding automatically )"
+        },
+        {
+          "id": "s-11-13-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.13.2",
+            "pages": "224"
+          },
+          "text": "# Async 保存 : 不 - 屏蔽，在背景线程中运行未来 = dcp。 async save(状态 dict = 状态 dict，存储 writer = dcp)。 FileSystemWriter( \" / mnt/检查站/步骤 5000 \" )，# 培训立即继续进行;未来.结果() 只有在需要时才设置块",
+          "originalExcerpt": "# Async save : non - blocking , runs in background thread future = dcp . async_save ( state_dict = state_dict , storage_writer = dcp . FileSystemWriter ( \" / mnt / checkpoints / step_5000 \" ) , ) # Training continues immediately ; future . result () blocks only if needed"
+        },
+        {
+          "id": "s-11-13-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.13.2",
+            "pages": "224"
+          },
+          "text": "高频检查站的卫生检查点必须比标准预训更能进行:",
+          "originalExcerpt": "Checkpoint Hygiene for RLHF RLHF checkpoints must capture more than standard pre-training:"
+        },
+        {
+          "id": "s-11-13-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.13.2",
+            "pages": "224"
+          },
+          "text": "• 政策模型加权数+优化状态(标准)",
+          "originalExcerpt": "• Policy model weights + optimizer states (standard)"
+        },
+        {
+          "id": "s-11-13-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.13.2",
+            "pages": "224"
+          },
+          "text": "• KL系数(β)及其时间表状态",
+          "originalExcerpt": "• KL coefficient (β) and its schedule state"
+        },
+        {
+          "id": "s-11-13-2-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.13.2",
+            "pages": "224"
+          },
+          "text": "• 重放缓冲部分(用于非政策性更正)",
+          "originalExcerpt": "• Replay buffer contents (for off-policy corrections)"
+        },
+        {
+          "id": "s-11-13-2-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.13.2",
+            "pages": "224"
+          },
+          "text": "• 所有全球免疫单位的RNG状态(可复制)",
+          "originalExcerpt": "• RNG states for all GPUs (reproducibility)"
+        },
+        {
+          "id": "s-11-13-2-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.13.2",
+            "pages": "224"
+          },
+          "text": "• 迅速执行人员位置(避免再处理提示)",
+          "originalExcerpt": "• Prompt iterator position (avoid re-processing prompts)"
+        },
+        {
+          "id": "s-11-13-2-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.13.2",
+            "pages": "224"
+          },
+          "text": "• 奖励模式版本标签(用于审计)",
+          "originalExcerpt": "• Reward model version tag (for auditability)"
+        },
+        {
+          "id": "s-11-13-2-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.13.2",
+            "pages": "224"
+          },
+          "text": "• 手杖/测量仪(用于持续伐木)",
+          "originalExcerpt": "• Wandb/metrics run ID (for continuous logging)"
+        }
+      ]
+    },
+    {
+      "id": "s-11-14",
+      "number": "11.14",
+      "level": 1,
+      "enTitle": "Hardware Selection Guide",
+      "zhTitle": "硬件选择指南",
+      "pages": "225",
+      "blocks": [
+        {
+          "id": "s-11-14-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.14",
+            "pages": "225"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.14「硬件选择指南」 时，不要寻找脱离场景的“最佳方案”。应在质量、latency、计算与存储成本、数据要求、可控性和运维复杂度上逐项比较，并保留原书说明的适用前提与例外。"
+        },
+        {
+          "id": "s-11-14-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.14",
+            "pages": "225"
+          },
+          "text": "选择合适的硬件取决于模型大小、预算和培训阶段。",
+          "originalExcerpt": "Choosing the right hardware depends on model size, budget, and training phase. Table 11.11: Hardware recommendations by model scale and training phase"
+        },
+        {
+          "id": "s-11-14-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.14",
+            "pages": "225"
+          },
+          "text": "型号大小培训阶段建议配置 + 7B SFT + rLHF 1–2× A100 单节点，不需要7–13B SFT + rLHF 4–8× A100 FSDP， 备选TP=2 gen 13–34B SFT + RLHF 8–16× A100/H100 FSDP + TP=4 gen 70B RLHF (全) 32–64× A100/H100 解码， FSDP + TP=8 70B RLHF(洛拉) 8–16× A100/H100 不可逆变型， LRA适配器 > 100B RLHFF 128+H100 3D 并行(TP+PP+DP)",
+          "originalExcerpt": "Model Size Training Phase Recommended Configuration ≤7B SFT + RLHF 1–2× A100 Single node, no parallelism needed 7–13B SFT + RLHF 4–8× A100 FSDP, optional TP=2 for gen 13–34B SFT + RLHF 8–16× A100/H100 FSDP + TP=4 for gen 70B RLHF (full) 32–64× A100/H100 Decoupled, FSDP + TP=8 70B RLHF (LoRA) 8–16× A100/H100 No ref model, LoRA adapters >100B RLHF 128+× H100 3..."
+        },
+        {
+          "id": "s-11-14-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.14",
+            "pages": "225"
+          },
+          "text": "H100对A100:升级何时值得?H100规定:",
+          "originalExcerpt": "H100 vs A100: When is the Upgrade Worth It? H100 provides:"
+        },
+        {
+          "id": "s-11-14-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.14",
+            "pages": "225"
+          },
+          "text": "• □ □ 峰值FLOPS(989 vs 624 TFLOPS for BF16，带螺旋;495 vs 312，无",
+          "originalExcerpt": "• ∼1.6× peak FLOPS (989 vs 624 TFLOPS for BF16 with sparsity; 495 vs 312 without"
+        },
+        {
+          "id": "s-11-14-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.14",
+            "pages": "225"
+          },
+          "text": "• 视距带宽(3.35对2.0TB/s)",
+          "originalExcerpt": "• ∼2× memory bandwidth (3.35 vs 2.0 TB/s)"
+        },
+        {
+          "id": "s-11-14-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.14",
+            "pages": "225"
+          },
+          "text": "• FP8支助(附加2x推论)",
+          "originalExcerpt": "• FP8 support (additional 2× for inference)"
+        },
+        {
+          "id": "s-11-14-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.14",
+            "pages": "225"
+          },
+          "text": "• NVLink 4.0(900对600GB/s)",
+          "originalExcerpt": "• NVLink 4.0 (900 vs 600 GB/s)"
+        },
+        {
+          "id": "s-11-14-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.14",
+            "pages": "225"
+          },
+          "text": "培训: \\\\\\1.8–2.2x 更快的端对端(FP8支持和更高的带宽扩大了原始的FLOPS优势 )。 生成:\\\\1.7x 更快(带宽，因此2x BW==1.7x 吞吐量与间接费用)。成本-性能:价格为1.5×， H100几乎总是对培训更有价值。 对于仅推论(生成组)， A100在即期定价中可以更具有成本效益。",
+          "originalExcerpt": "For training: ∼1.8–2.2× faster end-to-end (FP8 support and higher bandwidth amplify the raw FLOPS advantage). For generation: ∼1.7× faster (bandwidth-bound, so 2× BW ≈ 1.7× throughput with overhead). Cost-performance: At 1.5× the price, H100 is almost always better value for training. For inference-only (generation clusters), A100 at spot pricing can be more..."
+        }
+      ]
+    },
+    {
+      "id": "s-11-15",
+      "number": "11.15",
+      "level": 1,
+      "enTitle": "Optimizer Configuration for RL Training",
+      "zhTitle": "RL 培训优化配置",
+      "pages": "225",
+      "blocks": [
+        {
+          "id": "s-11-15-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15",
+            "pages": "225"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.15「RL 培训优化配置」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-11-15-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15",
+            "pages": "225"
+          },
+          "text": "RL培训(PPO， GRPO， DPO)与预训或SFT相比，对优化者提出了独特的要求。损失的地貌是非固定的(政策变化是数据产生的)，梯度是噪声(奖励信号差异)，培训更容易发生灾难性的遗忘或reward hacking行为。本节整合了RL特定优化器的引导，使用AdamW [238]作为默认优化器。",
+          "originalExcerpt": "RL training (PPO, GRPO, DPO) imposes unique demands on the optimizer compared to pretraining or SFT. The loss landscape is non-stationary (the policy changes what data is generated), gradients are noisier (reward signal variance), and training is more prone to catastrophic forgetting or reward hacking. This section consolidates RL-specific optimizer guidance..."
+        }
+      ]
+    },
+    {
+      "id": "s-11-15-1",
+      "number": "11.15.1",
+      "level": 2,
+      "enTitle": "Why RL Requires Different Optimizer Settings",
+      "zhTitle": "RL 为何需要不同的优化设置",
+      "pages": "225",
+      "blocks": [
+        {
+          "id": "s-11-15-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.1",
+            "pages": "225"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.15.1「RL 为何需要不同的优化设置」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-11-15-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.1",
+            "pages": "225"
+          },
+          "text": "RL vs。 SFT 优化 — 密钥差异",
+          "originalExcerpt": "RL vs. SFT Optimization – Key Differences"
+        },
+        {
+          "id": "s-11-15-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.1",
+            "pages": "225"
+          },
+          "text": "• 非固定数据分布:与数据集固定的SFT不同， RL生成",
+          "originalExcerpt": "• Non-stationary data distribution: unlike SFT where the dataset is fixed, RL generates"
+        },
+        {
+          "id": "s-11-15-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.1",
+            "pages": "225"
+          },
+          "text": "数据分配随政策而变化。",
+          "originalExcerpt": "new rollouts each iteration—the data distribution shifts with the policy."
+        },
+        {
+          "id": "s-11-15-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.1",
+            "pages": "225"
+          },
+          "text": "• 高梯度差异:奖励信号稀少，噪音大;梯度高得多",
+          "originalExcerpt": "• High gradient variance: reward signals are sparse and noisy; gradients have much higher"
+        },
+        {
+          "id": "s-11-15-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.1",
+            "pages": "225"
+          },
+          "text": "与编译数据上的交叉切换值相比，差异。",
+          "originalExcerpt": "variance than cross-entropy on curated data."
+        },
+        {
+          "id": "s-11-15-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.1",
+            "pages": "225"
+          },
+          "text": "• 需要更小的更新:政策必须接近参考模式(KL)",
+          "originalExcerpt": "• Smaller updates required: the policy must stay close to the reference model (KL"
+        },
+        {
+          "id": "s-11-15-1-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.1",
+            "pages": "225"
+          },
+          "text": "，因此学习率比SFT小10–100×。",
+          "originalExcerpt": "constraint), so learning rates are 10–100× smaller than SFT."
+        },
+        {
+          "id": "s-11-15-1-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.1",
+            "pages": "225"
+          },
+          "text": "· 无重量衰减:正规化来自KL惩罚，而不是重量衰减。",
+          "originalExcerpt": "• No weight decay: regularization comes from the KL penalty, not weight decay. Adding"
+        },
+        {
+          "id": "s-11-15-1-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.1",
+            "pages": "225"
+          },
+          "text": "顶级WD可以对抗KL限制。",
+          "originalExcerpt": "WD on top can fight the KL constraint."
+        },
+        {
+          "id": "s-11-15-1-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.1",
+            "pages": "225"
+          },
+          "text": "• 暖暖度缩短:RL从一个聚集的SFT检查站开始——最优化状态需求",
+          "originalExcerpt": "• Shorter warmup: RL starts from a converged SFT checkpoint—the optimizer state needs"
+        }
+      ]
+    },
+    {
+      "id": "s-11-15-2",
+      "number": "11.15.2",
+      "level": 2,
+      "enTitle": "Recommended Hyperparameters by RL Method",
+      "zhTitle": "推荐的RL方法的超参数",
+      "pages": "226",
+      "blocks": [
+        {
+          "id": "s-11-15-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.2",
+            "pages": "226"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.15.2「推荐的RL方法的超参数」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-11-15-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.2",
+            "pages": "226"
+          },
+          "text": "表11.12: RL 培训阶段的优化设置。所有使用β1 = 0.9，β2 = 0.95， + 10-8， max grad norm=1.0， BF16。方法优化器 LR WD Warmup 调度 DPO AdamW 5e-7 0.0 50 步常数或线性 PPO(政策) AdamW 1e-6 0.0 20步常数 PPO(批评) AdamW 1e-6 0.0 20步常数 GRPO AdamW 1e-6 0.0 20步常数",
+          "originalExcerpt": "Table 11.12: Optimizer settings for RL training phases. All use β1 = 0.9, β2 = 0.95, ϵ = 10−8 , max_grad_norm=1.0, BF16. Method Optimizer LR WD Warmup Schedule DPO AdamW 5e-7 0.0 50 steps Constant or Linear PPO (policy) AdamW 1e-6 0.0 20 steps Constant PPO (critic) AdamW 1e-6 0.0 20 steps Constant GRPO AdamW 1e-6 0.0 20 steps Constant"
+        },
+        {
+          "id": "s-11-15-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.2",
+            "pages": "226"
+          },
+          "text": "高温和低温的训练方式是“高温”的。 为什么RL的恒定时间表？余弦和线性减速时间表假设一个固定的训练视野，并且单调地减少损失。 RL训练既无:奖励、悬崖或斜坡可能无法预测。恒定LR(在短暂的热身后)使优化器在整个训练过程中保持响应性。如果必须衰变，则使用非常温和的线性时间表，并且具有较高的最低LR比(≥0.5)。",
+          "originalExcerpt": "Why Constant Schedule for RL? Cosine and linear-decay schedules assume a fixed training horizon and monotonically decreasing loss. RL training has neither: reward may plateau, spike, or oscillate unpredictably. A constant LR (after brief warmup) keeps the optimizer responsive throughout training. If you must decay, use a very gentle linear schedule with a hi..."
+        }
+      ]
+    },
+    {
+      "id": "s-11-15-3",
+      "number": "11.15.3",
+      "level": 2,
+      "enTitle": "Beta-2 = 0.95 for RL: Faster Adaptation",
+      "zhTitle": "Beta-2=0.95 用于RL:更快的适应",
+      "pages": "226",
+      "blocks": [
+        {
+          "id": "s-11-15-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.3",
+            "pages": "226"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.15.3「Beta-2=0.95 用于RL:更快的适应」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-11-15-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.3",
+            "pages": "226"
+          },
+          "text": "Adam 默认的 β₂=0.999 会为二阶矩估计保留很长的记忆，等效窗口约为 1000 个 step。RL 训练中，策略不断变化，1000 step 之前的梯度方差往往已失去参考价值。把 β₂ 调到 0.95 可将窗口缩短到约 20 step，使 adaptive learning rate 更快响应当前梯度统计。对于 batch 极小的在线 RL，β₂=0.95 可能让二阶矩估计过于嘈杂；此时可折中使用 0.99，或通过 gradient accumulation 增大有效 batch。",
+          "originalExcerpt": "The default Adam β2 = 0.999 gives a very long memory for the second moment (∼1000-step effective window). In RL training, the loss landscape changes rapidly as the policy evolves—the gradient variance from 1000 steps ago is irrelevant. Using β2 = 0.95 shortens the window to ∼20 steps, making the adaptive learning rate respond quickly to changing gradient sta..."
+        }
+      ]
+    },
+    {
+      "id": "s-11-15-4",
+      "number": "11.15.4",
+      "level": 2,
+      "enTitle": "Mixed Precision for RL: FP32 Master Weights Are Critical",
+      "zhTitle": "RL 混合精度:FP32 主重度是关键",
+      "pages": "226",
+      "blocks": [
+        {
+          "id": "s-11-15-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.4",
+            "pages": "226"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.15.4「RL 混合精度:FP32 主重度是关键」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-11-15-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.4",
+            "pages": "226"
+          },
+          "text": "远程教育培训对数字精确度特别敏感:",
+          "originalExcerpt": "RL training is particularly sensitive to numerical precision:"
+        },
+        {
+          "id": "s-11-15-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.4",
+            "pages": "226"
+          },
+          "text": "• 渐变是注意——许多步骤必须准确累积小的更新",
+          "originalExcerpt": "• Gradients are noisier—small updates must accumulate accurately over many steps"
+        },
+        {
+          "id": "s-11-15-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.4",
+            "pages": "226"
+          },
+          "text": "• 学习率非常低(10-6-10-7)，使",
+          "originalExcerpt": "• Learning rates are very small (10−6 –10−7 ), making ∆θ ≪ θ"
+        },
+        {
+          "id": "s-11-15-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.4",
+            "pages": "226"
+          },
+          "text": "• BF16 mantissa(7位= 0.8%相对精确度)不能代表10-6级的更新",
+          "originalExcerpt": "• BF16 mantissa (7 bits ≈ 0.8% relative precision) cannot represent updates of magnitude 10−6"
+        },
+        {
+          "id": "s-11-15-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.4",
+            "pages": "226"
+          },
+          "text": "相对于重量 100",
+          "originalExcerpt": "relative to weights of magnitude 100"
+        },
+        {
+          "id": "s-11-15-4-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.4",
+            "pages": "226"
+          },
+          "text": "总是使用FP32主重来进行RL训练。 BF16只进行训练(没有FP32副本)可靠地导致PPO/GRPO在100–500步后奖励崩溃。",
+          "originalExcerpt": "Always use FP32 master weights for RL training. BF16-only training (no FP32 copy) reliably causes reward collapse in PPO/GRPO after 100–500 steps."
+        }
+      ]
+    },
+    {
+      "id": "s-11-15-5",
+      "number": "11.15.5",
+      "level": 2,
+      "enTitle": "Gradient Clipping is Critical for RL",
+      "zhTitle": "渐变剪接对 RL 至关重要",
+      "pages": "226",
+      "blocks": [
+        {
+          "id": "s-11-15-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.5",
+            "pages": "226"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.15.5「渐变剪接对 RL 至关重要」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-11-15-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.5",
+            "pages": "226"
+          },
+          "text": "在 PPO 与 GRPO 中，reward signal 的方差可能很大，尤其在训练早期。一个异常 batch 就可能产生 norm 超过 100 的 gradient，从而破坏模型权重；因此 max_grad_norm=1.0 是常用设置。SFT 对 clipping 的依赖较弱，但仍建议保留。原书特别强调：RL 训练不应关闭 gradient clipping，因为策略更新的反馈环会放大一次失控更新的后果。",
+          "originalExcerpt": "In PPO and GRPO, the reward signal can be highly variable, especially early in training. A single bad batch can produce gradients with norm > 100, which would completely destroy the model weights. max_grad_norm=1.0 is the standard setting. For SFT, clipping is less critical but still recommended. Never Disable Gradient Clipping for RL Unlike SFT where gradie..."
+        }
+      ]
+    },
+    {
+      "id": "s-11-15-6",
+      "number": "11.15.6",
+      "level": 2,
+      "enTitle": "Diagnosing RL Training Instability",
+      "zhTitle": "诊断RL培训不稳定性",
+      "pages": "227",
+      "blocks": [
+        {
+          "id": "s-11-15-6-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.6",
+            "pages": "227"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.15.6「诊断RL培训不稳定性」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-11-15-6-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.6",
+            "pages": "227"
+          },
+          "text": "RL 优化症状的红旗和固定符， 可能因子和固定符， 都会改进 LR 的崩溃率太高或 KL 系数太低。 将 LR 减少 2– 5x 或 增加 βKL。渐变规范在剪切阈值更新时总是过于激进。 降低 LR( 剪切意味着您正在失去梯度方向信息 )。 KL 差异会爆炸( > 15 纳特) LR 过高。 降低 10x 或增加适应性 KL 惩罚。奖励被困在基线 LR 过低，或者Reward Model信号低。 请尝试 2–5x 更高的 LR。 请检查Reward Model校准。 超过 100+步骤 FP32 主重缺失后， NaN 丢失， 或者格级规范溢出。启用 FP32 主重; 验证 BF16 模式。",
+          "originalExcerpt": "Red Flags and Fixes for RL Optimization Symptom Likely Cause and Fix Reward improves then collapses LR too high or KL coefficient too low. Reduce LR by 2–5× or increase βKL . Gradient norm constantly at clip threshold Updates too aggressive. Reduce LR (clipping means you’re losing gradient direction info every step). KL divergence explodes (>15 nats) LR too ..."
+        }
+      ]
+    },
+    {
+      "id": "s-11-15-7",
+      "number": "11.15.7",
+      "level": 2,
+      "enTitle": "HuggingFace TRL Configuration for RL",
+      "zhTitle": "RL 的 HuggingFace TRL 配置",
+      "pages": "227-228",
+      "blocks": [
+        {
+          "id": "s-11-15-7-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.7",
+            "pages": "227-228"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.15.7「RL 的 HuggingFace TRL 配置」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-11-15-7-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.7",
+            "pages": "227"
+          },
+          "text": "TRL库[376]提供生产准备的PPO， DPO，以及从trl导入PPOConfig， PPOTrainer， DPOConfig， DPOTrainer的LLMs的其他RL方法的应用。",
+          "originalExcerpt": "The TRL library [376] provides production-ready implementations of PPO, DPO, and other RL methods for LLMs. from trl import PPOConfig , PPOTrainer , DPOConfig , DPOTrainer"
+        },
+        {
+          "id": "s-11-15-7-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.7",
+            "pages": "227"
+          },
+          "text": "# -- -- PPO 配置 -- ppo config = PPOConfig (# 优化器( 亚当W 带有 RL - 特定设置)) 学习 rate = 1 e - 6， # 10 - 100 x 较小于 SFT",
+          "originalExcerpt": "# --- PPO Configuration --ppo_config = PPOConfig ( # Optimizer ( AdamW with RL - specific settings ) learning_rate =1 e -6 , # 10 -100 x smaller than SFT"
+        },
+        {
+          "id": "s-11-15-7-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.7",
+            "pages": "227"
+          },
+          "text": "# PPO - 特定的po epocs=4， #迷你 - 批次更新每推出的迷你 batch 大小=16，批次 大小=64，#推出批次大小",
+          "originalExcerpt": "# PPO - specific ppo_epochs =4 , # mini - batch updates per rollout mini_batch_size =16 , batch_size =64 , # rollout batch size"
+        },
+        {
+          "id": "s-11-15-7-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.7",
+            "pages": "227"
+          },
+          "text": "渐变控制最大 格勒 标准=1.0，",
+          "originalExcerpt": "# Gradient control max_grad_norm =1.0 ,"
+        },
+        {
+          "id": "s-11-15-7-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.7",
+            "pages": "227"
+          },
+          "text": "# KL 罚局( 替换重衰减为正则器) init kl coef = 0。2， # 初始 KL 罚局系数 adap kl ctrl = 真， # 适应性 KL 目标目标 kl = 6.0， # 目标 KL 差",
+          "originalExcerpt": "# KL penalty ( replaces weight decay as regularizer ) init_kl_coef =0.2 , # initial KL penalty coefficient adap_kl_ctrl = True , # adaptive KL targeting target_kl =6.0 , # target KL divergence"
+        },
+        {
+          "id": "s-11-15-7-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.7",
+            "pages": "227"
+          },
+          "text": "混合精度bf16=真，#BF16计算， FP32主重。",
+          "originalExcerpt": "# Mixed precision bf16 = True , # BF16 compute , FP32 master weights )"
+        },
+        {
+          "id": "s-11-15-7-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.7",
+            "pages": "227"
+          },
+          "text": "Ppo 教练 = PPOTrainer(型号=型号， ref model=ref model， config=po config， 标语符=标语符，数据集=数据集，)， ) set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set = set set set = set set set set = set set = set set set set set set set set set set",
+          "originalExcerpt": "ppo_trainer = PPOTrainer ( model = model , ref_model = ref_model , config = ppo_config , tokenizer = tokenizer , dataset = dataset , )"
+        },
+        {
+          "id": "s-11-15-7-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.7",
+            "pages": "227"
+          },
+          "text": "# -- -- DPO 配置 -- dpo config = DPOConfig(输出 dir = \"./ dpo output \" )，",
+          "originalExcerpt": "# --- DPO Configuration --dpo_config = DPOConfig ( output_dir = \" ./ dpo_output \" ,"
+        },
+        {
+          "id": "s-11-15-7-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.7",
+            "pages": "227"
+          },
+          "text": "#优化学习 率=5 e-7，#甚至比PPO 优化学习更小 = \" adamw torch \"， adam beta1 = 0.9， adam beta2 = 0.95， # RL 重量的记忆更短 decay = 0.0， # 没有 WD - KL 提供规范化功能。",
+          "originalExcerpt": "# Optimizer learning_rate =5 e -7 , # even smaller than PPO optim = \" adamw_torch \" , adam_beta1 =0.9 , adam_beta2 =0.95 , # shorter memory for RL weight_decay =0.0 , # no WD -- KL provides regularization"
+        },
+        {
+          "id": "s-11-15-7-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.7",
+            "pages": "228"
+          },
+          "text": "lr s cheduler type= \" 恒定 与 warmup\"， 热身 步数=50，",
+          "originalExcerpt": "lr_s cheduler_type = \" constant_with_warmup \" , warmup_steps =50 ,"
+        },
+        {
+          "id": "s-11-15-7-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.7",
+            "pages": "228"
+          },
+          "text": "渐变控制最大 格勒 标准=1.0，",
+          "originalExcerpt": "# Gradient control max_grad_norm =1.0 ,"
+        },
+        {
+          "id": "s-11-15-7-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.7",
+            "pages": "228"
+          },
+          "text": "# DPO - 特定的β=0.1， # KL 约束强度损失 类型= \" sigmoid \"， # 标准DPO 损失",
+          "originalExcerpt": "# DPO - specific beta =0.1 , # KL constraint strength loss_type = \" sigmoid \" , # standard DPO loss"
+        },
+        {
+          "id": "s-11-15-7-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.7",
+            "pages": "228"
+          },
+          "text": "混合精度bf16=真，",
+          "originalExcerpt": "# Mixed precision bf16 = True ,"
+        },
+        {
+          "id": "s-11-15-7-b15",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.7",
+            "pages": "228"
+          },
+          "text": "#训练 num train epocs=1，#DPO一般为1个epocp e r d e vi c e t r a i n i a i a i a t i i i i e =4， g a i i e t u u u u u u u u u i i i i i i i i i i i i i i i",
+          "originalExcerpt": "# Training num_train_epochs =1 , # DPO typically 1 epoch p e r _ d e v i c e _ t r a i n _ b a t c h _ s i z e =4 , g r a d i e n t _ a c c u m u l a t i o n _ s t e p s =8 , )"
+        },
+        {
+          "id": "s-11-15-7-b16",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.7",
+            "pages": "228"
+          },
+          "text": "dpo 教练=DPOTrainer(型号=型号， ref model=ref model， args=dpo config， train dataset=数据集， 标语符=标语符，) dpo 教练=。火车()。",
+          "originalExcerpt": "dpo_trainer = DPOTrainer ( model = model , ref_model = ref_model , args = dpo_config , train_dataset = dataset , tokenizer = tokenizer , ) dpo_trainer . train ()"
+        },
+        {
+          "id": "s-11-15-7-b17",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.7",
+            "pages": "228"
+          },
+          "text": "列出11.1:使用TRL实现完整的PPO和DPO优化配置。",
+          "originalExcerpt": "Listing 11.1: Complete PPO and DPO optimizer configuration using TRL."
+        }
+      ]
+    },
+    {
+      "id": "s-11-15-8",
+      "number": "11.15.8",
+      "level": 2,
+      "enTitle": "MoE Considerations for RL Training",
+      "zhTitle": "教育部对培训培训的考虑",
+      "pages": "228",
+      "blocks": [
+        {
+          "id": "s-11-15-8-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.8",
+            "pages": "228"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §11.15.8「教育部对培训培训的考虑」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-11-15-8-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.8",
+            "pages": "228"
+          },
+          "text": "RLHF混合型专家模型的MOE[89]在RLHF中越来越多地使用:",
+          "originalExcerpt": "MoE for RLHF Mixture-of-Experts (MoE) models [89] are increasingly used in RLHF:"
+        },
+        {
+          "id": "s-11-15-8-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.8",
+            "pages": "228"
+          },
+          "text": "· 优点:以同样的计算成本增加3-4x能力。",
+          "originalExcerpt": "• Advantage: 3–4× more capacity at same compute cost. Better for reward models (more"
+        },
+        {
+          "id": "s-11-15-8-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.8",
+            "pages": "228"
+          },
+          "text": "法官能力)。",
+          "originalExcerpt": "capacity to judge)."
+        },
+        {
+          "id": "s-11-15-8-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.8",
+            "pages": "228"
+          },
+          "text": "• 挑战:专家平行需要全方位的沟通(接通的电话)",
+          "originalExcerpt": "• Challenge: Expert parallelism requires all-to-all communication (tokens routed across"
+        },
+        {
+          "id": "s-11-15-8-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.8",
+            "pages": "228"
+          },
+          "text": "与管道平行主义冲突。",
+          "originalExcerpt": "GPUs). This conflicts with pipeline parallelism."
+        },
+        {
+          "id": "s-11-15-8-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.8",
+            "pages": "228"
+          },
+          "text": "• 与教育部合作的GRPO:由于生产成本以活动性参数(不是)为主，工程效果良好",
+          "originalExcerpt": "• GRPO with MoE: Works well since generation cost is dominated by active params (not"
+        },
+        {
+          "id": "s-11-15-8-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.8",
+            "pages": "228"
+          },
+          "text": "• 教育部的LORA:只能将LORA应用于路由器+共享层，或适用于所有专家",
+          "originalExcerpt": "• LoRA for MoE: Can apply LoRA to router + shared layers only, or to all experts"
+        },
+        {
+          "id": "s-11-15-8-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.8",
+            "pages": "228"
+          },
+          "text": "RL优化器 Mantra for RL 微调:小LR，无重衰减，恒定时间表， FP32主重，攻击性剪接。让KL惩罚处理规范化问题——优化者的工作只是遵循政策梯度而不过分。",
+          "originalExcerpt": "The RL Optimizer Mantra For RL fine-tuning: small LR, no weight decay, constant schedule, FP32 master weights, aggressive clipping. Let the KL penalty handle regularization—the optimizer’s job is just to follow the policy gradient without overshooting."
+        },
+        {
+          "id": "s-11-15-8-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 11,
+            "section": "11.15.8",
+            "pages": "228"
+          },
+          "text": "迈尔斯:PyTorch-Native RL Post-Training。 Miles [295]是PyTorch为大型LLM RL的官方堆栈，将SGLang(用于高通量推出生成)与威震天-LM(用于分布式培训更新)连接起来。它支持分门别类地执行(将GPU集合用于推出和培训，最大限度地利用)和合用同一地点执行(在较小规模的试验的相同节点上都匹配)。迈尔斯代表了以前临时基础设施的标准化——与十年前PyTorch本身如何将深层学习培训标准化是相似的。",
+          "originalExcerpt": "Miles: PyTorch-Native RL Post-Training. Miles [295] is PyTorch’s official stack for large-scale LLM RL, connecting SGLang (for high-throughput rollout generation) with Megatron-LM (for distributed training updates). It supports both disaggregated execution (separate GPU pools for rollout and training, maximizing utilization) and colocated execution (fitting ..."
+        }
+      ]
+    }
+  ],
+  "glossary": [
+    {
+      "term": "rollout",
+      "zh": "轨迹采样",
+      "meaning": "使用当前策略生成完整 response 或交互 trajectory 的过程。"
+    },
+    {
+      "term": "reward model",
+      "zh": "Reward Model",
+      "meaning": "把人类或规则偏好映射为可优化标量信号的模型。"
+    },
+    {
+      "term": "Transformer",
+      "zh": "Transformer",
+      "meaning": "以 attention 为核心的序列建模架构。"
+    },
+    {
+      "term": "token",
+      "zh": "词元",
+      "meaning": "模型处理和生成文本时使用的离散单位。"
+    }
+  ],
+  "summary": [
+    "利用从人类反馈中学习强化知识来培训法学硕士，既是系统工程挑战，也是算法挑战。与标准监督的微调不同——它涉及单一模式、单一前向后向的传球和深知的缩放——RLHF需要同时加载多个模式(政策、参考、奖励模式、价值头)，通过复杂的推出-积分-训练循环进行协调，并分布在几十至数百个GPU之间。本章涵盖使大规模高频培训成为可能的系统一级的细节:内存预算编制，并行主义策略(数据，腾讯，管道，序列，及其组合)，生成瓶颈，解耦的架构，重量同步，断层耐受性，以及生产监测。",
+    "记忆预算现实检查 – 70B BF16",
+    "政策权重(BF16)140 GB FP32主重280 GB Adam 优化器(m + v， FP32)560 GB 梯度(BF16)140 GB 参考型号140 GB(或INT8中的70 GB) 奖励型号140 GB(或INT8中的70 GB) 激活(批次128，以下2048)50–100 GB KV缓存生成 20–60 GB 总1470–1560 GB →80 GB/GPU = 19–20 A100s 最小值(没有平行管理间接费用)。"
+  ],
+  "metrics": {
+    "chineseCharacters": 14556,
+    "sourceCoverage": 97,
+    "sectionCount": 43,
+    "blockCount": 371
+  }
+}

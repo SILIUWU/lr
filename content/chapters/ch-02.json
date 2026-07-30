@@ -1,0 +1,2811 @@
+{
+  "chapter": 2,
+  "title": "Systems Foundations for LLMs",
+  "zhTitle": "LLM 的系统基础",
+  "pages": "111-124",
+  "minutes": 28,
+  "overview": "现代LLM几乎完全在GPU(Graphics Processing Units)上得到培训和服务。了解GPU架构对于就平行主义战略、内存管理、内核优化和基础设施规模作出知情决定至关重要。本节全面介绍与LLM工作量有关的GPU硬件。",
+  "status": "in_progress",
+  "sections": [
+    {
+      "id": "s-2-1",
+      "number": "2.1",
+      "level": 1,
+      "enTitle": "GPU Architecture – From Silicon to LLM Training",
+      "zhTitle": "GPU 架构 — 从硅到 LLM 培训",
+      "pages": "111",
+      "blocks": [
+        {
+          "id": "s-2-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1",
+            "pages": "111"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §2.1「GPU 架构 — 从硅到 LLM 培训」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-2-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1",
+            "pages": "111"
+          },
+          "text": "现代LLM几乎完全在GPU(Graphics Processing Units)上得到培训和服务。了解GPU架构对于就平行主义战略、内存管理、内核优化和基础设施规模作出知情决定至关重要。本节全面介绍与LLM工作量有关的GPU硬件。",
+          "originalExcerpt": "Modern large language models are trained and served almost exclusively on GPUs (Graphics Processing Units). Understanding GPU architecture is essential for making informed decisions about parallelism strategies, memory management, kernel optimization, and infrastructure sizing. This section provides a comprehensive introduction to GPU hardware as it relates ..."
+        }
+      ]
+    },
+    {
+      "id": "s-2-1-1",
+      "number": "2.1.1",
+      "level": 2,
+      "enTitle": "Why GPUs for Deep Learning?",
+      "zhTitle": "为什么是GPU来深造?",
+      "pages": "111",
+      "blocks": [
+        {
+          "id": "s-2-1-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.1",
+            "pages": "111"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §2.1.1「为什么是GPU来深造?」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-2-1-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.1",
+            "pages": "111"
+          },
+          "text": "GPU和CPU代表了根本不同的硬件哲学。理解这一差异解释了为什么LLM训练在GPU上的速度是100–1000×。 CPU对GPU – Basic Design Philosophis",
+          "originalExcerpt": "GPUs and CPUs represent fundamentally different hardware philosophies. Understanding this difference explains why LLM training is 100–1000× faster on GPUs. CPUs vs. GPUs – Fundamental Design Philosophy"
+        },
+        {
+          "id": "s-2-1-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.1",
+            "pages": "111"
+          },
+          "text": "• CPU是用于耐久的优化型——它们执行的几条线程尽可能快，而且很大",
+          "originalExcerpt": "• CPUs are optimized for latency – they execute a few threads as fast as possible, with large"
+        },
+        {
+          "id": "s-2-1-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.1",
+            "pages": "111"
+          },
+          "text": "缓存、 分支预测器和命令外执行。 一个现代的CPU有8–96个核心。",
+          "originalExcerpt": "caches, branch predictors, and out-of-order execution. A modern CPU has 8–96 cores."
+        },
+        {
+          "id": "s-2-1-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.1",
+            "pages": "111"
+          },
+          "text": "• GPU对吞吐量进行优化，它们平行执行数千条线，每个线程",
+          "originalExcerpt": "• GPUs are optimized for throughput – they execute thousands of threads in parallel, each"
+        },
+        {
+          "id": "s-2-1-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.1",
+            "pages": "111"
+          },
+          "text": "进行简单的工作。现代的GPU有数千个“核心”(执行单位)被分组到流式多处理器(SM)中。",
+          "originalExcerpt": "doing simple work. A modern GPU has thousands of “cores” (execution units) grouped into Streaming Multiprocessors (SMs)."
+        },
+        {
+          "id": "s-2-1-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.1",
+            "pages": "111"
+          },
+          "text": "深度学习负载主要由矩阵乘法构成：在 O(n²) 规模的数据上执行 O(n³) 次运算，天然适合大规模并行。以 70B 模型为例，单次 Transformer 前向计算每个 token 约需 140 TFLOP，正好能够利用 GPU 的高吞吐能力。",
+          "originalExcerpt": "Deep learning workloads are dominated by matrix multiplications (O(n3 ) operations on O(n2 ) data), which are embarrassingly parallel. A single transformer forward pass for a 70B model requires ∼140 TFLOP of compute per token – perfect for GPU throughput."
+        }
+      ]
+    },
+    {
+      "id": "s-2-1-2",
+      "number": "2.1.2",
+      "level": 2,
+      "enTitle": "NVIDIA GPU Microarchitecture Generations",
+      "zhTitle": "NVIDIA GPU 微结构化构造代数",
+      "pages": "111",
+      "blocks": [
+        {
+          "id": "s-2-1-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.2",
+            "pages": "111"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §2.1.2「NVIDIA GPU 微结构化构造代数」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-2-1-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.2",
+            "pages": "111"
+          },
+          "text": "NVIDIA发布了一系列GPU架构，每个架构都带来了深入学习的关键创新:",
+          "originalExcerpt": "NVIDIA has released a series of GPU architectures, each bringing key innovations for deep learning:"
+        }
+      ]
+    },
+    {
+      "id": "s-2-1-3",
+      "number": "2.1.3",
+      "level": 2,
+      "enTitle": "Common GPUs for LLM Training and Inference",
+      "zhTitle": "LLM 培训和推论通用GPU",
+      "pages": "111-112",
+      "blocks": [
+        {
+          "id": "s-2-1-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.3",
+            "pages": "111-112"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §2.1.3「LLM 培训和推论通用GPU」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-2-1-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.3",
+            "pages": "111"
+          },
+          "text": "要选择哪个 GPU ?",
+          "originalExcerpt": "Which GPU to Choose?"
+        },
+        {
+          "id": "s-2-1-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.3",
+            "pages": "111"
+          },
+          "text": "• 培训70B+型号:带有NVLink的H100/B200节点(需要快速连通的百日光)",
+          "originalExcerpt": "• Training 70B+ models: H100/B200 nodes with NVLink (need fast interconnect for tensor"
+        },
+        {
+          "id": "s-2-1-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.3",
+            "pages": "111"
+          },
+          "text": "最低为每例8×H100。",
+          "originalExcerpt": "parallelism). Minimum 8×H100 per instance."
+        },
+        {
+          "id": "s-2-1-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.3",
+            "pages": "111"
+          },
+          "text": "• 推论(对相关性敏感):高溴化瓦的H100/H200; MI300X的内存",
+          "originalExcerpt": "• Inference (latency-sensitive): H100/H200 for high BW; MI300X for memory-bound"
+        },
+        {
+          "id": "s-2-1-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.3",
+            "pages": "111"
+          },
+          "text": "(huge KV缓存)。",
+          "originalExcerpt": "(huge KV caches)."
+        },
+        {
+          "id": "s-2-1-3-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.3",
+            "pages": "111"
+          },
+          "text": "^ 精调 7B–13B:A100-80GB具有成本效益，与LORA的单调GPU。",
+          "originalExcerpt": "• Fine-tuning 7B–13B: A100-80GB is cost-effective. Single GPU with LoRA."
+        },
+        {
+          "id": "s-2-1-3-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.3",
+            "pages": "111"
+          },
+          "text": "• 预算:A100-40GB甚至A10(24GB)，用于7B型的LORA。",
+          "originalExcerpt": "• Budget: A100-40GB or even A10 (24GB) for LoRA on 7B models."
+        },
+        {
+          "id": "s-2-1-3-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.3",
+            "pages": "112"
+          },
+          "text": "表2.1:NVIDIA GPU 深层学习的微结构构造时间表。",
+          "originalExcerpt": "Table 2.1: NVIDIA GPU microarchitecture timeline for deep learning."
+        },
+        {
+          "id": "s-2-1-3-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.3",
+            "pages": "112"
+          },
+          "text": "建筑年旗舰 基深学习创新 Pascal 2016 P100 First HBM GPU; FP16支持; NVLink 1 Volta 2017 V100 Tensor Cores(第一代); 混合精密训练 Turing 2018 T4 INT8 推论; in in in ; ; generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generation generationRT核心(不用于ML) Ampere 2020 A100 BF16 Tensor Core; TF32; 3rd-gen NVLink; MIG Hopper 2022 H100 FP8 Tensor Core; TMA; 变形引擎; NVLink 4 B200 B200 二源变形引擎; NVLink 5 (1.8 TB/s); FP4",
+          "originalExcerpt": "Architecture Year Flagship Key Deep Learning Innovation Pascal 2016 P100 First HBM GPU; FP16 support; NVLink 1 Volta 2017 V100 Tensor Cores (first generation); mixed-precision training Turing 2018 T4 INT8 inference; RT cores (not for ML) Ampere 2020 A100 BF16 Tensor Cores; TF32; 3rd-gen NVLink; MIG Hopper 2022 H100 FP8 Tensor Cores; TMA; Transformer Engine; ..."
+        },
+        {
+          "id": "s-2-1-3-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.3",
+            "pages": "112"
+          },
+          "text": "表2.2:与LLM工作量相关的GPU规格，所有带宽数字均为双向。 GPU Arch HBM BF16 TF HBM BW NVLink LLM 角色 V100-32GB Volta 32 GB 125 TF* 900 GB/s 300 GB/s Legacy; 互联网档案馆的存檔，存档日期2013-09-02. 小型号微调A100-40GB 安培40 GB 312 TF 1.5 TB/s 600 GB/s 预算培训/推论 A100-80GB 安培80 GB 312 TF 2.0 TB/s 600 GB/s 标准RLHF(70B) H100 SXM Hopper 80 GB 990 TF 3.35 TB/s 900 GB/s 3× 快速培训 H200 SXM Hopper 141 GB 990 TF 4.8 TB/s 900 GB/s 适配70 BPUs 200 SXM Blackwell 192 GB 2250 TF 8.0 TB/s 1800 GB/s 下源;2×超过H100AMD和Google的替代品: MI300X CDNA3 192GB 1300 TF 5.3 TB/s N/A Most memory; ROCm TPU v5e Google 16GB 197 TF 1.6 TB/s ICI 1.6 TB/s Cloud-s; JAX/XLA",
+          "originalExcerpt": "Table 2.2: GPU specifications relevant to LLM workloads. All bandwidth figures are bidirectional. GPU Arch HBM BF16 TF HBM BW NVLink LLM Role V100-32GB Volta 32 GB 125 TF* 900 GB/s 300 GB/s Legacy; small model fine-tune A100-40GB Ampere 40 GB 312 TF 1.5 TB/s 600 GB/s Budget training/inference A100-80GB Ampere 80 GB 312 TF 2.0 TB/s 600 GB/s Standard RLHF (8–6..."
+        }
+      ]
+    },
+    {
+      "id": "s-2-1-4",
+      "number": "2.1.4",
+      "level": 2,
+      "enTitle": "GPU Internal Architecture – The Streaming Multiprocessor (SM)",
+      "zhTitle": "GPU 内部架构 — The Streaming multiple processor (SM) (SM) 中 了 :",
+      "pages": "112-113",
+      "blocks": [
+        {
+          "id": "s-2-1-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.4",
+            "pages": "112-113"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §2.1.4「GPU 内部架构 — The Streaming multiple processor (SM) (SM) 中 了 :」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-2-1-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.4",
+            "pages": "112"
+          },
+          "text": "GPU被组织成一系列流式多处理器(SM)，每个处理器都是独立的处理器，拥有自己的注册文件，共享内存，和执行单元。了解SM是理解GPU性能的关键。",
+          "originalExcerpt": "A GPU is organized as an array of Streaming Multiprocessors (SMs), each of which is an independent processor with its own register file, shared memory, and execution units. Understanding SMs is key to understanding GPU performance."
+        },
+        {
+          "id": "s-2-1-4-b2",
+          "type": "figure",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.4",
+            "pages": "112",
+            "figure": "Figure 2.1"
+          },
+          "src": null,
+          "alt": "图2.1:左侧:A100上的单流多处理器(SM)的内部结构——64个FP32 CUDA核心，4个Tensor核心，4个曲速调度器，256个KB注册文件，192个KB共享内存/L1缓存。右:全A100芯片包含108 SM，共享40 MB L2缓存和80 GB HBM2e。 Bandwidth edatement(左边)显示从注册商到HBM的剧降。",
+          "caption": "图2.1:左侧:A100上的单流多处理器(SM)的内部结构——64个FP32 CUDA核心，4个Tensor核心，4个曲速调度器，256个KB注册文件，192个KB共享内存/L1缓存。右:全A100芯片包含108 SM，共享40 MB L2缓存和80 GB HBM2e。 Bandwidth edatement(左边)显示从注册商到HBM的剧降。",
+          "adapted": false
+        },
+        {
+          "id": "s-2-1-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.4",
+            "pages": "113"
+          },
+          "text": "关键 SM 组件",
+          "originalExcerpt": "Key SM Components"
+        },
+        {
+          "id": "s-2-1-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.4",
+            "pages": "113"
+          },
+          "text": "• CUDA核心:用于FP32/INT32操作的Scalar ALU。",
+          "originalExcerpt": "• CUDA Cores: Scalar ALUs for FP32/INT32 operations. 64 per SM on A100. Used for"
+        },
+        {
+          "id": "s-2-1-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.4",
+            "pages": "113"
+          },
+          "text": "分子式操作、削减和不匹配操作。",
+          "originalExcerpt": "element-wise ops, reductions, and non-matrix operations."
+        },
+        {
+          "id": "s-2-1-4-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.4",
+            "pages": "113"
+          },
+          "text": "• tensor Cores:专用矩阵-乘积(MMA)单元。",
+          "originalExcerpt": "• Tensor Cores: Specialized matrix-multiply-accumulate (MMA) units. Each performs a"
+        },
+        {
+          "id": "s-2-1-4-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.4",
+            "pages": "113"
+          },
+          "text": "4×4×4 熔化每周期增殖。 A100上每SM4，为辅助精度在CUDA芯上输送16×吞吐量。",
+          "originalExcerpt": "4×4×4 fused multiply-add per cycle. 4 per SM on A100, delivering 16× throughput over CUDA cores for supported precisions."
+        },
+        {
+          "id": "s-2-1-4-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.4",
+            "pages": "113"
+          },
+          "text": "• 注册文件:最快捷的存储(1个周期性)。在所有活动线程中共享。 Spillling",
+          "originalExcerpt": "• Register File: Fastest storage (1 cycle latency). Shared among all active threads. Spilling"
+        },
+        {
+          "id": "s-2-1-4-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.4",
+            "pages": "113"
+          },
+          "text": "至L1导致大幅减速。",
+          "originalExcerpt": "to L1 causes significant slowdown."
+        },
+        {
+          "id": "s-2-1-4-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.4",
+            "pages": "113"
+          },
+          "text": "• 共享内存 / L1: 由程序员明确管理的在线SRAM。 密钥",
+          "originalExcerpt": "• Shared Memory / L1: On-chip SRAM explicitly managed by the programmer. The key"
+        },
+        {
+          "id": "s-2-1-4-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.4",
+            "pages": "113"
+          },
+          "text": "以至闪光关注的性能(瓷砖完全适合共享记忆)。",
+          "originalExcerpt": "to Flash Attention’s performance (tiles fit entirely in shared memory)."
+        },
+        {
+          "id": "s-2-1-4-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.4",
+            "pages": "113"
+          },
+          "text": "• 曲速调度器:每个SM都有4个曲速调度器(A100)。曲速=32个线程执行",
+          "originalExcerpt": "• Warp Schedulers: Each SM has 4 warp schedulers (A100). A warp = 32 threads executing"
+        },
+        {
+          "id": "s-2-1-4-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.4",
+            "pages": "113"
+          },
+          "text": "。调度器通过在曲速间切换来隐藏内存时空。",
+          "originalExcerpt": "in lockstep (SIMT model). Schedulers hide memory latency by switching between warps."
+        },
+        {
+          "id": "s-2-1-4-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.4",
+            "pages": "113"
+          },
+          "text": "SIMT执行模型GPU使用单指令，多线索(SIMT)执行。在曲速(32线程)内，所有线程执行相同的指令，但执行的数据不同。当线程出现差异(例如如果/else)时，两条路径都被序列化 — — 称为曲面差异。 这就是为什么GPU内核必须最小化分支化的原因。对于LLM工作量，主要操作(GEMM，注意，软max)有统一的控制流跨线程，使得它们成为SIMT执行的理想。",
+          "originalExcerpt": "The SIMT Execution Model GPUs use Single Instruction, Multiple Threads (SIMT) execution. Within a warp (32 threads), all threads execute the same instruction but on different data. When threads diverge (e.g., if/else), both paths are serialized – called warp divergence. This is why GPU kernels must minimize branching. For LLM workloads, the main operations (..."
+        }
+      ]
+    },
+    {
+      "id": "s-2-1-5",
+      "number": "2.1.5",
+      "level": 2,
+      "enTitle": "GPU Chip Scaling Across Generations",
+      "zhTitle": "GPU 芯片跨代扩展",
+      "pages": "113",
+      "blocks": [
+        {
+          "id": "s-2-1-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.5",
+            "pages": "113"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §2.1.5「GPU 芯片跨代扩展」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-2-1-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.5",
+            "pages": "113"
+          },
+          "text": "NVIDIA的GPU架构的演变显示计算密度的一致缩放，芯片存储器，以及用于深层学习的专门单位: 表2.3:SM级的缩放，跨越NVIDIA架构。",
+          "originalExcerpt": "The evolution of NVIDIA’s GPU architectures shows consistent scaling of compute density, on-chip memory, and specialized units for deep learning: Table 2.3: SM-level scaling across NVIDIA architectures."
+        },
+        {
+          "id": "s-2-1-5-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.5",
+            "pages": "113"
+          },
+          "text": "结构 SMS TCs/SM SRAM/SM L2 键变伏尔塔(V100)80 8 128 KB 6 MB 引入 Tensor Cores Ampere(A100)108 4 192 KB 40 MB BF16/TF32;更大的L2 Hopper(H100)132 4 256 KB 50 MB TMA; FP8; ; ; 3; 4 4 4 256 KB 50 MB TMA; 3; 3 ; 5 ; 5; 5; 5; 5; 5; 5; 5; 5; 3; 5; 5; 5; ; 5; 5; ; 5; ; 5; 5; 5; ; ; 5; ; 5; ; 5; ; ; ; ; ; ; 5; ; ; ; ; ; ; ; ; ; ; ; ; ; ;线条块群 Blackwell(B200) 148 4 256 KB 128 MB 2×死亡; FP4; TMEM; NVLink 5",
+          "originalExcerpt": "Architecture SMs TCs/SM SRAM/SM L2 Key Change Volta (V100) 80 8 128 KB 6 MB Introduced Tensor Cores Ampere (A100) 108 4 192 KB 40 MB BF16/TF32; larger L2 Hopper (H100) 132 4 256 KB 50 MB TMA; FP8; Thread Block Clusters Blackwell (B200) 148 4 256 KB 128 MB 2× die; FP4; TMEM; NVLink 5"
+        }
+      ]
+    },
+    {
+      "id": "s-2-1-6",
+      "number": "2.1.6",
+      "level": 2,
+      "enTitle": "GPU Memory Hierarchy and Bandwidth",
+      "zhTitle": "GPU 内存等级和带宽",
+      "pages": "113-114",
+      "blocks": [
+        {
+          "id": "s-2-1-6-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.6",
+            "pages": "113-114"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §2.1.6「GPU 内存等级和带宽」 时，沿信息生命周期追踪：内容何时写入、采用什么表示、怎样检索、如何进入 context、何时更新或删除。保存更多信息并不自动带来更好结果，选择机制和冲突处理同样重要。"
+        },
+        {
+          "id": "s-2-1-6-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.6",
+            "pages": "113"
+          },
+          "text": "现代GPU的培训和推论性能几乎完全取决于你如何管理跨内存结构的数据运动。理解等级并不是可选的 – 它是后面各节讨论的每一种优化技术的基础。 GPU 记忆等级 – A100 80GB 参考数字 级容量 带宽 位址 → 256 KB/SM > 100 TB/s 1周期 上芯片，每段存储 164 KB/SM →19 TB/s → 秒 上芯片，每段存储 秒 L2 键盘，共 → 5 TB/s →200 秒 上芯片，共享 HBM2e(VRAM)80 GB 2 TB/s →200 ns 上芯片(5堆) CPU DRAM 512 GB+ + + + 25 GB/s →10 μs 主机(PCe 4) NVMe SSD TBs 7 GB/s →100 μs 主机存储",
+          "originalExcerpt": "Modern GPU training and inference performance is almost entirely determined by how well you manage data movement across the memory hierarchy. Understanding the hierarchy is not optional – it is the foundation for every optimization technique discussed in later sections. GPU Memory Hierarchy – A100 80GB Reference Numbers Level Capacity Bandwidth Latency Locat..."
+        },
+        {
+          "id": "s-2-1-6-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.6",
+            "pages": "113"
+          },
+          "text": "为何这些差距在等级结构的每个级别都比上一级要慢10x，比上一级要慢100–1000x。 A100拥有312 TFLOP/s的BF16 低压核心吞吐量，但只有2 TB/s的HBM带宽。",
+          "originalExcerpt": "Why the Gaps Are So Large Each level of the hierarchy is roughly 10× slower and 100–1000× larger than the one above it. The A100 has 312 TFLOP/s of BF16 tensor-core throughput but only 2 TB/s of HBM bandwidth."
+        },
+        {
+          "id": "s-2-1-6-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.6",
+            "pages": "114"
+          },
+          "text": "这意味着从HBM装入的每个字节，在下一个字节到达之前，可以执行312×1012 /(2×1012) 156浮点操作。如果您的内核每字节的FLOP数量少于156，则它受内存约束 — 计算单元闲置等待数据。",
+          "originalExcerpt": "That means for every byte loaded from HBM you can do 312 × 1012 /(2 × 1012 ) ≈ 156 floating-point operations before the next byte arrives. If your kernel does fewer than 156 FLOPs per byte, it is memory-bound – the compute units are idle waiting for data."
+        },
+        {
+          "id": "s-2-1-6-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.6",
+            "pages": "114"
+          },
+          "text": "注册。 每个 CUDA 线索都可以访问私人注册文件。 注册是芯片上最快的存储 — — 读写在单个时钟周期中进行，没有仲裁。 A100 拥有每SM 65 536 32位注册。向本地内存(L1/L2)喷洒登记簿是主要性能危险。",
+          "originalExcerpt": "Registers. Each CUDA thread has access to a private register file. Registers are the fastest storage on the chip – reads and writes happen in a single clock cycle with no arbitration. The A100 has 65,536 32-bit registers per SM. Spilling registers to local memory (L1/L2) is a major performance hazard."
+        },
+        {
+          "id": "s-2-1-6-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.6",
+            "pages": "114"
+          },
+          "text": "SRAM – 共享内存 / L1. 每个SM在A100上有一个L1/共享内存集合，共192 KB(256 KB on H100)，最多164 KB可配置为A100上共享内存。共享内存由程序员(或编译器在较新的CUDA版本中明确管理)。 Flash Record，例如， Flash Record完全围绕关注的瓦片计算适合SRAM的洞察力构建。",
+          "originalExcerpt": "SRAM – Shared Memory / L1. Each SM has a combined L1/shared memory pool of 192 KB on A100 (256 KB on H100), with up to 164 KB configurable as shared memory on A100. Shared memory is explicitly managed by the programmer (or by the compiler in newer CUDA versions). Flash Attention, for example, is entirely built around the insight that the attention tile compu..."
+        },
+        {
+          "id": "s-2-1-6-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.6",
+            "pages": "114"
+          },
+          "text": "L2 快取。 A100 上的 40 MB L2 由所有108 SM 共享， 它充当SRAM 和 HBM 之间的中转区域。对于空间位置良好的工作量(例如，在批次中反复访问的重量矩阵)， L2命中率可以大幅降低有效的HBM流量。",
+          "originalExcerpt": "L2 Cache. The 40 MB L2 on A100 is shared across all 108 SMs. It acts as a staging area between SRAM and HBM. For workloads with good spatial locality (e.g., weight matrices accessed repeatedly across a batch), L2 hit rates can dramatically reduce effective HBM traffic."
+        },
+        {
+          "id": "s-2-1-6-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.6",
+            "pages": "114"
+          },
+          "text": "HBM – High Bandwidth Memory。 HBM是直接挂在GPU包上的堆叠DRAM，通过宽插管连接。 A100 SXM在2 TB/s时有80 GB的HBM2e。 H100 SXM5在3.35 TB/s时有80 GB的HBM3. 这是模型重， KV缓存，激活，和优化状态的主要工作内存。",
+          "originalExcerpt": "HBM – High Bandwidth Memory. HBM is stacked DRAM mounted directly on the GPU package, connected via a wide interposer. The A100 SXM has 80 GB of HBM2e at 2 TB/s. The H100 SXM5 has 80 GB of HBM3 at 3.35 TB/s. This is the primary working memory for model weights, KV caches, activations, and optimizer states."
+        },
+        {
+          "id": "s-2-1-6-b8",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.6",
+            "pages": "114"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "CPU DRAM via PCIe. Data transfer between GPU HBM and CPU DRAM traverses the PCIe bus. PCIe Gen4 ×16 provides ∼32 GB/s per direction (64 GB/s bidirectional); Gen5 doubles this. This is a ∼60× bandwidth reduction compared to HBM (per-direction). CPU offloading (ZeRO-Infinity, DeepSpeed) exploits this link but must be used carefully to avoid becoming the bottle..."
+        },
+        {
+          "id": "s-2-1-6-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.6",
+            "pages": "114"
+          },
+          "text": "NVMe：Samsung 990 Pro 等 NVMe SSD 的顺序读取速度约为 7 GB/s。ZeRO-Infinity 可以把 optimizer state 卸载到 NVMe，但只有当计算与 I/O 的比值足够高时才可行，例如 batch 较大、单个训练 step 较慢的场景。",
+          "originalExcerpt": "NVMe. NVMe SSDs (e.g., Samsung 990 Pro) reach ∼7 GB/s sequential read. ZeRO-Infinity can offload optimizer states to NVMe, but this is only viable when the compute-to-IO ratio is very high (large batch sizes, slow training steps)."
+        }
+      ]
+    },
+    {
+      "id": "s-2-1-7",
+      "number": "2.1.7",
+      "level": 2,
+      "enTitle": "Arithmetic Intensity and the Roofline Model",
+      "zhTitle": "算术强度和屋顶模型",
+      "pages": "114-115",
+      "blocks": [
+        {
+          "id": "s-2-1-7-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.7",
+            "pages": "114-115"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §2.1.7「算术强度和屋顶模型」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-2-1-7-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.7",
+            "pages": "114"
+          },
+          "text": "HBM A内核访问的算术强度FLOPs I=(FLOPs / 字节)字节在 < Iridge > 时为内存，在 < Iridge > 时为计算时为内存。",
+          "originalExcerpt": "Arithmetic Intensity FLOPs I= (FLOPs / Byte) Bytes accessed from HBM A kernel is memory-bound when I < Iridge and compute-bound when I > Iridge , where"
+        },
+        {
+          "id": "s-2-1-7-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.7",
+            "pages": "114"
+          },
+          "text": "峰值FLOP/s 312×1012 岩心===156 FLOP/Byte(A100 BF16) 峰值Bandwidth 2×1012 峰值BLOP/Byte(A100 BF16) 峰值BLOP/Byte(A100 BF16) 峰值Bandwidth 2×1012 峰值BLOP/ByTH 峰值BLOP/BBBBOP/BYPBB 峰值BLOP/BBOP/BY 峰值BLOP/BBOP 峰值BBBBBBBOD 峰值BBBBBOD 峰值BOD 峰值BOD 1012 峰值BF16 峰值BF 峰值BF 峰值BFOD 峰值BOD 峰值BOD 1012 峰值BOD 峰值",
+          "originalExcerpt": "Peak FLOP/s 312 × 1012 Iridge = = = 156 FLOP/Byte (A100 BF16) Peak Bandwidth 2 × 1012"
+        },
+        {
+          "id": "s-2-1-7-b3",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.7",
+            "pages": "114"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "Attention Arithmetic Intensity For a single attention head with sequence length n = 4096, head dim d = 128: FLOPs: QK T costs 2n2 d, softmax is O(n2 ), Attn × V costs 2n2 d. Total: ≈ 4n2 d = 4 × 40962 × 128 ≈ 8.6 GFLOP. Memory traffic (standard, non-Flash implementation):"
+        },
+        {
+          "id": "s-2-1-7-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.7",
+            "pages": "114"
+          },
+          "text": "• 读 Q， K: 2 × n × d × 2 = 2 MB",
+          "originalExcerpt": "• Read Q, K: 2 × n × d × 2 = 2 MB"
+        },
+        {
+          "id": "s-2-1-7-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.7",
+            "pages": "114"
+          },
+          "text": "• 写注分数 S = QK T : n2×2 = 33.5 MB",
+          "originalExcerpt": "• Write attention scores S = QK T : n2 × 2 = 33.5 MB"
+        },
+        {
+          "id": "s-2-1-7-b6",
+          "type": "figure",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.7",
+            "pages": "115",
+            "figure": "Figure 2.2"
+          },
+          "src": null,
+          "alt": "图2.2:A100 BF16的屋顶模型 注意度在内存约束的制度中是深层的;大型的GEMM(FFN层)是计算边框的。",
+          "caption": "图2.2:A100 BF16的屋顶模型 注意度在内存约束的制度中是深层的;大型的GEMM(FFN层)是计算边框的。",
+          "adapted": false
+        },
+        {
+          "id": "s-2-1-7-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.7",
+            "pages": "115"
+          },
+          "text": "• 软马克读 S:n2×2=33.5 MB",
+          "originalExcerpt": "• Read S for softmax: n2 × 2 = 33.5 MB"
+        },
+        {
+          "id": "s-2-1-7-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.7",
+            "pages": "115"
+          },
+          "text": "• 写入软max输出 P:n2×2=33.5 MB",
+          "originalExcerpt": "• Write softmax output P : n2 × 2 = 33.5 MB"
+        },
+        {
+          "id": "s-2-1-7-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.7",
+            "pages": "115"
+          },
+          "text": "• 最终matmul读作P和V:n2×2 + n×d×2 = 34.5 MB",
+          "originalExcerpt": "• Read P and V for final matmul: n2 × 2 + n × d × 2 = 34.5 MB"
+        },
+        {
+          "id": "s-2-1-7-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.7",
+            "pages": "115"
+          },
+          "text": "• 写入输出 O: n × d × 2 = 1 MB",
+          "originalExcerpt": "• Write output O: n × d × 2 = 1 MB"
+        },
+        {
+          "id": "s-2-1-7-b11",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.7",
+            "pages": "115"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "Total memory: ≈ 138 MB (dominated by 4 passes over the n2 attention matrix). Arithmetic intensity: 8.6 × 109 I= ≈ 62 FLOP/Byte 138 × 106 This is 62/156 = 40% of the A100 ridge point — firmly memory-bound. The GPU is 60% idle waiting for memory. Flash Attention fix: By never materializing the n × n matrix (tiling Q, K, V in SRAM), Flash Attention reduces HBM ..."
+        },
+        {
+          "id": "s-2-1-7-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.7",
+            "pages": "115"
+          },
+          "text": "4n2 d n 4096 I=======================================================================================================================================================================================================================================================记忆不再是瓶颈了。",
+          "originalExcerpt": "4n2 d n 4096 I= = = = 2048 FLOP/Byte 4·n·d·2 2 2 This is 13× above the ridge point (156) — deeply compute-bound. The GPU hits its peak 312 TFLOPS, needing only 312T/2048 ≈ 152 GB/s of bandwidth (7.6% of HBM capacity). Memory is no longer the bottleneck."
+        }
+      ]
+    },
+    {
+      "id": "s-2-1-8",
+      "number": "2.1.8",
+      "level": 2,
+      "enTitle": "Attention is Memory-Bound; FFN is Compute-Bound",
+      "zhTitle": "注意是内存-Bond;FFN是计算-Bond",
+      "pages": "115",
+      "blocks": [
+        {
+          "id": "s-2-1-8-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.8",
+            "pages": "115"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §2.1.8「注意是内存-Bond;FFN是计算-Bond」 时，沿信息生命周期追踪：内容何时写入、采用什么表示、怎样检索、如何进入 context、何时更新或删除。保存更多信息并不自动带来更好结果，选择机制和冲突处理同样重要。"
+        },
+        {
+          "id": "s-2-1-8-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.8",
+            "pages": "115"
+          },
+          "text": "变形器A型变形器块中的两个制式主要有两个构件，计算强度非常不同: 变形器A型变形器A型变形器A型变形器A型变形器A型变形器A型变形器A型变形器A型变形器A型变形器A型变形器A型变形器A型变形器A型变形器A型变形器A型变形器A型变形器A型变形器A型变形器块的制式变形器A型变形器A型变形器A型变形器A型变形器块的制式变形器A型变形器A型变形器A型变形器的制式变形器A型变形器A型变形器的制式变形器A型器A型器组的制式变形器A型中有两个制式制式制式制式制式的制式制式制式，两个制式制式制式制式制式主要构件，两个制式制式变形器A型器A型变形器A",
+          "originalExcerpt": "Two Regimes in a Transformer A transformer block has two main components with very different arithmetic intensities:"
+        },
+        {
+          "id": "s-2-1-8-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.8",
+            "pages": "115"
+          },
+          "text": "· 注意:操作于 n × d 抗热器。 QK T产品是 O(n2 d) FLOPs，但需要",
+          "originalExcerpt": "• Attention: Operates on n × d tensors. The QK T product is O(n2 d) FLOPs but requires"
+        },
+        {
+          "id": "s-2-1-8-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.8",
+            "pages": "115"
+          },
+          "text": "O(n2) 关注分数的内存， 在长序列中， 记忆流量占据主导地位 — 关注是内存的。",
+          "originalExcerpt": "O(n2 ) memory for the attention scores. At long sequences, memory traffic dominates – attention is memory-bound."
+        },
+        {
+          "id": "s-2-1-8-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.8",
+            "pages": "115"
+          },
+          "text": "• FFN(MLP):两层大线性，带有形状的重量矩阵[型号，4d型号]。",
+          "originalExcerpt": "• FFN (MLP): Two large linear layers with weight matrices of shape [dmodel , 4dmodel ]. These"
+        },
+        {
+          "id": "s-2-1-8-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.8",
+            "pages": "115"
+          },
+          "text": "它们是具有高计算强度的大型GEMM – FFN是计算键。",
+          "originalExcerpt": "are large GEMMs with high arithmetic intensity – FFN is compute-bound."
+        },
+        {
+          "id": "s-2-1-8-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.8",
+            "pages": "115"
+          },
+          "text": "这就是为什么闪电注意(memory expensive)帮助注意而不是FFN，而量化(减重大小)比注意更能帮助FFN。",
+          "originalExcerpt": "This is why Flash Attention (memory optimization) helps attention but not FFN, while quantization (reducing weight size) helps FFN more than attention."
+        }
+      ]
+    },
+    {
+      "id": "s-2-1-9",
+      "number": "2.1.9",
+      "level": 2,
+      "enTitle": "Tensor Cores",
+      "zhTitle": "日记核心",
+      "pages": "116",
+      "blocks": [
+        {
+          "id": "s-2-1-9-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.9",
+            "pages": "116"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §2.1.9「日记核心」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-2-1-9-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.9",
+            "pages": "116"
+          },
+          "text": "特森科斯(Tensor Cores)是什么?特森科斯是沃尔塔(2017年)引入的专用矩阵-乘积(MMA)单位。每个特森科斯在单个时钟周期中执行一个4×4×4矩阵乘积:",
+          "originalExcerpt": "What Are Tensor Cores? Tensor Cores are specialized matrix-multiply-accumulate (MMA) units introduced in Volta (2017). Each Tensor Core performs a 4 × 4 × 4 matrix multiply in a single clock cycle:"
+        },
+        {
+          "id": "s-2-1-9-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.9",
+            "pages": "116"
+          },
+          "text": "D=A×B+C(4×4个矩阵)",
+          "originalExcerpt": "D =A×B+C (4 × 4 matrices)"
+        },
+        {
+          "id": "s-2-1-9-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.9",
+            "pages": "116"
+          },
+          "text": "A100拥有432个Tensor Cores，横跨108 SM(每SM4个，每个子分区1个 )。 在BF16精准度下，它们提供了312 TFLOP/s — — 大约16×FP32 CUDA核心的吞吐量。",
+          "originalExcerpt": "The A100 has 432 Tensor Cores across 108 SMs (4 per SM, one per sub-partition). At BF16 precision, they deliver 312 TFLOP/s – roughly 16× the throughput of FP32 CUDA cores."
+        },
+        {
+          "id": "s-2-1-9-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.9",
+            "pages": "116"
+          },
+          "text": "支持精度:FP64， TF32， BF16， FP16， INT8， FP8(H100+)。",
+          "originalExcerpt": "• Supported precisions: FP64, TF32, BF16, FP16, INT8, FP8 (H100+)."
+        },
+        {
+          "id": "s-2-1-9-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.9",
+            "pages": "116"
+          },
+          "text": "• 积累:内部总是在FP32，甚至对于BF16投入也是如此。",
+          "originalExcerpt": "• Accumulation: Always in FP32 internally, even for BF16 inputs. This prevents catastrophic"
+        },
+        {
+          "id": "s-2-1-9-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.9",
+            "pages": "116"
+          },
+          "text": "点产品取消。",
+          "originalExcerpt": "cancellation during the dot product."
+        },
+        {
+          "id": "s-2-1-9-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.9",
+            "pages": "116"
+          },
+          "text": "• 要求:当矩阵尺寸为8倍时，十进制核心效率最高",
+          "originalExcerpt": "• Requirement: Tensor Cores are most efficient when matrix dimensions are multiples of 8"
+        },
+        {
+          "id": "s-2-1-9-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.9",
+            "pages": "116"
+          },
+          "text": "(BF16)或16(FP8)，为这些倍数铺垫往往值得。",
+          "originalExcerpt": "(BF16) or 16 (FP8). Padding to these multiples is often worthwhile."
+        },
+        {
+          "id": "s-2-1-9-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.9",
+            "pages": "116"
+          },
+          "text": "• WGMA(H100):Hopper引入了在下列操作上运行的曲速组级MMA指令:",
+          "originalExcerpt": "• WGMMA (H100): Hopper introduces warpgroup-level MMA instructions that operate on"
+        },
+        {
+          "id": "s-2-1-9-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.9",
+            "pages": "116"
+          },
+          "text": "较大的瓦片(64×256×16)，可以通过TMA(传感器内存加速器)数据运动进行管道化。",
+          "originalExcerpt": "larger tiles (64×256×16) and can be pipelined with TMA (Tensor Memory Accelerator) data movement."
+        },
+        {
+          "id": "s-2-1-9-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.9",
+            "pages": "116"
+          },
+          "text": "普通芯片 普通芯片 只有在内核被计算后才会有所帮助。 如果您运行的批量( 批量大小 1， 推论)， GEMM 的瓦片很小， 普通芯片利用率很低， 并且您又回到了内存约束的系统。这就是为什么推论引擎批量 要求激烈。",
+          "originalExcerpt": "The Tensor Core Trap Tensor Cores only help if your kernel is compute-bound. If you are running a small batch (batch size 1, inference), the GEMM tiles are tiny, Tensor Core utilization is low, and you are back in the memory-bound regime. This is why inference engines batch requests aggressively."
+        }
+      ]
+    },
+    {
+      "id": "s-2-1-10",
+      "number": "2.1.10",
+      "level": 2,
+      "enTitle": "Communication Architecture – NVLink, InfiniBand, and PCIe",
+      "zhTitle": "通信架构 - NVLink、InfiniBand和PCIe",
+      "pages": "116-119",
+      "blocks": [
+        {
+          "id": "s-2-1-10-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "116-119"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §2.1.10「通信架构 - NVLink、InfiniBand和PCIe」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-2-1-10-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "116"
+          },
+          "text": "分布式LLM培训和推论需要在GPU，节点和存储之间移动大量数据。通信织件往往是大规模训练的瓶颈。",
+          "originalExcerpt": "Distributed LLM training and inference require moving enormous amounts of data between GPUs, nodes, and storage. The communication fabric is often the bottleneck for large-scale training."
+        },
+        {
+          "id": "s-2-1-10-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "116"
+          },
+          "text": "PCIE – The Host-Device Link。互联网档案馆的存檔，存档日期2013-09-02. PCIe世代生成 x16 BW(每个双向注释 dir.) PCIe Gen3 16 GB/s 32 GB/s 常见于旧服务器 PCIe Gen4 32 GB/s 64 GB/s A100 PCIe，大多数现时服务器 PCIe Gen5 64 GB/s 128 GB/s H100 PCIe，新兴",
+          "originalExcerpt": "PCIe – The Host-Device Link. PCIe Generations Generation x16 BW (each Bidirectional Notes dir.) PCIe Gen3 16 GB/s 32 GB/s Common in older servers PCIe Gen4 32 GB/s 64 GB/s A100 PCIe, most current servers PCIe Gen5 64 GB/s 128 GB/s H100 PCIe, emerging"
+        },
+        {
+          "id": "s-2-1-10-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "116"
+          },
+          "text": "PCIe用于:",
+          "originalExcerpt": "PCIe is used for:"
+        },
+        {
+          "id": "s-2-1-10-b4",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "116"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "• CPU ↔ GPU data transfers (model loading, CPU offloading)"
+        },
+        {
+          "id": "s-2-1-10-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "116"
+          },
+          "text": "• NVLink 无法使用时的交叉节点GPU通信(很少，非常缓慢)",
+          "originalExcerpt": "• Cross-node GPU communication when NVLink is unavailable (rare, very slow)"
+        },
+        {
+          "id": "s-2-1-10-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "116"
+          },
+          "text": "• NVMe存储访问(通过CPU)",
+          "originalExcerpt": "• NVMe storage access (via CPU)"
+        },
+        {
+          "id": "s-2-1-10-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "116"
+          },
+          "text": "如果 NVLink 可用， PCIe 不适用于 GPU- GPU 通信 Never 路由 GPU- GPU 通信 PCIe， PCIe 带宽( 32 GB/s) 比 NVLink 4 低 28x (900 GB/s)。在没有NVLink的多GPU服务器(如消费GPU)中， GPU间带宽仅限于PCIe，使得拉诺平行主义极其缓慢。",
+          "originalExcerpt": "PCIe is Not for GPU-GPU Communication Never route GPU-GPU communication through PCIe if NVLink is available. PCIe bandwidth (32 GB/s) is 28× lower than NVLink 4 (900 GB/s). In a multi-GPU server without NVLink (e.g., consumer GPUs), inter-GPU bandwidth is limited to PCIe, making tensor parallelism extremely slow."
+        },
+        {
+          "id": "s-2-1-10-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "117"
+          },
+          "text": "NVLink – 内节点高规格互联互通。 NVLink世代链接总BW GPU NVLink 2 6 300GB/s V100 NVLink 3 12 600GB/s A100 NVLink 4 18 900GB/s H100 NVLink 5 18 1800GB/s B200 (布莱克威尔)",
+          "originalExcerpt": "NVLink – Intra-Node High-Speed Interconnect. NVLink Generations Generation Links Total BW GPU NVLink 2 6 300 GB/s V100 NVLink 3 12 600 GB/s A100 NVLink 4 18 900 GB/s H100 NVLink 5 18 1800 GB/s B200 (Blackwell)"
+        },
+        {
+          "id": "s-2-1-10-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "117"
+          },
+          "text": "NVLink是同一节点上的GPU之间的点对点互联，每个链接都是双向的。 H100 SXM5有18个NVLink 4链接，每个链接提供50 GB/s双向，总共900 GB/s。",
+          "originalExcerpt": "NVLink is a point-to-point interconnect between GPUs on the same node. Each link is bidirectional. The H100 SXM5 has 18 NVLink 4 links, each providing 50 GB/s bidirectional, for a total of 900 GB/s."
+        },
+        {
+          "id": "s-2-1-10-b10",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "117"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "NVSwitch. In DGX H100 systems, all 8 GPUs are connected via NVSwitch – a dedicated switching chip that provides full bisection bandwidth. This means any GPU can communicate with any other GPU at full NVLink speed simultaneously, not just neighbors in a ring. Ring vs. Full Bisection In a ring topology (8 GPUs), an AllReduce requires data to travel around the ..."
+        },
+        {
+          "id": "s-2-1-10-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "117"
+          },
+          "text": "InfiniBand – 节点间通信。对于节点(服务器)间的通信， Infini-Band提供高波段宽度，低纬度的网络，直接使用GPU内存访问。 InfiniBand NDR",
+          "originalExcerpt": "InfiniBand – Inter-Node Communication. For communication between nodes (servers), Infini- Band provides high-bandwidth, low-latency networking with direct GPU memory access. InfiniBand NDR"
+        },
+        {
+          "id": "s-2-1-10-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "117"
+          },
+          "text": "• NDR 400Gb/s=50GB/s/每个端口(单向)",
+          "originalExcerpt": "• NDR 400Gb/s = 50 GB/s per port (unidirectional)"
+        },
+        {
+          "id": "s-2-1-10-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "117"
+          },
+          "text": "• HDR 200Gb/s=每端口25GB/s(前一代)",
+          "originalExcerpt": "• HDR 200Gb/s = 25 GB/s per port (previous generation)"
+        },
+        {
+          "id": "s-2-1-10-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "117"
+          },
+          "text": "• RDMA:远程直接内存访问 – GPU可以读/写远程 GPU内存",
+          "originalExcerpt": "• RDMA: Remote Direct Memory Access – GPU can read/write remote GPU memory"
+        },
+        {
+          "id": "s-2-1-10-b15",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "117"
+          },
+          "text": "而不涉及远程 CPU",
+          "originalExcerpt": "without involving the remote CPU"
+        },
+        {
+          "id": "s-2-1-10-b16",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "117"
+          },
+          "text": "• GBUDIRECT RDMA:数据直接传送到HBM → NIC → 网络 NIC → HBM →。",
+          "originalExcerpt": "• GPUDirect RDMA: Data goes directly HBM → NIC → network → NIC → HBM,"
+        },
+        {
+          "id": "s-2-1-10-b17",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "117"
+          },
+          "text": "绕过 CPU 和系统 DRAM",
+          "originalExcerpt": "bypassing CPU and system DRAM entirely"
+        },
+        {
+          "id": "s-2-1-10-b18",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "117"
+          },
+          "text": "• 紧急:小信息为",
+          "originalExcerpt": "• Latency: ∼1–2 µs for small messages (vs. ∼100 µs for TCP/IP)"
+        },
+        {
+          "id": "s-2-1-10-b19",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "117"
+          },
+          "text": "Fat-Tree Topology。大型GPU集群使用脂肪树网络地形。3级脂肪树带有K口开关支持k 3/4节点带全截面带宽。对于400Gb/s NDR开关，使用k=64端口:643/4=65，536节点。",
+          "originalExcerpt": "Fat-Tree Topology. Large GPU clusters use fat-tree network topologies. A 3-level fat-tree with k-port switches supports k 3 /4 nodes with full bisection bandwidth. For 400Gb/s NDR switches with k = 64 ports: 643 /4 = 65,536 nodes."
+        },
+        {
+          "id": "s-2-1-10-b20",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "117"
+          },
+          "text": "铁路-优化地形学，在实际操作中，集群使用铁路优化地形学，在节点中的每个GPU连接到不同的顶端开关。这确保了AllReduce操作(涉及所有GPU)同时使用所有网络链接，实现带宽最大化。",
+          "originalExcerpt": "Rail-Optimized Topology. In practice, clusters use rail-optimized topologies where each GPU in a node connects to a different top-of-rack switch. This ensures that AllReduce operations (which involve all GPUs) use all network links simultaneously, maximizing bandwidth."
+        },
+        {
+          "id": "s-2-1-10-b21",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "117"
+          },
+          "text": "分布式LLM训练中的通信模式 分布式训练依赖于集体通信原始，原始的选择决定了带宽要求和缩放行为。",
+          "originalExcerpt": "Communication Patterns in Distributed LLM Training. Distributed training relies on collective communication primitives. The choice of primitive determines bandwidth requirements and scaling behavior."
+        },
+        {
+          "id": "s-2-1-10-b22",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "118"
+          },
+          "text": "通信 初级 使用 案例 卷 AllReduce 梯度同步(DDP， FSDP) 2 (N− 1)/N × 参数大小 AllGather 收集 变压重(N− 1)/N × 参数大小 (FSDP) 减少散射 散射 梯度(FSDP)(N− 1)/N ×参数大小 AllGather Tensor 并行激活大小 点对点管道平行(send/recv) 微批激活 广播 重量同步(新工人) 全模型大小",
+          "originalExcerpt": "Communication Primitives Primitive Use Case Volume AllReduce Gradient sync (DDP, FSDP) 2(N − 1)/N × param size AllGather Collect sharded weights (N − 1)/N × param size (FSDP) ReduceScatter Scatter gradients (FSDP) (N − 1)/N × param size AllGather Tensor parallel activation activation size Point-to-Point Pipeline parallel (send/recv) micro-batch activation Br..."
+        },
+        {
+          "id": "s-2-1-10-b23",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "118"
+          },
+          "text": "带宽计算 – 70B模型设置的渐变全Reduce:70B参数模型， BF16梯度，8节点×8GPU=64GPU。数据平行度=64. 渐变大小:70×109×2字节=140GB。每一个GPU的全Reduce音量(环):2×(64−1)/64×140×275GB。现有的节点间带宽:8GPU/节点×50GB/s/GPU=400GB/s(带有轨道优化的地形，所有8个NICs活动)。 AllReduce时间:每步275/400×0.69秒。影响:对于1秒计算步骤，通信会增加0.69秒(占总步数的41% )。 这就是为什么梯度压缩、混合精度和FSDP(与计算通信重叠)至关重要。",
+          "originalExcerpt": "Bandwidth Calculation – Gradient AllReduce for 70B Model Setup: 70B parameter model, BF16 gradients, 8 nodes × 8 GPUs = 64 GPUs. Data parallel degree = 64. Gradient size: 70 × 109 × 2 bytes = 140 GB. AllReduce volume per GPU (ring): 2 × (64 − 1)/64 × 140 ≈ 275 GB. Available inter-node bandwidth: 8 GPUs/node × 50 GB/s/GPU = 400 GB/s (with railoptimized topolo..."
+        },
+        {
+          "id": "s-2-1-10-b24",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "118"
+          },
+          "text": "网络地形图。以下图例说明了典型的双节点GPU集群地形，既显示节点内部(NVLink)，也显示节点间(InfiniBand)的通信路径。",
+          "originalExcerpt": "Network Topology Diagram. The following diagram illustrates a typical two-node GPU cluster topology showing both intra-node (NVLink) and inter-node (InfiniBand) communication paths."
+        },
+        {
+          "id": "s-2-1-10-b25",
+          "type": "figure",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "118",
+            "figure": "Figure 2.3"
+          },
+          "src": null,
+          "alt": "图2.3:双节点8-GPU地形。内节点:NVLink 4通过NVSwitch(900 GB/s共计) 间节点:InfiniBand NDR 400Gb/s通过顶端的机车开关。每个节点有8个IB NIC(每GPU一个)用于铁路优化AllReduce。",
+          "caption": "图2.3:双节点8-GPU地形。内节点:NVLink 4通过NVSwitch(900 GB/s共计) 间节点:InfiniBand NDR 400Gb/s通过顶端的机车开关。每个节点有8个IB NIC(每GPU一个)用于铁路优化AllReduce。",
+          "adapted": false
+        },
+        {
+          "id": "s-2-1-10-b26",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "118"
+          },
+          "text": "基于宽度的平行选择",
+          "originalExcerpt": "Choosing Parallelism Based on Bandwidth"
+        },
+        {
+          "id": "s-2-1-10-b27",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "118"
+          },
+          "text": "• 日光平行主义:要求减少每一层的全数——只在节点内使用",
+          "originalExcerpt": "• Tensor Parallelism (TP): Requires all-reduce every layer – use only within a node over"
+        },
+        {
+          "id": "s-2-1-10-b28",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "118"
+          },
+          "text": "NVLink。 TP=8是H100 DGX节点的标准。",
+          "originalExcerpt": "NVLink. TP=8 is standard for H100 DGX nodes."
+        },
+        {
+          "id": "s-2-1-10-b29",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "118"
+          },
+          "text": "• 管道平行主义(PP):阶段之间的点对点-可以跨越节点，但添加",
+          "originalExcerpt": "• Pipeline Parallelism (PP): Point-to-point between stages – can cross nodes, but adds"
+        },
+        {
+          "id": "s-2-1-10-b30",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "118"
+          },
+          "text": "管道泡沫在上方。当模型太大，仅对TP来说，就使用。",
+          "originalExcerpt": "pipeline bubble overhead. Use when model is too large for TP alone."
+        },
+        {
+          "id": "s-2-1-10-b31",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "118"
+          },
+          "text": "• 数据并行性(DP):所有梯度的减速 — — 可以通过IB跨越节点。",
+          "originalExcerpt": "• Data Parallelism (DP): AllReduce of gradients – can cross nodes via IB. Scales well with"
+        },
+        {
+          "id": "s-2-1-10-b33",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "118"
+          },
+          "text": "• FSDP/ZeRO：在通信阶段使用 AllGather 与 ReduceScatter。它与 Data Parallelism 的通信模式相近，但会进一步切分 optimizer state。",
+          "originalExcerpt": "• FSDP/ZeRO: AllGather + ReduceScatter – similar to DP but shards optimizer states."
+        },
+        {
+          "id": "s-2-1-10-b34",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "118"
+          },
+          "text": "喜欢DP大模型。",
+          "originalExcerpt": "Preferred over DP for large models."
+        },
+        {
+          "id": "s-2-1-10-b35",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.1.10",
+            "pages": "119"
+          },
+          "text": "2.2 vLLLM – PagedAtention and High-roughput Inference vLLM [195] 引入了PagedAtenty，它借用了操作系统用于RAM的呼号抽象，并将其应用到GPU的KV缓存中。在LLM推论期间， KV缓存 — — 所有前作的密钥和值位数的折叠器 — — 是主要的内存消费者。 有效管理它是高通量推论的核心挑战。",
+          "originalExcerpt": "2.2 vLLM – PagedAttention and High-Throughput Inference vLLM [195] introduced PagedAttention, which borrows the paging abstraction that operating systems use for RAM and applies it to the GPU’s KV cache. During LLM inference, the KV cache – the stored key and value tensors for all previous tokens – is the dominant memory consumer. Managing it efficiently is ..."
+        }
+      ]
+    },
+    {
+      "id": "s-2-2-1",
+      "number": "2.2.1",
+      "level": 2,
+      "enTitle": "The KV Cache Fragmentation Problem",
+      "zhTitle": "KV 缓存分裂问题",
+      "pages": "119",
+      "blocks": [
+        {
+          "id": "s-2-2-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.1",
+            "pages": "119"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §2.2.1「KV 缓存分裂问题」 时，沿信息生命周期追踪：内容何时写入、采用什么表示、怎样检索、如何进入 context、何时更新或删除。保存更多信息并不自动带来更好结果，选择机制和冲突处理同样重要。"
+        },
+        {
+          "id": "s-2-2-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.1",
+            "pages": "119"
+          },
+          "text": "KV缓存内存公式 对于具有L层， H头，头维度d，和n个符序的模型:",
+          "originalExcerpt": "KV Cache Memory Formula For a model with L layers, H heads, head dimension d, and a sequence of n tokens:"
+        },
+        {
+          "id": "s-2-2-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.1",
+            "pages": "119"
+          },
+          "text": "KV 缓存大小 = 2 × L × H × d × n = 字节 per element",
+          "originalExcerpt": "KV cache size = 2 × L × H × d × n × bytes_per_element"
+        },
+        {
+          "id": "s-2-2-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.1",
+            "pages": "119"
+          },
+          "text": "对于Llama-3 70B(BF16):L=80， H=8(GQA)， d=128:",
+          "originalExcerpt": "For Llama-3 70B (BF16): L = 80, H = 8 (GQA), d = 128:"
+        },
+        {
+          "id": "s-2-2-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.1",
+            "pages": "119"
+          },
+          "text": "=2×80×8×128×2=327，680×n字节",
+          "originalExcerpt": "= 2 × 80 × 8 × 128 × n × 2 = 327,680 × n bytes"
+        },
+        {
+          "id": "s-2-2-1-b5",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.1",
+            "pages": "119"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "At n = 4096 tokens: ≈ 1.3 GB per sequence. Internal and External Fragmentation Traditional inference systems pre-allocate a contiguous memory block for each sequence’s KV cache, sized to the maximum possible sequence length. This causes two types of waste: Internal fragmentation: A sequence that generates only 500 tokens still holds a block reserved for 4096..."
+        }
+      ]
+    },
+    {
+      "id": "s-2-2-2",
+      "number": "2.2.2",
+      "level": 2,
+      "enTitle": "PagedAttention – Virtual Memory for KV Caches",
+      "zhTitle": "Paged 注意 - KV 空洞的虚拟内存",
+      "pages": "119-120",
+      "blocks": [
+        {
+          "id": "s-2-2-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.2",
+            "pages": "119-120"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §2.2.2「Paged 注意 - KV 空洞的虚拟内存」 时，沿信息生命周期追踪：内容何时写入、采用什么表示、怎样检索、如何进入 context、何时更新或删除。保存更多信息并不自动带来更好结果，选择机制和冲突处理同样重要。"
+        },
+        {
+          "id": "s-2-2-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.2",
+            "pages": "119"
+          },
+          "text": "PagedAttention(Kwon等人，2023年)从操作系统借来呼号抽象。 KV 缓存不是每个序列一个毗连块，而是刻成固定大小的页(块)，间接表——类似CPU的页表——将每个序列的逻辑符号位置转换成分散的物理GPU内存地址。核心概念",
+          "originalExcerpt": "PagedAttention (Kwon et al., 2023) borrows the paging abstraction from operating systems. Instead of one contiguous block per sequence, the KV cache is carved into fixed-size pages (blocks), and an indirection table—analogous to a CPU page table—translates each sequence’s logical token positions into scattered physical GPU memory addresses. PagedAttention Co..."
+        },
+        {
+          "id": "s-2-2-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.2",
+            "pages": "119"
+          },
+          "text": "· 块大小:通常每个块16个令牌(可拆卸)，每个块储存16×2×L×H×d",
+          "originalExcerpt": "• Block size: Typically 16 tokens per block (tunable). Each block stores 16 × 2 × L × H × d"
+        },
+        {
+          "id": "s-2-2-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.2",
+            "pages": "119"
+          },
+          "text": "• 块表:按顺序绘制，从逻辑块指数到物理块指数，请按",
+          "originalExcerpt": "• Block table: A per-sequence mapping from logical block index to physical block index in"
+        },
+        {
+          "id": "s-2-2-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.2",
+            "pages": "119"
+          },
+          "text": "GPU 记忆池。",
+          "originalExcerpt": "the GPU memory pool."
+        },
+        {
+          "id": "s-2-2-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.2",
+            "pages": "119"
+          },
+          "text": "• 物理区块池:预先分配的固定区块池。",
+          "originalExcerpt": "• Physical block pool: A pre-allocated pool of fixed-size blocks. Allocation is O(1) – just"
+        },
+        {
+          "id": "s-2-2-2-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.2",
+            "pages": "119"
+          },
+          "text": "从免费列表中弹出。",
+          "originalExcerpt": "pop from a free list."
+        },
+        {
+          "id": "s-2-2-2-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.2",
+            "pages": "119"
+          },
+          "text": "• 注意内核:经过修改，从非毗连的物理地点收集KV区块",
+          "originalExcerpt": "• Attention kernel: Modified to gather KV blocks from non-contiguous physical locations"
+        },
+        {
+          "id": "s-2-2-2-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.2",
+            "pages": "119"
+          },
+          "text": "使用块表计算时使用块表。块表实例 假设块大小 = 4 个符号，我们有两个顺序:",
+          "originalExcerpt": "using the block table during attention computation. Block Table Example Suppose block size = 4 tokens, and we have two sequences:"
+        },
+        {
+          "id": "s-2-2-2-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.2",
+            "pages": "119"
+          },
+          "text": "• 序列A(7个符号):逻辑区块[0] − 物理区块[3，7]",
+          "originalExcerpt": "• Sequence A (7 tokens): logical blocks [0,1] → physical blocks [3, 7]"
+        },
+        {
+          "id": "s-2-2-2-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.2",
+            "pages": "119"
+          },
+          "text": "• 序列B(5个符号):逻辑区块[0] − 物理区块[1、5]",
+          "originalExcerpt": "• Sequence B (5 tokens): logical blocks [0,1] → physical blocks [1, 5]"
+        },
+        {
+          "id": "s-2-2-2-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.2",
+            "pages": "119"
+          },
+          "text": "物理区块3 持有符号 序列 A 0–3. 物理区块7 持有符号 A 4–6",
+          "originalExcerpt": "Physical block 3 holds tokens 0–3 of sequence A. Physical block 7 holds tokens 4–6 of sequence A"
+        },
+        {
+          "id": "s-2-2-2-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.2",
+            "pages": "120"
+          },
+          "text": "(部分填充) 序列 A 的注意内核按顺序从物理区块3和7读取，使用区块表作为间接层。",
+          "originalExcerpt": "(partially filled). The attention kernel for sequence A reads from physical blocks 3 and 7 in order, using the block table as an indirection layer."
+        }
+      ]
+    },
+    {
+      "id": "s-2-2-3",
+      "number": "2.2.3",
+      "level": 2,
+      "enTitle": "Benefits of PagedAttention",
+      "zhTitle": "页数的效益",
+      "pages": "120",
+      "blocks": [
+        {
+          "id": "s-2-2-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.3",
+            "pages": "120"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §2.2.3「页数的效益」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-2-2-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.3",
+            "pages": "120"
+          },
+          "text": "近零废物。 内部碎裂最多以每个序列(最后一个区块)一个部分填充的区块为界。 区块尺寸为16，最坏的废物为每个序列15个令牌 — — 微不足道。外部的分裂被消除，因为块是固定大小的，可以互换。",
+          "originalExcerpt": "Near-zero waste. Internal fragmentation is bounded by at most one partially-filled block per sequence (the last block). With block size 16, worst-case waste is 15 tokens per sequence – negligible. External fragmentation is eliminated because blocks are fixed-size and interchangeable."
+        },
+        {
+          "id": "s-2-2-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.3",
+            "pages": "120"
+          },
+          "text": "动态分配。 块会随序列的增长而随需求而分配。 不需要提前知道最终序列长度。 对于输出长度未知的生成来说， 这一点至关重要。",
+          "originalExcerpt": "Dynamic allocation. Blocks are allocated on demand as the sequence grows. No need to know the final sequence length in advance. This is critical for generation, where output length is unknown."
+        },
+        {
+          "id": "s-2-2-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.3",
+            "pages": "120"
+          },
+          "text": "前缀共享(copy-on-write)。共享一个共同前缀的多个序列(例如系统提示)可以共享该前缀的相同物理块，区块表只是将多个序列指向同一个物理块。当一个序列需要写入共享块(从前缀中跳出)时，会触发一个复制到写。 Prefix sharet Seavt in a calbot with a 1000-token system exactly serving 128 along users:",
+          "originalExcerpt": "Prefix sharing (copy-on-write). Multiple sequences sharing a common prefix (e.g., a system prompt) can share the same physical blocks for that prefix. The block table simply points multiple sequences to the same physical blocks. When a sequence needs to write to a shared block (diverging from the prefix), a copy-on-write is triggered. Prefix Sharing Savings ..."
+        },
+        {
+          "id": "s-2-2-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.3",
+            "pages": "120"
+          },
+          "text": "• 不使用前缀共享:128×1000×327，680/109 →42 GB 只用于系统提示 KV缓存",
+          "originalExcerpt": "• Without prefix sharing: 128 × 1000 × 327,680/109 ≈ 42 GB just for system prompt KV cache"
+        },
+        {
+          "id": "s-2-2-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.3",
+            "pages": "120"
+          },
+          "text": "• 前缀分享:1×1000×327，680/109×0.33 GB",
+          "originalExcerpt": "• With prefix sharing: 1 × 1000 × 327,680/109 ≈ 0.33 GB"
+        },
+        {
+          "id": "s-2-2-3-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.3",
+            "pages": "120"
+          },
+          "text": "• 节余:共用前缀部分的X128x",
+          "originalExcerpt": "• Savings: ∼128× for the shared prefix portion"
+        },
+        {
+          "id": "s-2-2-3-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.3",
+            "pages": "120"
+          },
+          "text": "通过互换进行预置。当GPU内存耗尽时， vLLM可以通过将其KV块交换到CPU DRAM(或者简单地丢弃它们，然后重算)来预先控制一个序列。这样做之所以可行，是因为块块是自成一体的，而且不相连接的，因为交换毗连的分配需要复制整个缓冲器。",
+          "originalExcerpt": "Preemption via swap. When GPU memory is exhausted, vLLM can preempt a sequence by swapping its KV blocks to CPU DRAM (or simply discarding them and recomputing later). This is only feasible because blocks are self-contained and non-contiguous – swapping a contiguous allocation would require copying the entire buffer."
+        }
+      ]
+    },
+    {
+      "id": "s-2-2-4",
+      "number": "2.2.4",
+      "level": 2,
+      "enTitle": "Continuous Batching",
+      "zhTitle": "连续断头",
+      "pages": "120",
+      "blocks": [
+        {
+          "id": "s-2-2-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.4",
+            "pages": "120"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §2.2.4「连续断头」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-2-2-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.4",
+            "pages": "120"
+          },
+          "text": "传统的批量(“静态批量”) 等待批量中的所有序列完成后再开始新的序列。如果一个序列产生500个令牌，另一个生成10个令牌，则GPU在短序列中闲置490步。连续批量( 也称为迭代级调度) 一次处理一个解码步骤。 每一步后:",
+          "originalExcerpt": "Traditional batching (“static batching“) waits until all sequences in a batch finish before starting new ones. If one sequence generates 500 tokens and another generates 10, the GPU is idle for 490 steps on the short sequence. This is extremely wasteful. Continuous Batching Continuous batching (also called iteration-level scheduling) processes one decode ste..."
+        },
+        {
+          "id": "s-2-2-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.4",
+            "pages": "120"
+          },
+          "text": "1. 检查哪些序列已完成(生成 EOS 令牌)",
+          "originalExcerpt": "1. Check which sequences have finished (generated EOS token)"
+        },
+        {
+          "id": "s-2-2-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.4",
+            "pages": "120"
+          },
+          "text": "2. 从批次中删除已完成的序列，释放其KV块",
+          "originalExcerpt": "2. Remove finished sequences from the batch, freeing their KV blocks"
+        },
+        {
+          "id": "s-2-2-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.4",
+            "pages": "120"
+          },
+          "text": "3. 增加新的等待顺序以填补空闲的空档",
+          "originalExcerpt": "3. Add new waiting sequences to fill the freed slots"
+        },
+        {
+          "id": "s-2-2-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.4",
+            "pages": "120"
+          },
+          "text": "4. 随更新批次运行下一个解码步骤",
+          "originalExcerpt": "4. Run the next decode step with the updated batch"
+        },
+        {
+          "id": "s-2-2-4-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.4",
+            "pages": "120"
+          },
+          "text": "批量成分会改变每个步骤 — — 序列会加入并动态离开。 这让GPU利用率接近100%，并显著提高吞吐量(1.5-3×大于静态批量 )。页面标记在这里至关重要: 中批添加/删除序列需要动态 KV 块分配/处理位置，这只与页面内存有效。",
+          "originalExcerpt": "The batch composition changes every step — sequences join and leave dynamically. This keeps GPU utilization near 100% and dramatically improves throughput (1.5–3× over static batching). PagedAttention is essential here: adding/removing sequences mid-batch requires dynamic KV block allocation/deallocation, which is only efficient with paged memory."
+        }
+      ]
+    },
+    {
+      "id": "s-2-2-5",
+      "number": "2.2.5",
+      "level": 2,
+      "enTitle": "Speculative Decoding in vLLM",
+      "zhTitle": "vLLM 中的分光解码",
+      "pages": "121",
+      "blocks": [
+        {
+          "id": "s-2-2-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.5",
+            "pages": "121"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §2.2.5「vLLM 中的分光解码」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-2-2-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.5",
+            "pages": "121"
+          },
+          "text": "分光解码使用一个小的草稿模型(如1B参数)快速提出k候选符，大目标模型通过一个单向前传验证。所有直到第一次拒绝的标志都被接受(预期接受:每个核查步骤3-5个标志)。其生成速度为 2–3x， 用于不造成任何质量损失的耐久性敏感单序列生成。 vLLM 将投机解码与 PagedAtthind 合并 :",
+          "originalExcerpt": "Speculative decoding uses a small draft model (e.g., 1B parameters) to propose k candidate tokens quickly, which the large target model verifies in a single forward pass. All tokens up to the first rejection are accepted (expected acceptance: 3–5 tokens per verification step). This yields 2–3× speedup for latency-sensitive single-sequence generation without ..."
+        },
+        {
+          "id": "s-2-2-5-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.5",
+            "pages": "121"
+          },
+          "text": "• 分配了投机性KV区块的代币",
+          "originalExcerpt": "• Draft tokens are allocated speculative KV blocks"
+        },
+        {
+          "id": "s-2-2-5-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.5",
+            "pages": "121"
+          },
+          "text": "• 在拒绝时，可释放投机性区块(按页标分配的便宜)",
+          "originalExcerpt": "• On rejection, speculative blocks are freed (cheap with paged allocation)"
+        },
+        {
+          "id": "s-2-2-5-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.5",
+            "pages": "121"
+          },
+          "text": "• 接受后，投机区块被提升到主要序列",
+          "originalExcerpt": "• On acceptance, speculative blocks are promoted to the main sequence"
+        },
+        {
+          "id": "s-2-2-5-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.5",
+            "pages": "121"
+          },
+          "text": "• 块表更新为O(k)——只是更新一些表格条目",
+          "originalExcerpt": "• The block table update is O(k) – just updating a few table entries"
+        }
+      ]
+    },
+    {
+      "id": "s-2-2-6",
+      "number": "2.2.6",
+      "level": 2,
+      "enTitle": "Concrete Memory Savings – 70B Model at Scale",
+      "zhTitle": "具体内存节省 — 70B 模型规模",
+      "pages": "121",
+      "blocks": [
+        {
+          "id": "s-2-2-6-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.6",
+            "pages": "121"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §2.2.6「具体内存节省 — 70B 模型规模」 时，沿信息生命周期追踪：内容何时写入、采用什么表示、怎样检索、如何进入 context、何时更新或删除。保存更多信息并不自动带来更好结果，选择机制和冲突处理同样重要。"
+        },
+        {
+          "id": "s-2-2-6-b1",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.6",
+            "pages": "121"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "Memory Budget – 70B BF16 Inference Setup: Llama-3 70B, BF16, single A100 80GB node (8 GPUs, tensor parallel). Model weights: 70 × 109 × 2 bytes = 140 GB ÷ 8 GPUs = 17.5 GB/GPU. Remaining for KV cache: 80 − 17.5 − 3 (overhead) = 59.5 GB/GPU. KV cache per token per GPU (with TP=8, each GPU holds 1/8 of heads): 2×80×1×128×2 = 40,960 bytes ≈ 40 KB/token. Max tok..."
+        },
+        {
+          "id": "s-2-2-6-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.6",
+            "pages": "121"
+          },
+          "text": "2.2.7 vLLM:端对端系统 vLLM 将 PagedAtenty 包装在一个完整的服务堆内:连续批量，前缀卡装，投机解码，以及拉诺-平行模型拼凑所有工作，以达到每GPU美元的最大吞吐量。",
+          "originalExcerpt": "2.2.7 vLLM: End-to-End System vLLM wraps PagedAttention inside a full serving stack: continuous batching, prefix caching, speculative decoding, and tensor-parallel model sharding all work together to maximize throughput per GPU dollar."
+        }
+      ]
+    },
+    {
+      "id": "s-2-2-8",
+      "number": "2.2.8",
+      "level": 2,
+      "enTitle": "Architecture Overview",
+      "zhTitle": "结构概览",
+      "pages": "121",
+      "blocks": [
+        {
+          "id": "s-2-2-8-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.8",
+            "pages": "121"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §2.2.8「结构概览」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-2-2-8-source-note",
+          "type": "callout",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.8",
+            "pages": "121"
+          },
+          "text": "原书把 vLLM 描述为一套端到端 serving stack：PagedAttention 管理 KV cache block，continuous batching 调度正在 prefill、decode 或等待的请求，prefix caching 与 speculative decoding 复用计算，tensor parallelism 切分模型。紧接的 §2.2.9 再把这一架构拆成 API Server、Scheduler、Worker 与 block manager 等核心组件。",
+          "title": "vLLM architecture overview"
+        }
+      ]
+    },
+    {
+      "id": "s-2-2-9",
+      "number": "2.2.9",
+      "level": 2,
+      "enTitle": "Core Components",
+      "zhTitle": "核心组成部分",
+      "pages": "121-122",
+      "blocks": [
+        {
+          "id": "s-2-2-9-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.9",
+            "pages": "121-122"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §2.2.9「核心组成部分」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-2-2-9-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.9",
+            "pages": "121"
+          },
+          "text": "• API 服务器:接受与OpenAI兼容的请求(完成、聊天)。",
+          "originalExcerpt": "• API Server: Accepts OpenAI-compatible requests (completions, chat). Tokenizes inputs and"
+        },
+        {
+          "id": "s-2-2-9-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.9",
+            "pages": "121"
+          },
+          "text": "建立“序列组”(用于光束搜索或多个样本)。",
+          "originalExcerpt": "creates “sequence groups” (for beam search or multiple samples)."
+        },
+        {
+          "id": "s-2-2-9-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.9",
+            "pages": "121"
+          },
+          "text": "· 排程器:vLLM的大脑。保持三个队列:",
+          "originalExcerpt": "• Scheduler: The brain of vLLM. Maintains three queues:"
+        },
+        {
+          "id": "s-2-2-9-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.9",
+            "pages": "121"
+          },
+          "text": "等待: 尚未启动新请求( 预补待补) – 运行: 积极生成令牌( 解码阶段) – 交换: 预先取消 KV 缓存卸载到 CPU 的请求",
+          "originalExcerpt": "– waiting: New requests not yet started (prefill pending) – running: Actively generating tokens (decode phase) – swapped: Preempted requests whose KV cache was offloaded to CPU"
+        },
+        {
+          "id": "s-2-2-9-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.9",
+            "pages": "121"
+          },
+          "text": "每个迭代，调度器根据可用的GPU内存块决定哪些请求运行。",
+          "originalExcerpt": "Each iteration, the scheduler decides which requests to run based on available GPU memory blocks."
+        },
+        {
+          "id": "s-2-2-9-b6",
+          "type": "figure",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.9",
+            "pages": "122",
+            "figure": "Figure 2.4"
+          },
+          "src": null,
+          "alt": "图2.4:vLLM架构:请求流自上而下。调度员管理录入和预置，块管理器处理虚拟到物理的KV缓存映射(类似于OS页表)，模型执行器运行从GPU HBM中预分配的块池中批量的推论读取。",
+          "caption": "图2.4:vLLM架构:请求流自上而下。调度员管理录入和预置，块管理器处理虚拟到物理的KV缓存映射(类似于OS页表)，模型执行器运行从GPU HBM中预分配的块池中批量的推论读取。",
+          "adapted": false
+        },
+        {
+          "id": "s-2-2-9-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.9",
+            "pages": "122"
+          },
+          "text": "· 块管理器: 执行 KV 缓存的虚拟内存抽象。 映射逻辑",
+          "originalExcerpt": "• Block Manager: Implements the virtual memory abstraction for KV caches. Maps logical"
+        },
+        {
+          "id": "s-2-2-9-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.9",
+            "pages": "122"
+          },
+          "text": "块(每序列)到物理块(在GPU内存池中)。处理 :",
+          "originalExcerpt": "blocks (per-sequence) to physical blocks (in GPU memory pool). Handles:"
+        },
+        {
+          "id": "s-2-2-9-b9",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.9",
+            "pages": "122"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "– Allocation (new tokens generated → new blocks needed) – Copy-on-write (for beam search: multiple beams share prefix blocks, copy only on divergence) – Swap (GPU ↔ CPU migration when preempting/resuming) – Prefix caching (reuse cached blocks when prompts share common prefixes)"
+        },
+        {
+          "id": "s-2-2-9-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.9",
+            "pages": "122"
+          },
+          "text": "• 模型执行器:运行实际的 LLM 前进传。管理跨边的 lator 并行",
+          "originalExcerpt": "• Model Executor: Runs the actual LLM forward pass. Manages tensor parallelism across"
+        },
+        {
+          "id": "s-2-2-9-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.9",
+            "pages": "122"
+          },
+          "text": "GPU，发送从已调用 KV 缓存块读取的注意内核。",
+          "originalExcerpt": "GPUs, dispatches attention kernels that read from paged KV cache blocks."
+        },
+        {
+          "id": "s-2-2-9-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.9",
+            "pages": "122"
+          },
+          "text": "• KV缓存池:将预分配的 GPU 内存分为固定大小块( 默认: 16)",
+          "originalExcerpt": "• KV Cache Pool: Pre-allocated GPU memory divided into fixed-size blocks (default: 16"
+        },
+        {
+          "id": "s-2-2-9-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.9",
+            "pages": "122"
+          },
+          "text": "符号 × numm heads × 头 dim × 每个块 2 字节。运行时没有动态分配 ~ 零破碎。",
+          "originalExcerpt": "tokens × num_heads × head_dim × 2 bytes per block). No dynamic allocation at runtime → zero fragmentation."
+        }
+      ]
+    },
+    {
+      "id": "s-2-2-10",
+      "number": "2.2.10",
+      "level": 2,
+      "enTitle": "Request Lifecycle (End-to-End Flow)",
+      "zhTitle": "生命周期(终到终流量)",
+      "pages": "122-123",
+      "blocks": [
+        {
+          "id": "s-2-2-10-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.10",
+            "pages": "122-123"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §2.2.10「生命周期(终到终流量)」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-2-2-10-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.10",
+            "pages": "122"
+          },
+          "text": "1. 到达: 客户端发送即时。 API 服务器给它做标记， 创建序列组， 将其放置在",
+          "originalExcerpt": "1. Arrival: Client sends prompt. API server tokenizes it, creates a SequenceGroup, places it in"
+        },
+        {
+          "id": "s-2-2-10-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.10",
+            "pages": "122"
+          },
+          "text": "等待的队列。",
+          "originalExcerpt": "the waiting queue."
+        },
+        {
+          "id": "s-2-2-10-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.10",
+            "pages": "122"
+          },
+          "text": "2. 排程:每一步，排程器运行:",
+          "originalExcerpt": "2. Scheduling: At each step, the scheduler runs:"
+        },
+        {
+          "id": "s-2-2-10-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.10",
+            "pages": "122"
+          },
+          "text": "(a) 检查是否可以恢复任何互换的序列(足够自由块)。 (b) 检查是否有任何等待序列能否开始预填(足够完整的快速块)。 (c) 跨运行序列的预算剩余区块(如果当前区块满了，每步需要1个新区块)。 (d) 如果超出预算:预置最小优先级运行序列(将 KV 移动到 CPU 或稍后重算)。",
+          "originalExcerpt": "(a) Check if any swapped sequences can be resumed (enough free blocks). (b) Check if any waiting sequences can start prefill (enough blocks for the full prompt). (c) Budget remaining blocks across running sequences (need 1 new block per sequence per step if current block is full). (d) If over budget: preempt lowest-priority running sequences (swap KV to CPU ..."
+        },
+        {
+          "id": "s-2-2-10-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.10",
+            "pages": "122"
+          },
+          "text": "3. 预补(第一次重复请求):整个提示用一个前传处理。",
+          "originalExcerpt": "3. Prefill (first iteration for a request): The entire prompt is processed in one forward pass. KV"
+        },
+        {
+          "id": "s-2-2-10-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.10",
+            "pages": "122"
+          },
+          "text": "缓存是为所有的快速符计算， 并存储在指定的块中。 这是计算绑定的( 大量符号 )。",
+          "originalExcerpt": "cache is computed for all prompt tokens and stored in allocated blocks. This is compute-bound (large batch of tokens)."
+        },
+        {
+          "id": "s-2-2-10-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.10",
+            "pages": "123"
+          },
+          "text": "4. 解码(后续重现):每步序列生成一个新符号。所有运行",
+          "originalExcerpt": "4. Decode (subsequent iterations): One new token generated per sequence per step. All running"
+        },
+        {
+          "id": "s-2-2-10-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.10",
+            "pages": "123"
+          },
+          "text": "序列是一起批量的( 连续批量)。 这是内存绑定的( 读取完整的 KV 缓存， 生成 1 个令牌 )。",
+          "originalExcerpt": "sequences are batched together (continuous batching). This is memory-bound (reads full KV cache, generates 1 token)."
+        },
+        {
+          "id": "s-2-2-10-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.10",
+            "pages": "123"
+          },
+          "text": "5.块分配:在每一解码步骤之后，如果一个序列的最后块是满的，则块",
+          "originalExcerpt": "5. Block Allocation: After each decode step, if the last block for a sequence is full, the Block"
+        },
+        {
+          "id": "s-2-2-10-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.10",
+            "pages": "123"
+          },
+          "text": "管理器将一个新的物理块分配到下一个逻辑块并绘制地图。",
+          "originalExcerpt": "Manager allocates a new physical block and maps it to the next logical block."
+        },
+        {
+          "id": "s-2-2-10-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.10",
+            "pages": "123"
+          },
+          "text": "6。补全:当一个序列击中 EOS 或最大长度时，它会被从运行中移除。",
+          "originalExcerpt": "6. Completion: When a sequence hits EOS or max length, it’s removed from running. Its"
+        },
+        {
+          "id": "s-2-2-10-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.10",
+            "pages": "123"
+          },
+          "text": "物理块立即释放 ~ 可供其他序列使用。 响应会流回客户端。",
+          "originalExcerpt": "physical blocks are freed immediately → available for other sequences. Response is streamed back to client."
+        }
+      ]
+    },
+    {
+      "id": "s-2-2-11",
+      "number": "2.2.11",
+      "level": 2,
+      "enTitle": "Prefix Caching (Automatic Prompt Caching)",
+      "zhTitle": "前缀缓存( 自动快速缓存)",
+      "pages": "123",
+      "blocks": [
+        {
+          "id": "s-2-2-11-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.11",
+            "pages": "123"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §2.2.11「前缀缓存( 自动快速缓存)」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-2-2-11-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.11",
+            "pages": "123"
+          },
+          "text": "当多个请求共享一个共同的前缀(系统提示， 少发图片) :",
+          "originalExcerpt": "When multiple requests share a common prefix (system prompt, few-shot examples):"
+        },
+        {
+          "id": "s-2-2-11-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.11",
+            "pages": "123"
+          },
+          "text": "1. 将每个逻辑块的符号内容进行散列。",
+          "originalExcerpt": "1. Hash the token content of each logical block."
+        },
+        {
+          "id": "s-2-2-11-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.11",
+            "pages": "123"
+          },
+          "text": "2. 接到新要求时，检查是否有前缀块已经存在缓存中。",
+          "originalExcerpt": "2. On new request arrival, check if any prefix blocks are already in the cache."
+        },
+        {
+          "id": "s-2-2-11-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.11",
+            "pages": "123"
+          },
+          "text": "3. 如果击中:跳过这些符的预填，直接重复使用物理 KV 块。时间到第一键的滴放",
+          "originalExcerpt": "3. If hit: skip prefill for those tokens, directly reuse physical KV blocks. Time-to-first-token drops"
+        },
+        {
+          "id": "s-2-2-11-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.11",
+            "pages": "123"
+          },
+          "text": "4. 排出: LRU 政策。缓存块只有在内存压力需要时才会释放。",
+          "originalExcerpt": "4. Eviction: LRU policy. Cached blocks are freed only when memory pressure requires it."
+        },
+        {
+          "id": "s-2-2-11-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.11",
+            "pages": "123"
+          },
+          "text": "影响:对于带有长系统提示符(2K+所有用户共享的符号)的聊天应用程序，前缀的串联将TTFT减少了60–80%。",
+          "originalExcerpt": "Impact: For chat applications with long system prompts (2K+ tokens shared across all users), prefix caching reduces TTFT by 60–80%."
+        }
+      ]
+    },
+    {
+      "id": "s-2-2-12",
+      "number": "2.2.12",
+      "level": 2,
+      "enTitle": "Guided (Constrained) Decoding in vLLM",
+      "zhTitle": "VLLM 中导( 约束) 解码",
+      "pages": "123-124",
+      "blocks": [
+        {
+          "id": "s-2-2-12-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.12",
+            "pages": "123-124"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §2.2.12「VLLM 中导( 约束) 解码」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-2-2-12-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.12",
+            "pages": "123"
+          },
+          "text": "vLLM 本地支持通过可插件后端进行受限解码(第1.12.11节)，在服务时能够保证结构化输出，且最小的性能管理费用。",
+          "originalExcerpt": "vLLM natively supports constrained decoding (Section 1.12.11) through pluggable backends, enabling guaranteed structured output at serving time with minimal performance overhead."
+        },
+        {
+          "id": "s-2-2-12-b2",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.12",
+            "pages": "123"
+          },
+          "language": "python",
+          "code": "Supported constraint types. The OpenAI-compatible API accepts constraints via the guided_* parameters or the response_format field: from openai import OpenAI client = OpenAI ( base_url = \" http :// localhost :8000/ v1 \" )",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-2-2-12-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.12",
+            "pages": "123"
+          },
+          "text": "# -- -- JSON Schema 约束 -- -- response = 客户端。聊天完成。创建(模式= \" meta - lama / Llama - 3 - 70 B - 指令 \"，消息=[{ '作用 ' : \" 用户 \"， \" 内容 \" : \" 摘录:名称、年龄、城市来自:\" ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ''']，外号============================================================================================================================================================================================================================\" string \" }}， \" 需要 \" :[ \" 名称 \" 、 \" 年龄 \" 、 \" 城市 \" ]}}}# 输出保证与计划匹配的 JSON 有效",
+          "originalExcerpt": "# --- JSON Schema constraint --response = client . chat . completions . create ( model = \" meta - llama / Llama -3 -70 B - Instruct \" , messages =[{ \" role \" : \" user \" , \" content \" : \" Extract : name , age , city from : \" \" ’ John is 30 and lives in NYC ’\" }] , extra_body ={ \" guided_json \" : { \" type \" : \" object \" , \" properties \" : { \" name \" : { \" type..."
+        },
+        {
+          "id": "s-2-2-12-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.12",
+            "pages": "123"
+          },
+          "text": "# -- -- regex 约束 -- -- Resign=客户端完成。创建(模型= \" meta - lama / Llama - 3 - 70 B - 指示 \"， 提示= \" 生成一个IPv4地址: \"，",
+          "originalExcerpt": "# --- Regex constraint --response = client . completions . create ( model = \" meta - llama / Llama -3 -70 B - Instruct \" , prompt = \" Generate an IPv4 address : \" ,"
+        },
+        {
+          "id": "s-2-2-12-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.12",
+            "pages": "124"
+          },
+          "text": "extra body {} \"guide regex\": r \"\\ d {1，3}\\ d {1，3}\\ d {1，3}\\ d {1，3}}\\ d {1，3}}}}} )",
+          "originalExcerpt": "extra_body ={ \" guided_regex \" : r \" \\ d {1 ,3}\\.\\ d {1 ,3}\\.\\ d {1 ,3}\\.\\ d {1 ,3} \" } )"
+        },
+        {
+          "id": "s-2-2-12-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.12",
+            "pages": "124"
+          },
+          "text": "# -- -- 选择限制 -- -- 答复=客户端完成。创建(模型= \" meta - lama / Llama - 3 - 70 B - 指示 \"， 即时= \" 感知: \"， 体外= \" 引导 选择 \" :[ \" 正面 \"， \" 负面 \"， \" 中性 \" ])",
+          "originalExcerpt": "# --- Choice constraint --response = client . completions . create ( model = \" meta - llama / Llama -3 -70 B - Instruct \" , prompt = \" Sentiment : \" , extra_body ={ \" guided_choice \" : [ \" positive \" , \" negative \" , \" neutral \" ]} )"
+        },
+        {
+          "id": "s-2-2-12-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.12",
+            "pages": "124"
+          },
+          "text": "后端架构。 vLLM 代表给后端引擎遮盖计算:",
+          "originalExcerpt": "Backend architecture. vLLM delegates mask computation to a backend engine:"
+        },
+        {
+          "id": "s-2-2-12-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.12",
+            "pages": "124"
+          },
+          "text": "• XGrammar(自v0.7起的默认):支持JSON schemas的推倒-自动调压引擎，",
+          "originalExcerpt": "• XGrammar (default since v0.7): Pushdown-automaton engine supporting JSON schemas,"
+        },
+        {
+          "id": "s-2-2-12-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.12",
+            "pages": "124"
+          },
+          "text": "regexes，以及任意的 EBNF 语法。由于高效的 C++ 核心，对于复杂的计划来说最快捷。",
+          "originalExcerpt": "regexes, and arbitrary EBNF grammars. Fastest for complex schemas due to efficient C++ core."
+        },
+        {
+          "id": "s-2-2-12-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.12",
+            "pages": "124"
+          },
+          "text": "• 大纲[378]:基于密克罗尼西亚联邦;支持JSON和regex。",
+          "originalExcerpt": "• Outlines [378]: FSM-based; supports JSON and regex. Used as fallback when XGrammar is"
+        },
+        {
+          "id": "s-2-2-12-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.12",
+            "pages": "124"
+          },
+          "text": "口罩在模型的前传产生对数后和采样前使用——实际每步添加 < 1 ms，因为密克罗尼西亚/太平洋开发部的州过渡和预算指数的查询是O(1)。",
+          "originalExcerpt": "The mask is applied after the model’s forward pass produces logits and before sampling—adding <1 ms per step in practice, since the FSM/PDA state transition and precomputed index lookup are O(1)."
+        },
+        {
+          "id": "s-2-2-12-b13",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.12",
+            "pages": "124"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "Performance impact. Because the constraint only masks logits (no recomputation of attention or FFN), throughput loss is negligible (<2% in benchmarks). The main cost is compilation of the schema into an FSM/PDA index, which takes 0.5–5 s depending on schema complexity. vLLM caches compiled schemas across requests, so this cost is paid once per unique schema...."
+        },
+        {
+          "id": "s-2-2-12-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.12",
+            "pages": "124"
+          },
+          "text": "表2.4:vLLM性能与替代品(70B型， A100×4， TP=4)。",
+          "originalExcerpt": "Table 2.4: vLLM performance vs. alternatives (70B model, A100 × 4, TP=4)."
+        },
+        {
+          "id": "s-2-2-12-b15",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.12",
+            "pages": "124"
+          },
+          "text": "计算 vLLM HF 生成为什么 透量(tok/s) 2 500-4 000 300-600 连续批量+ Paged 保存内存利用率 90-95% 50-60% 零碎块，动态块 最大块 并行 200-500 16-32 页面 KV 消除每块保留时间 时间 – 第一键 100-300ms 500-2000ms 重复系统提示前钉",
+          "originalExcerpt": "Metric vLLM HF Generate Why Throughput (tok/s) 2,500–4,000 300–600 Continuous batching + PagedAttention Memory utilization 90–95% 50–60% Zero fragmentation, dynamic block alloc Max concurrent seqs 200–500 16–32 Paged KV eliminates per-seq reservation Time-to-first-token 100–300ms 500–2000ms Prefix caching for repeated system prompts"
+        },
+        {
+          "id": "s-2-2-12-b16",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 2,
+            "section": "2.2.12",
+            "pages": "124"
+          },
+          "text": "迪纳摩:数据中心-规模推论管弦乐团。 Dynamom[270]是NVIDIA的开源管弦乐层，它坐落在单个推论引擎(SGLang， TensorRT-LLM， vLLM)上，并把它们变成一个协调的多节点服务系统。主要能力包括分解服务(将预填和解码阶段隔开专用节点池)，基于KV缓存位置的智能请求路由，多级KV缓存(GPU → CPU → SSD)，以及自动缩放。它解决了单GPU推论优化(由vLLM覆盖)和在数据中心规模下服务的生产之间的空隙。",
+          "originalExcerpt": "Dynamo: Datacenter-Scale Inference Orchestration. Dynamo [270] is NVIDIA’s open-source orchestration layer that sits above individual inference engines (SGLang, TensorRT-LLM, vLLM) and turns them into a coordinated multi-node serving system. Key capabilities include disaggregated serving (separating prefill and decode phases across specialized node pools), i..."
+        }
+      ]
+    }
+  ],
+  "glossary": [
+    {
+      "term": "Transformer",
+      "zh": "Transformer",
+      "meaning": "以 attention 为核心的序列建模架构。"
+    },
+    {
+      "term": "token",
+      "zh": "词元",
+      "meaning": "模型处理和生成文本时使用的离散单位。"
+    }
+  ],
+  "summary": [
+    "现代LLM几乎完全在GPU(Graphics Processing Units)上得到培训和服务。了解GPU架构对于就平行主义战略、内存管理、内核优化和基础设施规模作出知情决定至关重要。本节全面介绍与LLM工作量有关的GPU硬件。",
+    "GPU和CPU代表了根本不同的硬件哲学。理解这一差异解释了为什么LLM训练在GPU上的速度是100–1000×。 CPU对GPU – Basic Design Philosophis",
+    "• CPU是用于耐久的优化型——它们执行的几条线程尽可能快，而且很大"
+  ],
+  "metrics": {
+    "chineseCharacters": 8660,
+    "sourceCoverage": 97,
+    "sectionCount": 22,
+    "blockCount": 212
+  }
+}

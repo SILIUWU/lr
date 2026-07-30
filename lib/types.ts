@@ -73,6 +73,124 @@ export interface Lesson {
   quizzes: Quiz[];
 }
 
+export type ContentOrigin =
+  | "source_translation"
+  | "source_definition"
+  | "editorial_explanation"
+  | "engineering_extension"
+  | "source_unspecified"
+  | "failure_analysis";
+
+export interface ReadingSourceRef {
+  chapter: number;
+  section?: string;
+  pages: string;
+  equation?: string;
+  figure?: string;
+  table?: string;
+}
+
+interface BaseReadingBlock {
+  id: string;
+  origin: ContentOrigin;
+  source: ReadingSourceRef;
+  title?: string;
+}
+
+export interface ParagraphBlock extends BaseReadingBlock {
+  type: "paragraph";
+  text: string;
+  originalExcerpt?: string;
+}
+
+export interface ListBlock extends BaseReadingBlock {
+  type: "list";
+  items: string[];
+}
+
+export interface FormulaBlock extends BaseReadingBlock {
+  type: "formula";
+  expression: string;
+  latex?: string;
+  reading?: string;
+  symbols?: Array<[string, string]>;
+}
+
+export interface CodeBlock extends BaseReadingBlock {
+  type: "code";
+  language: string;
+  code: string;
+  explanation?: string;
+}
+
+export interface FigureBlock extends BaseReadingBlock {
+  type: "figure";
+  src?: string;
+  alt: string;
+  caption: string;
+  adapted?: boolean;
+}
+
+export interface TableBlock extends BaseReadingBlock {
+  type: "table";
+  columns: string[];
+  rows: string[][];
+  caption?: string;
+}
+
+export interface ExampleBlock extends BaseReadingBlock {
+  type: "example";
+  scenario: string;
+  steps: string[];
+  result?: string;
+  limitation?: string;
+}
+
+export interface CalloutBlock extends BaseReadingBlock {
+  type: "callout" | "failure";
+  text: string;
+}
+
+export type ReadingBlock =
+  | ParagraphBlock
+  | ListBlock
+  | FormulaBlock
+  | CodeBlock
+  | FigureBlock
+  | TableBlock
+  | ExampleBlock
+  | CalloutBlock;
+
+export interface ReadingSubsection {
+  id: string;
+  number?: string;
+  level: number;
+  enTitle: string;
+  zhTitle: string;
+  pages: string;
+  blocks: ReadingBlock[];
+}
+
+export interface ChapterContent {
+  chapter: number;
+  title: string;
+  zhTitle: string;
+  pages: string;
+  minutes: number;
+  overview: string;
+  status: "guide" | "in_progress" | "complete";
+  sections: ReadingSubsection[];
+  glossary: GlossaryTerm[];
+  summary: string[];
+  metrics: {
+    chineseCharacters: number;
+    sourceCoverage: number;
+    sectionCount: number;
+    blockCount: number;
+  };
+}
+
+/** @deprecated Kept only while old lesson copy is being displayed as a guide. */
 export interface ReadingSection {
   title: string;
   english: string;
@@ -80,6 +198,7 @@ export interface ReadingSection {
   checkpoint?: string;
 }
 
+/** @deprecated The chapter reader uses ChapterContent. */
 export interface ChapterReading {
   chapter: number;
   title: string;
@@ -127,6 +246,9 @@ export interface NoteItem {
   id: string;
   lessonSlug: string;
   lessonTitle: string;
+  chapter?: number;
+  sectionId?: string;
+  sourceHref?: string;
   excerpt: string;
   body: string;
   intent: "不懂" | "重要" | "存疑" | "深挖";
@@ -134,9 +256,13 @@ export interface NoteItem {
 }
 
 export interface LearningState {
-  version: 1;
+  version: 2;
   completedLessons: string[];
   lastLesson: string | null;
+  lastChapter: number | null;
+  lastSection: string | null;
+  completedSections: string[];
+  readingPositions: Record<string, number>;
   attempts: Attempt[];
   cards: Record<string, ReviewCard>;
   notes: NoteItem[];

@@ -1,0 +1,1433 @@
+{
+  "chapter": 30,
+  "title": "Conclusion and Future Directions",
+  "zhTitle": "结论与未来方向",
+  "pages": "605-608",
+  "minutes": 18,
+  "overview": "本指南通过强化学习，将整条弧线从Transformer基座追溯到自动Agent系统的建设。",
+  "status": "in_progress",
+  "sections": [
+    {
+      "id": "s-30-1",
+      "number": "30.1",
+      "level": 1,
+      "enTitle": "Summary",
+      "zhTitle": "内 容 提 要",
+      "pages": "605",
+      "blocks": [
+        {
+          "id": "s-30-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 30,
+            "section": "30.1",
+            "pages": "605"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §30.1「内 容 提 要」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-30-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.1",
+            "pages": "605"
+          },
+          "text": "本指南通过强化学习，将整条弧线从Transformer基座追溯到自动Agent系统的建设。",
+          "originalExcerpt": "This guide has traced the full arc from transformer foundations through reinforcement learning for alignment to the construction of autonomous agentic systems. The key themes that emerge across all chapters:"
+        },
+        {
+          "id": "s-30-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.1",
+            "pages": "605"
+          },
+          "text": "1. 对齐是一个系统问题，不足以产生良好的损失功能。",
+          "originalExcerpt": "1. Alignment is a systems problem. It is not enough to have a good loss function. Production"
+        },
+        {
+          "id": "s-30-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.1",
+            "pages": "605"
+          },
+          "text": "RLHF要求管理4+模型， 将计算分布在数百个GPU， 处理过错容忍，",
+          "originalExcerpt": "RLHF requires managing 4+ models, distributing computation across hundreds of GPUs, handling fault tolerance, and monitoring for reward hacking—all simultaneously."
+        },
+        {
+          "id": "s-30-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.1",
+            "pages": "605"
+          },
+          "text": "2. 不存在单一的最佳方法， PPO仍然是最高质量的金本位标准，但",
+          "originalExcerpt": "2. There is no single best method. PPO remains the gold standard for maximum quality but"
+        },
+        {
+          "id": "s-30-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.1",
+            "pages": "605"
+          },
+          "text": "投资组合及其变体为基础设施有限的团队提供了令人信服的权衡。正确的选择取决于您的数据， 预算计算和质量栏。",
+          "originalExcerpt": "demands enormous engineering investment. DPO and its variants offer compelling trade-offs for teams with limited infrastructure. GRPO bridges the gap for verifiable-reward domains. The right choice depends on your data, compute budget, and quality bar."
+        },
+        {
+          "id": "s-30-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.1",
+            "pages": "605"
+          },
+          "text": "3. 奖励产生的原因。",
+          "originalExcerpt": "3. Reasoning emerges from reward. DeepSeek-R1 proved that chain-of-thought, self-verification,"
+        },
+        {
+          "id": "s-30-1-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.1",
+            "pages": "605"
+          },
+          "text": "和回溯跟踪可以来自简单的二进制奖励信号和群相对优化 — — 而不明确展示推理。 测试时间计算缩放意味着思维更深的较小模型可以匹配更大的模型。",
+          "originalExcerpt": "and backtracking can emerge from simple binary reward signals and group-relative optimization— without explicit demonstrations of reasoning. Test-time compute scaling means smaller models with more thinking can match larger models."
+        },
+        {
+          "id": "s-30-1-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.1",
+            "pages": "605"
+          },
+          "text": "4. 标准解锁生态系统。 MCP将工具集成问题从N×M减少到",
+          "originalExcerpt": "4. Standards unlock ecosystems. MCP reduces the tool integration problem from N × M to"
+        },
+        {
+          "id": "s-30-1-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.1",
+            "pages": "605"
+          },
+          "text": "N + M。 A2A 使不同团队所建造的Agent能够进行不共享内部的合作，这些协议是给AI提供什么HTTP在网络上的Agent——开放生态系统的有利基础设施。",
+          "originalExcerpt": "N + M . A2A enables agents built by different teams to collaborate without shared internals. These protocols are to agentic AI what HTTP was to the web—the enabling infrastructure for an open ecosystem."
+        },
+        {
+          "id": "s-30-1-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.1",
+            "pages": "605"
+          },
+          "text": "5. Agent是下一个自然步骤。 一旦一个模型被调整，边界就会从 \" 如何 \" 转移。",
+          "originalExcerpt": "5. Agents are the natural next step. Once a model is aligned, the frontier shifts from “how"
+        },
+        {
+          "id": "s-30-1-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.1",
+            "pages": "605"
+          },
+          "text": "”这需要新的培训模式(具有环境奖励的AgentRL)、新的基础设施(走廊、工具协议、内存系统)和新的评估方法(弹射级基准)。",
+          "originalExcerpt": "good is a single response?” to “can the model solve multi-step problems autonomously?” This requires new training paradigms (agentic RL with environment rewards), new infrastructure (harnesses, tool protocols, memory systems), and new evaluation methods (trajectory-level benchmarks)."
+        },
+        {
+          "id": "s-30-1-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.1",
+            "pages": "605"
+          },
+          "text": "6。评估推动一切，没有严格的评估——从奖励模式验证得到评估",
+          "originalExcerpt": "6. Evaluation drives everything. Without rigorous evaluation—from reward model validation"
+        },
+        {
+          "id": "s-30-1-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.1",
+            "pages": "605"
+          },
+          "text": "从检测污染到LLM-as-Judge校准进度——从Agent任务成功率都无法衡量，回归率也看不见。您选择的基准塑造了您所构建的系统。",
+          "originalExcerpt": "to agent task success rates, from contamination detection to LLM-as-Judge calibration—progress is unmeasurable and regressions are invisible. The benchmarks you choose shape the systems you build."
+        },
+        {
+          "id": "s-30-1-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.1",
+            "pages": "605"
+          },
+          "text": "7。简单尺度。最可靠的生产剂使用最简单的结构。",
+          "originalExcerpt": "7. Simplicity scales. The most reliable production agents use the simplest architecture that"
+        },
+        {
+          "id": "s-30-1-b15",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.1",
+            "pages": "605"
+          },
+          "text": "满足要求——在自主循环之前立即进行链路和线路，在多剂群之前进行单一的Agent。",
+          "originalExcerpt": "meets requirements—prompt chaining and routing before autonomous loops, single agents before multi-agent swarms. Complexity should be earned through demonstrated need."
+        }
+      ]
+    },
+    {
+      "id": "s-30-2",
+      "number": "30.2",
+      "level": 1,
+      "enTitle": "The Road Ahead: Open Challenges",
+      "zhTitle": "前进之路:公开的挑战",
+      "pages": "606",
+      "blocks": [
+        {
+          "id": "s-30-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2",
+            "pages": "606"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §30.2「前进之路:公开的挑战」 时，把每个 failure mode 拆成触发条件、可观测信号、影响范围、缓解措施和剩余风险。原书给出的警告不是附录信息，而是决定系统是否能进入生产环境的设计约束。"
+        },
+        {
+          "id": "s-30-2-structure-note",
+          "type": "callout",
+          "origin": "source_definition",
+          "source": {
+            "chapter": 30,
+            "section": "30.2",
+            "pages": "606"
+          },
+          "title": "原书结构说明",
+          "text": "§30.2 在原书中是父级目录节，具体论证由紧随其后的子节展开。本站保留这一锚点和来源页码，以维持与原书目录的一一对应，不把目录标题扩写成不存在的正文。"
+        },
+        {
+          "id": "s-30-2-source-note",
+          "type": "callout",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 30,
+            "section": "30.2",
+            "pages": "606"
+          },
+          "text": "本节主要由公式、图表或代码构成，网页转写仍在人工核对中；当前状态不会标记为精读完成。"
+        }
+      ]
+    },
+    {
+      "id": "s-30-2-1",
+      "number": "30.2.1",
+      "level": 2,
+      "enTitle": "Learning from Interaction",
+      "zhTitle": "从互动中学习",
+      "pages": "606",
+      "blocks": [
+        {
+          "id": "s-30-2-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.1",
+            "pages": "606"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §30.2.1「从互动中学习」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-30-2-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.1",
+            "pages": "606"
+          },
+          "text": "目前RLHF管道[280]将对齐作为一次性培训阶段。未来指向从部署中不断学习:从每个用户互动、工具故障和环境观察中改进的Agent——而不造成灾难性的忘记[186]或奖励漂移。",
+          "originalExcerpt": "Current RLHF pipelines [280] treat alignment as a one-time training phase. The future points toward continuous learning from deployment: agents that improve from every user interaction, tool failure, and environment observation—without catastrophic forgetting [186] or reward drift. Key open problems:"
+        },
+        {
+          "id": "s-30-2-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.1",
+            "pages": "606"
+          },
+          "text": "· 在线学习，不固定的奖励分配。",
+          "originalExcerpt": "• Online learning with non-stationary reward distributions."
+        },
+        {
+          "id": "s-30-2-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.1",
+            "pages": "606"
+          },
+          "text": "• 安全生产勘探[107](学习时避免有害行动)。",
+          "originalExcerpt": "• Safe exploration in production [107] (avoiding harmful actions while learning)."
+        },
+        {
+          "id": "s-30-2-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.1",
+            "pages": "606"
+          },
+          "text": "• 高效的信贷分配，覆盖长期Agent(数百次tool calling)。",
+          "originalExcerpt": "• Efficient credit assignment over long agent trajectories (hundreds of tool calls)."
+        }
+      ]
+    },
+    {
+      "id": "s-30-2-2",
+      "number": "30.2.2",
+      "level": 2,
+      "enTitle": "Scalable Oversight",
+      "zhTitle": "可扩展监督",
+      "pages": "606",
+      "blocks": [
+        {
+          "id": "s-30-2-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.2",
+            "pages": "606"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §30.2.2「可扩展监督」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-30-2-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.2",
+            "pages": "606"
+          },
+          "text": "随着Agent的能力增强，人类监督成为瓶颈。 现行方法(RLHF[280]，宪法AI[16])依赖于人类对模型产出的评估 — — 但模型产出超出人类理解时会发生什么?",
+          "originalExcerpt": "As agents become more capable, human oversight becomes the bottleneck. Current approaches (RLHF [280], Constitutional AI [16]) rely on humans evaluating model outputs—but what happens when model outputs exceed human understanding?"
+        },
+        {
+          "id": "s-30-2-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.2",
+            "pages": "606"
+          },
+          "text": "· 递归Reward Model[57]:利用AI帮助人类评估AI。",
+          "originalExcerpt": "• Recursive reward modeling [57]: Use AI to help humans evaluate AI."
+        },
+        {
+          "id": "s-30-2-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.2",
+            "pages": "606"
+          },
+          "text": "• 辩论和扩展[157]:两种模式辩论;一种是人法官辩论。",
+          "originalExcerpt": "• Debate and amplification [157]: Two models argue; a human judges which argument is"
+        },
+        {
+          "id": "s-30-2-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.2",
+            "pages": "606"
+          },
+          "text": "更令人着迷",
+          "originalExcerpt": "more compelling."
+        },
+        {
+          "id": "s-30-2-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.2",
+            "pages": "606"
+          },
+          "text": "• 基于过程的监督[215]:奖励正确的推理步骤，而不仅仅是最后的答案。",
+          "originalExcerpt": "• Process-based supervision [215]: Reward correct reasoning steps, not just final answers."
+        },
+        {
+          "id": "s-30-2-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.2",
+            "pages": "606"
+          },
+          "text": "• 机械解释[273]:了解模型内部而不仅仅是内部正在做什么",
+          "originalExcerpt": "• Mechanistic interpretability [273]: Understand what the model is doing internally, not just"
+        },
+        {
+          "id": "s-30-2-2-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.2",
+            "pages": "606"
+          },
+          "text": "其产出。",
+          "originalExcerpt": "what it outputs."
+        }
+      ]
+    },
+    {
+      "id": "s-30-2-3",
+      "number": "30.2.3",
+      "level": 2,
+      "enTitle": "World Models and Planning",
+      "zhTitle": "世界模式和规划",
+      "pages": "606",
+      "blocks": [
+        {
+          "id": "s-30-2-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.3",
+            "pages": "606"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §30.2.3「世界模式和规划」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-30-2-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.3",
+            "pages": "606"
+          },
+          "text": "未来的Agent需要内部世界模型[130]，能够进行前瞻规划:",
+          "originalExcerpt": "Current agents are reactive—they observe and respond one step at a time. Future agents will need internal world models [130] that enable lookahead planning:"
+        },
+        {
+          "id": "s-30-2-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.3",
+            "pages": "606"
+          },
+          "text": "· 在采取行动之前，先预测行动的后果。",
+          "originalExcerpt": "• Predicting the consequences of actions before executing them."
+        },
+        {
+          "id": "s-30-2-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.3",
+            "pages": "606"
+          },
+          "text": "• 树搜索可能的动作序列(在AlphaGo[331]和MuZero[316])，但用于",
+          "originalExcerpt": "• Tree search over possible action sequences (à la AlphaGo [331] and MuZero [316] but for"
+        },
+        {
+          "id": "s-30-2-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.3",
+            "pages": "606"
+          },
+          "text": "。)， 任务。",
+          "originalExcerpt": "open-ended tasks)."
+        },
+        {
+          "id": "s-30-2-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.3",
+            "pages": "606"
+          },
+          "text": "• 从相互作用的痕迹中学习环境动态。",
+          "originalExcerpt": "• Learning environment dynamics from interaction traces."
+        }
+      ]
+    },
+    {
+      "id": "s-30-2-4",
+      "number": "30.2.4",
+      "level": 2,
+      "enTitle": "Multi-Agent Ecosystems",
+      "zhTitle": "多剂生态系统",
+      "pages": "606",
+      "blocks": [
+        {
+          "id": "s-30-2-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.4",
+            "pages": "606"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §30.2.4「多剂生态系统」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-30-2-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.4",
+            "pages": "606"
+          },
+          "text": "A2A协议[113]和多Agent框架暗示着未来有数百名专门Agent合作、谈判和委托，形成 \" Agent经济 \" [267]。",
+          "originalExcerpt": "The A2A protocol [113] and multi-agent frameworks hint at a future where hundreds of specialized agents collaborate, negotiate, and delegate—forming an “economy of agents” [267]. Open challenges:"
+        },
+        {
+          "id": "s-30-2-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.4",
+            "pages": "606"
+          },
+          "text": "• 不同负责人的Agent之间的信任与核查。",
+          "originalExcerpt": "• Trust and verification between agents with different principals."
+        },
+        {
+          "id": "s-30-2-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.4",
+            "pages": "606"
+          },
+          "text": "• 紧急合作与竞争环境中的突然欺骗[153]。",
+          "originalExcerpt": "• Emergent cooperation vs. emergent deception in competitive settings [153]."
+        },
+        {
+          "id": "s-30-2-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.4",
+            "pages": "606"
+          },
+          "text": "• 资源分配的市场机制(计算、工具获取、优先)。",
+          "originalExcerpt": "• Market mechanisms for resource allocation (compute, tool access, priority)."
+        },
+        {
+          "id": "s-30-2-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.4",
+            "pages": "606"
+          },
+          "text": "• 治理:当10个Agent的连锁链产生有害结果时，由谁负责？[6]",
+          "originalExcerpt": "• Governance: who is responsible when a chain of 10 agents produces a harmful outcome? [6]"
+        }
+      ]
+    },
+    {
+      "id": "s-30-2-5",
+      "number": "30.2.5",
+      "level": 2,
+      "enTitle": "Agent Security and Trust",
+      "zhTitle": "Agent安全和信任",
+      "pages": "607",
+      "blocks": [
+        {
+          "id": "s-30-2-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.5",
+            "pages": "607"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §30.2.5「Agent安全和信任」 时，把每个 failure mode 拆成触发条件、可观测信号、影响范围、缓解措施和剩余风险。原书给出的警告不是附录信息，而是决定系统是否能进入生产环境的设计约束。"
+        },
+        {
+          "id": "s-30-2-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.5",
+            "pages": "607"
+          },
+          "text": "自主Agent继承了LLMs的每一个安全弱点，这些特性建立在——加上通过工具访问、多Agent授权和持续记忆(第19至21章)创造的新攻击表面之上。",
+          "originalExcerpt": "Autonomous agents inherit every security vulnerability of the LLMs they are built on—plus new attack surfaces created by tool access, multi-agent delegation, and persistent memory (Chapters 19–21). Critical unsolved problems:"
+        },
+        {
+          "id": "s-30-2-5-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.5",
+            "pages": "607"
+          },
+          "text": "• 大规模快速注入[120]:由于Agent消耗不可信内容(网页、电子邮件、",
+          "originalExcerpt": "• Prompt injection at scale [120]: As agents consume untrusted content (web pages, emails,"
+        },
+        {
+          "id": "s-30-2-5-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.5",
+            "pages": "607"
+          },
+          "text": "API响应，间接即时注射成为系统化的，今天还没有强大的防御。",
+          "originalExcerpt": "API responses), indirect prompt injection becomes systemic. No robust defense exists today."
+        },
+        {
+          "id": "s-30-2-5-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.5",
+            "pages": "607"
+          },
+          "text": "• 被怀疑的副手攻击:具有合法身份的Agent可能被骗作滥用",
+          "originalExcerpt": "• Confused deputy attacks: An agent with legitimate credentials can be tricked into misusing"
+        },
+        {
+          "id": "s-30-2-5-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.5",
+            "pages": "607"
+          },
+          "text": "代表嵌入数据流中的攻击者[9]。",
+          "originalExcerpt": "them on behalf of an attacker embedded in the data stream [9]."
+        },
+        {
+          "id": "s-30-2-5-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.5",
+            "pages": "607"
+          },
+          "text": "• 不加破坏的沙箱:最轻刑处决限制了Agent们所能做的事，",
+          "originalExcerpt": "• Sandboxing without crippling: Least-privilege execution constrains what agents can do,"
+        },
+        {
+          "id": "s-30-2-5-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.5",
+            "pages": "607"
+          },
+          "text": "找到正确的边界是一个开放的设计问题。",
+          "originalExcerpt": "but overly restrictive sandboxes negate agentic value. Finding the right boundary is an open design problem."
+        },
+        {
+          "id": "s-30-2-5-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.5",
+            "pages": "607"
+          },
+          "text": "• 审计和归属:当Agent链跨越多个组织时(通过A2A[113])，",
+          "originalExcerpt": "• Audit and attribution: When an agent chain spans multiple organizations (via A2A [113]),"
+        },
+        {
+          "id": "s-30-2-5-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.5",
+            "pages": "607"
+          },
+          "text": "追踪谁授权了什么行动 建筑上仍未解决",
+          "originalExcerpt": "tracing who authorized what action remains architecturally unsolved."
+        },
+        {
+          "id": "s-30-2-5-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.5",
+            "pages": "607"
+          },
+          "text": "· 信任校准:Agent必须学会何时不信任——工具反应是否真实，",
+          "originalExcerpt": "• Trust calibration: Agents must learn when not to trust—whether a tool response is authentic,"
+        },
+        {
+          "id": "s-30-2-5-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.5",
+            "pages": "607"
+          },
+          "text": "是否核实了另一Agent的索赔。",
+          "originalExcerpt": "whether another agent’s claim is verified."
+        }
+      ]
+    },
+    {
+      "id": "s-30-2-6",
+      "number": "30.2.6",
+      "level": 2,
+      "enTitle": "Evaluation Beyond Benchmarks",
+      "zhTitle": "超越基准的评估",
+      "pages": "607",
+      "blocks": [
+        {
+          "id": "s-30-2-6-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.6",
+            "pages": "607"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §30.2.6「超越基准的评估」 时，明确被评估的对象是单次输出、完整 trajectory 还是系统行为；随后分别记录数据来源、metric、judge、聚合方式和置信边界。一个分数只有在测量对象与失败类型对应时才有解释力。"
+        },
+        {
+          "id": "s-30-2-6-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.6",
+            "pages": "607"
+          },
+          "text": "第14章表明，基准决定了我们建立的各种系统——目前评估仍然存在重大差距:",
+          "originalExcerpt": "Chapter 14 showed that benchmarks shape the systems we build—yet current evaluation has critical gaps:"
+        },
+        {
+          "id": "s-30-2-6-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.6",
+            "pages": "607"
+          },
+          "text": "• 现实世界部署衡量标准:诸如SWE-bench [169] 和GAIA [254] 基准",
+          "originalExcerpt": "• Real-world deployment metrics: Benchmarks like SWE-bench [169] and GAIA [254]"
+        },
+        {
+          "id": "s-30-2-6-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.6",
+            "pages": "607"
+          },
+          "text": "生产Agent面临不明确的目标、不断变化的要求和多回合恢复。",
+          "originalExcerpt": "measure isolated tasks; production agents face ambiguous goals, shifting requirements, and multi-turn recovery."
+        },
+        {
+          "id": "s-30-2-6-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.6",
+            "pages": "607"
+          },
+          "text": "奖励模式的有效性:RLHF假设奖励模式能捕捉人类的喜好，但",
+          "originalExcerpt": "• Reward model validity: RLHF assumes reward models capture human preferences, but"
+        },
+        {
+          "id": "s-30-2-6-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.6",
+            "pages": "607"
+          },
+          "text": "reward hacking[333]和分配转移在规模上破坏了这一假设。",
+          "originalExcerpt": "reward hacking [333] and distributional shift undermine this assumption at scale."
+        },
+        {
+          "id": "s-30-2-6-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.6",
+            "pages": "607"
+          },
+          "text": "• 成本质量前沿:两个Agent可能达到同样的准确性，但一个Agent需要10x多",
+          "originalExcerpt": "• Cost-quality frontiers: Two agents may achieve the same accuracy, but one costs 10× more"
+        },
+        {
+          "id": "s-30-2-6-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.6",
+            "pages": "607"
+          },
+          "text": "标志 评估必须具有成本意识。",
+          "originalExcerpt": "tokens. Evaluation must become cost-aware."
+        },
+        {
+          "id": "s-30-2-6-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.6",
+            "pages": "607"
+          },
+          "text": "• 分配上的安全性:检测安全剂在新颖的上可能不安全",
+          "originalExcerpt": "• Safety under distribution shift: An agent safe in testing may behave unsafely on novel"
+        },
+        {
+          "id": "s-30-2-6-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.6",
+            "pages": "607"
+          },
+          "text": "横向评估[290]和在Agent规模下进行红色小组调查仍然不成熟。",
+          "originalExcerpt": "inputs. Adversarial evaluation [290] and red-teaming at agentic scale remain immature."
+        }
+      ]
+    },
+    {
+      "id": "s-30-2-7",
+      "number": "30.2.7",
+      "level": 2,
+      "enTitle": "Efficiency and Accessibility",
+      "zhTitle": "效率和无障碍",
+      "pages": "607",
+      "blocks": [
+        {
+          "id": "s-30-2-7-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.7",
+            "pages": "607"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §30.2.7「效率和无障碍」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-30-2-7-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.7",
+            "pages": "607"
+          },
+          "text": "70B型机车的培训费用为10K - 100K。运行的自主Agent每件复杂任务费用为1 - 50。",
+          "originalExcerpt": "Training a 70B model with RLHF costs 10K − −100K. Running autonomous agents costs 1 − −50 per complex task. For agentic AI to achieve broad impact:"
+        },
+        {
+          "id": "s-30-2-7-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.7",
+            "pages": "607"
+          },
+          "text": "• 使特效能力从大型型型到小型型型的蒸发[139，184]。",
+          "originalExcerpt": "• Distillation of agentic capabilities from large to small models [139, 184]."
+        },
+        {
+          "id": "s-30-2-7-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.7",
+            "pages": "607"
+          },
+          "text": "• 更有效的RL算法(Fewer sample， 下差) [319]。",
+          "originalExcerpt": "• More efficient RL algorithms (fewer samples, lower variance) [319]."
+        },
+        {
+          "id": "s-30-2-7-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.7",
+            "pages": "607"
+          },
+          "text": "• 操作不带云的圆路的机床。",
+          "originalExcerpt": "• On-device agents that operate without cloud round-trips."
+        },
+        {
+          "id": "s-30-2-7-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.2.7",
+            "pages": "607"
+          },
+          "text": "• 与Agent任务专利质量相符的开放式重量模型[72]。",
+          "originalExcerpt": "• Open-weight models that match proprietary quality for agentic tasks [72]."
+        }
+      ]
+    },
+    {
+      "id": "s-30-3",
+      "number": "30.3",
+      "level": 1,
+      "enTitle": "Further Reading",
+      "zhTitle": "进一步阅读",
+      "pages": "608",
+      "blocks": [
+        {
+          "id": "s-30-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 30,
+            "section": "30.3",
+            "pages": "608"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §30.3「进一步阅读」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-30-3-structure-note",
+          "type": "callout",
+          "origin": "source_definition",
+          "source": {
+            "chapter": 30,
+            "section": "30.3",
+            "pages": "608"
+          },
+          "title": "原书结构说明",
+          "text": "§30.3 在原书中是父级目录节，具体论证由紧随其后的子节展开。本站保留这一锚点和来源页码，以维持与原书目录的一一对应，不把目录标题扩写成不存在的正文。"
+        },
+        {
+          "id": "s-30-3-source-note",
+          "type": "callout",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 30,
+            "section": "30.3",
+            "pages": "608"
+          },
+          "text": "本节主要由公式、图表或代码构成，网页转写仍在人工核对中；当前状态不会标记为精读完成。"
+        }
+      ]
+    },
+    {
+      "id": "s-30-3-1",
+      "number": "30.3.1",
+      "level": 2,
+      "enTitle": "Foundational Papers",
+      "zhTitle": "基础文件",
+      "pages": "608",
+      "blocks": [
+        {
+          "id": "s-30-3-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 30,
+            "section": "30.3.1",
+            "pages": "608"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §30.3.1「基础文件」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-30-3-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.3.1",
+            "pages": "608"
+          },
+          "text": "• 注意是所有你需要的[357]——Transformer建筑。",
+          "originalExcerpt": "• Attention Is All You Need [357] — The transformer architecture."
+        },
+        {
+          "id": "s-30-3-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.3.1",
+            "pages": "608"
+          },
+          "text": "• 高频/指令GPT[280]——首次大规模高频部署。",
+          "originalExcerpt": "• RLHF / InstructGPT [280] — The first large-scale RLHF deployment."
+        },
+        {
+          "id": "s-30-3-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.3.1",
+            "pages": "608"
+          },
+          "text": "• PPO [319]——近似政策优化。",
+          "originalExcerpt": "• PPO [319] — Proximal Policy Optimization."
+        },
+        {
+          "id": "s-30-3-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.3.1",
+            "pages": "608"
+          },
+          "text": "• DPO [302]——直接优惠优化。",
+          "originalExcerpt": "• DPO [302] — Direct Preference Optimization."
+        },
+        {
+          "id": "s-30-3-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.3.1",
+            "pages": "608"
+          },
+          "text": "• GRPO / DeepSeek-R1 [72， 323]——集团相对政策优化与出现",
+          "originalExcerpt": "• GRPO / DeepSeek-R1 [72, 323] — Group Relative Policy Optimization and emergent"
+        },
+        {
+          "id": "s-30-3-1-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.3.1",
+            "pages": "608"
+          },
+          "text": "• 重新制定[408]——LLMAgent的理性+Agent框架。",
+          "originalExcerpt": "• ReAct [408] — Reasoning + Acting framework for LLM agents."
+        },
+        {
+          "id": "s-30-3-1-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.3.1",
+            "pages": "608"
+          },
+          "text": "• Toolformer [315]——教授LLMs使用工具。",
+          "originalExcerpt": "• Toolformer [315] — Teaching LLMs to use tools."
+        },
+        {
+          "id": "s-30-3-1-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.3.1",
+            "pages": "608"
+          },
+          "text": "• RAG [208] — Retrival-Augmented Generation。互联网档案馆的存檔，存档日期2013-12-22.",
+          "originalExcerpt": "• RAG [208] — Retrieval-Augmented Generation."
+        }
+      ]
+    },
+    {
+      "id": "s-30-3-2",
+      "number": "30.3.2",
+      "level": 2,
+      "enTitle": "Systems and Scaling",
+      "zhTitle": "系统和规模",
+      "pages": "608",
+      "blocks": [
+        {
+          "id": "s-30-3-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 30,
+            "section": "30.3.2",
+            "pages": "608"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §30.3.2「系统和规模」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-30-3-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.3.2",
+            "pages": "608"
+          },
+          "text": "• 威震天-LM [327]——天线和管道平行主义。",
+          "originalExcerpt": "• Megatron-LM [327] — Tensor and pipeline parallelism."
+        },
+        {
+          "id": "s-30-3-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.3.2",
+            "pages": "608"
+          },
+          "text": "• DeepSpeed ZeRO [304]——记忆效率高的分布式培训。",
+          "originalExcerpt": "• DeepSpeed ZeRO [304] — Memory-efficient distributed training."
+        },
+        {
+          "id": "s-30-3-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.3.2",
+            "pages": "608"
+          },
+          "text": "• vLLM [195]——为高效的LLM服务而作的PagedAinting。",
+          "originalExcerpt": "• vLLM [195] — PagedAttention for efficient LLM serving."
+        },
+        {
+          "id": "s-30-3-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.3.2",
+            "pages": "608"
+          },
+          "text": "• 闪烁注意[65]——IO-意识精确注意。",
+          "originalExcerpt": "• Flash Attention [65] — IO-aware exact attention."
+        }
+      ]
+    },
+    {
+      "id": "s-30-3-3",
+      "number": "30.3.3",
+      "level": 2,
+      "enTitle": "Agentic AI",
+      "zhTitle": "AgentAI AgentAI AgentAI AgentAI AgentAI AgentAI AgentAI AgentAI",
+      "pages": "608",
+      "blocks": [
+        {
+          "id": "s-30-3-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 30,
+            "section": "30.3.3",
+            "pages": "608"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §30.3.3「AgentAI AgentAI AgentAI AgentAI AgentAI AgentAI AgentAI AgentAI」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-30-3-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.3.3",
+            "pages": "608"
+          },
+          "text": "• 建立有效Agent[10]——设计模式和原则。",
+          "originalExcerpt": "• Building Effective Agents [10] — Design patterns and principles."
+        },
+        {
+          "id": "s-30-3-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.3.3",
+            "pages": "608"
+          },
+          "text": "• Voyager [362]——Minecraft技术图书馆的不限成员名额Agent。",
+          "originalExcerpt": "• Voyager [362] — Open-ended agent with skill library in Minecraft."
+        },
+        {
+          "id": "s-30-3-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.3.3",
+            "pages": "608"
+          },
+          "text": "• SWE-bench [169]——自主软件工程基准。",
+          "originalExcerpt": "• SWE-bench [169] — Benchmark for autonomous software engineering."
+        },
+        {
+          "id": "s-30-3-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.3.3",
+            "pages": "608"
+          },
+          "text": "• OSWorld [397]——计算机使用基准全面化。",
+          "originalExcerpt": "• OSWorld [397] — Full computer-use benchmarks."
+        },
+        {
+          "id": "s-30-3-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.3.3",
+            "pages": "608"
+          },
+          "text": "• GAIA [254]——负责现实世界任务的一般AI助理基准。",
+          "originalExcerpt": "• GAIA [254] — General AI Assistants benchmark for real-world tasks."
+        },
+        {
+          "id": "s-30-3-3-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.3.3",
+            "pages": "608"
+          },
+          "text": "• MemGPT [281] — OS启发的内存管理，用于无约束上下文。",
+          "originalExcerpt": "• MemGPT [281] — OS-inspired memory management for unbounded context."
+        },
+        {
+          "id": "s-30-3-3-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.3.3",
+            "pages": "608"
+          },
+          "text": "• 示范背景协议[9]——工具集成开放标准。",
+          "originalExcerpt": "• Model Context Protocol [9] — Open standard for tool integration."
+        },
+        {
+          "id": "s-30-3-3-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.3.3",
+            "pages": "608"
+          },
+          "text": "• Agent对Agent协议[113]——Agent通信标准。",
+          "originalExcerpt": "• Agent-to-Agent Protocol [113] — Inter-agent communication standard."
+        }
+      ]
+    },
+    {
+      "id": "s-30-3-4",
+      "number": "30.3.4",
+      "level": 2,
+      "enTitle": "Alignment and Safety",
+      "zhTitle": "调整与安全",
+      "pages": "608",
+      "blocks": [
+        {
+          "id": "s-30-3-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 30,
+            "section": "30.3.4",
+            "pages": "608"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §30.3.4「调整与安全」 时，把每个 failure mode 拆成触发条件、可观测信号、影响范围、缓解措施和剩余风险。原书给出的警告不是附录信息，而是决定系统是否能进入生产环境的设计约束。"
+        },
+        {
+          "id": "s-30-3-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.3.4",
+            "pages": "608"
+          },
+          "text": "• 宪法AI [16]——自我监督的调整。",
+          "originalExcerpt": "• Constitutional AI [16] — Self-supervised alignment."
+        },
+        {
+          "id": "s-30-3-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.3.4",
+            "pages": "608"
+          },
+          "text": "• 沉睡者Agent[153]——欺骗性调整问题。",
+          "originalExcerpt": "• Sleeper Agents [153] — Deceptive alignment concerns."
+        },
+        {
+          "id": "s-30-3-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.3.4",
+            "pages": "608"
+          },
+          "text": "• 反射[326]——从口头自反中学习。",
+          "originalExcerpt": "• Reflexion [326] — Learning from verbal self-reflection."
+        },
+        {
+          "id": "s-30-3-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 30,
+            "section": "30.3.4",
+            "pages": "608"
+          },
+          "text": "• 间接快速注射[120]——LLM-集成应用的安全风险。",
+          "originalExcerpt": "• Indirect Prompt Injection [120] — Security risks for LLM-integrated applications."
+        }
+      ]
+    }
+  ],
+  "glossary": [
+    {
+      "term": "Agent",
+      "zh": "智能体",
+      "meaning": "由模型、状态、工具和运行循环共同构成的目标导向系统。"
+    },
+    {
+      "term": "Agentic AI",
+      "zh": "智能体式 AI",
+      "meaning": "能够观察环境、采取行动、检查结果并持续迭代的 AI 系统。"
+    },
+    {
+      "term": "RAG",
+      "zh": "RAG",
+      "meaning": "在生成前检索外部证据，并把相关上下文交给模型。"
+    },
+    {
+      "term": "MCP",
+      "zh": "MCP",
+      "meaning": "连接 AI application 与外部 tools、resources、prompts 的标准协议。"
+    },
+    {
+      "term": "A2A",
+      "zh": "Agent 间协议",
+      "meaning": "用于异构 Agent 发现能力、委派任务和交换 artifact 的协议。"
+    },
+    {
+      "term": "reward model",
+      "zh": "Reward Model",
+      "meaning": "把人类或规则偏好映射为可优化标量信号的模型。"
+    },
+    {
+      "term": "Transformer",
+      "zh": "Transformer",
+      "meaning": "以 attention 为核心的序列建模架构。"
+    }
+  ],
+  "summary": [
+    "本指南通过强化学习，将整条弧线从Transformer基座追溯到自动Agent系统的建设。",
+    "1. 对齐是一个系统问题，不足以产生良好的损失功能。",
+    "RLHF要求管理4+模型， 将计算分布在数百个GPU， 处理过错容忍，"
+  ],
+  "metrics": {
+    "chineseCharacters": 3165,
+    "sourceCoverage": 100,
+    "sectionCount": 14,
+    "blockCount": 103
+  }
+}

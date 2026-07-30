@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getAdjacentLessons } from "@/lib/course-data";
-import { readingsForLesson } from "@/lib/reading-content";
-import type { ChapterReading, EvidenceKind, Lesson } from "@/lib/types";
+import { chapterMap, getAdjacentLessons } from "@/lib/course-data";
+import { catalogChapter, catalogHref } from "@/lib/chapter-catalog";
+import type { EvidenceKind, Lesson } from "@/lib/types";
 import { useCourse } from "./course-provider";
 import { InteractiveLab } from "./interactive-labs";
 import { QuizCard } from "./quiz-card";
@@ -30,8 +30,8 @@ const figureFor: Partial<
   },
   "harness-loop": {
     src: "/paper/figure-18-2.webp",
-    number: "Figure 18.1",
-    caption: "Agent orchestration loop：Harness 如何连接 planning、tool execution 与 observation。",
+    number: "Figure 18.5",
+    caption: "ReAct loop：Thought、Action 与 Observation 交替，直到满足终止条件。",
     pages: "PDF p.367",
   },
   protocols: {
@@ -82,109 +82,11 @@ function PaperFigure({
         </div>
         <p>{figure.caption}</p>
         <small>
-          Source: Guo et al., <em>The Hitchhiker&apos;s Guide to Agentic AI</em>,
+          Source: Haggai Roitman, <em>The Hitchhiker&apos;s Guide to Agentic AI</em>,
           CC BY-SA 4.0. 为网页阅读做裁切与压缩，未改变图意。
         </small>
       </figcaption>
     </figure>
-  );
-}
-
-function ChapterReader({ readings }: { readings: ChapterReading[] }) {
-  return (
-    <section className="guided-reading" aria-labelledby="guided-reading-title">
-      <header className="guided-reading-heading">
-        <div>
-          <span className="eyebrow">BILINGUAL CHAPTER READING</span>
-          <h2 id="guided-reading-title">章节精读：在本站完成正文阅读</h2>
-        </div>
-        <p>
-          以下是基于原文的中文忠实译述：保留成熟 English terms，重建论证脉络，
-          不做生硬逐句直译。完成本单元无需跳转 PDF。
-        </p>
-      </header>
-
-      <nav className="chapter-jump-list" aria-label="本单元章节目录">
-        <span>本单元阅读</span>
-        <div>
-          {readings.map((reading) => (
-            <a href={`#chapter-${reading.chapter}`} key={reading.chapter}>
-              <small>{reading.chapter === 0 ? "导读" : `Ch.${reading.chapter}`}</small>
-              <strong>{reading.zhTitle}</strong>
-            </a>
-          ))}
-        </div>
-      </nav>
-
-      <div className="chapter-reading-list">
-        {readings.map((reading) => (
-          <article
-            className="chapter-reading"
-            id={`chapter-${reading.chapter}`}
-            key={reading.chapter}
-          >
-            <header className="chapter-reading-header">
-              <div className="chapter-marker">
-                <span>{reading.chapter === 0 ? "PREFACE" : "CHAPTER"}</span>
-                <strong>
-                  {reading.chapter === 0
-                    ? "00"
-                    : String(reading.chapter).padStart(2, "0")}
-                </strong>
-              </div>
-              <div>
-                <p>{reading.title}</p>
-                <h3>{reading.zhTitle}</h3>
-                <div>
-                  <span>原书 pp. {reading.pages}</span>
-                  <span>约 {reading.minutes} 分钟</span>
-                  <span>{reading.sections.length} 个阅读小节</span>
-                </div>
-              </div>
-            </header>
-
-            <div className="chapter-overview">
-              <span>本章译述</span>
-              <p>{reading.overview}</p>
-            </div>
-
-            <div className="reading-section-list">
-              {reading.sections.map((section, index) => (
-                <section className="reading-section" key={section.english}>
-                  <div className="reading-section-index" aria-hidden="true">
-                    {String(index + 1).padStart(2, "0")}
-                  </div>
-                  <div className="reading-copy">
-                    <small>{section.english}</small>
-                    <h4>{section.title}</h4>
-                    {section.paragraphs.map((paragraph) => (
-                      <p key={paragraph}>{paragraph}</p>
-                    ))}
-                    {section.checkpoint && (
-                      <aside className="reading-checkpoint">
-                        <span>停下来想一想</span>
-                        <p>{section.checkpoint}</p>
-                      </aside>
-                    )}
-                  </div>
-                </section>
-              ))}
-            </div>
-
-            <footer className="chapter-reading-source">
-              <span>本站阅读到这里已经完整；下面链接仅供核对出处。</span>
-              <a
-                href="https://arxiv.org/pdf/2606.24937"
-                target="_blank"
-                rel="noreferrer"
-              >
-                可选：核对原文 pp. {reading.pages} ↗
-              </a>
-            </footer>
-          </article>
-        ))}
-      </div>
-    </section>
   );
 }
 
@@ -279,7 +181,10 @@ export function LessonView({ lesson }: { lesson: Lesson }) {
   const { state, rememberLesson, markLessonComplete } = useCourse();
   const { previous, next } = getAdjacentLessons(lesson.slug);
   const figure = figureFor[lesson.slug];
-  const readings = readingsForLesson(lesson.slug);
+  const lessonChapters = chapterMap
+    .filter((chapter) => chapter.lessonSlug === lesson.slug)
+    .map((chapter) => catalogChapter(chapter.chapter))
+    .filter((chapter): chapter is NonNullable<typeof chapter> => Boolean(chapter));
   const completed = state.completedLessons.includes(lesson.slug);
 
   useEffect(() => {
@@ -299,7 +204,7 @@ export function LessonView({ lesson }: { lesson: Lesson }) {
         <div className="lesson-source-line">
           <span>{lesson.chapters}</span>
           <span>{lesson.pageRange}</span>
-          <strong>站内精读 · {readings.length} 章</strong>
+          <strong>章节正文 · {lessonChapters.length} 章</strong>
         </div>
         <p className="lesson-summary">{lesson.summary}</p>
       </header>
@@ -322,7 +227,34 @@ export function LessonView({ lesson }: { lesson: Lesson }) {
         </aside>
       </section>
 
-      <ChapterReader readings={readings} />
+      {lessonChapters.length > 0 && (
+      <section className="lesson-reading-gateway">
+        <header>
+          <div>
+            <span className="eyebrow">FULL CHAPTER READING</span>
+            <h2>先进入逐节正文，再回来做实验与测验</h2>
+          </div>
+          <p>
+            章节正文已从学习单元中拆出，按原书 section/subsection 展开。
+            每章显示真实区块数、页码和校订状态，不再用三段摘要代替精读。
+          </p>
+        </header>
+        <div>
+          {lessonChapters.map((chapter) => (
+            <Link href={catalogHref(chapter.chapter)} key={chapter.chapter}>
+              <span>CH.{String(chapter.chapter).padStart(2, "0")}</span>
+              <div>
+                <small>{chapter.title}</small>
+                <strong>{chapter.zhTitle}</strong>
+              </div>
+              <em>
+                {chapter.metrics.sectionCount} 节 · {chapter.metrics.blockCount} 区块 →
+              </em>
+            </Link>
+          ))}
+        </div>
+      </section>
+      )}
 
       <section className="content-section">
         <div className="content-section-heading">
@@ -341,7 +273,7 @@ export function LessonView({ lesson }: { lesson: Lesson }) {
       </section>
 
       <EvidenceBlock kind="paper" title="原文给了哪些可核查事实？" items={lesson.facts} />
-      <EvidenceBlock kind="explanation" title="把事实连成一个可用的心智模型" items={lesson.explanations} />
+      <EvidenceBlock kind="explanation" title="概念关系与适用边界（编者解释）" items={lesson.explanations} />
 
       {figure && <PaperFigure figure={figure} />}
 
@@ -387,7 +319,7 @@ export function LessonView({ lesson }: { lesson: Lesson }) {
       <section className="source-section">
         <div className="content-section-heading">
           <span className="section-number">↗</span>
-          <h2>延伸核对原文（可选）</h2>
+          <h2>核对来源 PDF（可选）</h2>
         </div>
         <div>
           {lesson.sources.map((source) => (
@@ -461,8 +393,8 @@ export function LessonView({ lesson }: { lesson: Lesson }) {
 
       <footer className="license-note">
         <p>
-          Based on Guo et al., <em>The Hitchhiker&apos;s Guide to Agentic AI</em>,
-          v2. 原作与本站衍生学习内容均以{" "}
+          Based on Haggai Roitman, <em>The Hitchhiker&apos;s Guide to Agentic AI</em>,
+          arXiv v2 / book version 1.3. 原作与本站衍生学习内容均以{" "}
           <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">
             CC BY-SA 4.0
           </a>{" "}

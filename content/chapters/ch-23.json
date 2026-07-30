@@ -1,0 +1,1174 @@
+{
+  "chapter": 23,
+  "title": "Agent Skills",
+  "zhTitle": "Agent Skills：可复用能力模块",
+  "pages": "441-445",
+  "minutes": 20,
+  "overview": "随着Agent从单质的即时和工具系统演变成模块化的架构，出现了一个关键的设计问题:Agent的能力应该如何组织、发现和组成?答案越来越集中在技能的概念上——可以装入、合并和交换而不进行再培训的离散、可重复使用的行为单元。这个想法被Voyager普及[362]，这证明Minecraft中一个LLM剂可以积累一个不断增长的可执行代码技能库，每个库都经过验证并存储，供以后再使用。同样的原则也适用于生产剂:技能以可混杂、可变格式将域专长包罗在一起，其规模超过任何单一的提示所能持有的范围。技能经常包装用于工具访问的MCP服务器(第22章)，将技能抽象与标准化工具层连接起来。",
+  "status": "in_progress",
+  "sections": [
+    {
+      "id": "s-23-introduction",
+      "number": null,
+      "level": 1,
+      "enTitle": "Chapter introduction",
+      "zhTitle": "章节导入",
+      "pages": "441",
+      "blocks": [
+        {
+          "id": "s-23-introduction-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 23,
+            "section": null,
+            "pages": "441"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 本章导入「章节导入」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-23-introduction-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": null,
+            "pages": "441"
+          },
+          "text": "随着Agent从单质的即时和工具系统演变成模块化的架构，出现了一个关键的设计问题:Agent的能力应该如何组织、发现和组成?答案越来越集中在技能的概念上——可以装入、合并和交换而不进行再培训的离散、可重复使用的行为单元。这个想法被Voyager普及[362]，这证明Minecraft中一个LLM剂可以积累一个不断增长的可执行代码技能库，每个库都经过验证并存储，供以后再使用。同样的原则也适用于生产剂:技能以可混杂、可变格式将域专长包罗在一起，其规模超过任何单一的提示所能持有的范围。技能经常包装用于工具访问的MCP服务器(第22章)，将技能抽象与标准化工具层连接起来。",
+          "originalExcerpt": "As agents evolve from monolithic prompt-and-tool systems into modular architectures, a key design question emerges: how should an agent’s capabilities be organized, discovered, and composed? The answer increasingly converges on the concept of skills — discrete, reusable units of behaviour that can be loaded, combined, and swapped without retraining. The idea..."
+        }
+      ]
+    },
+    {
+      "id": "s-23-1",
+      "number": "23.1",
+      "level": 1,
+      "enTitle": "What Is a Skill?",
+      "zhTitle": "What Is a Skill?",
+      "pages": "441",
+      "blocks": [
+        {
+          "id": "s-23-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 23,
+            "section": "23.1",
+            "pages": "441"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §23.1「What Is a Skill?」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-23-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.1",
+            "pages": "441"
+          },
+          "text": "技能是自足的能力模块，在特定领域或任务中提供Agent专业知识。与原始工具(暴露单一功能)不同，技能包括:",
+          "originalExcerpt": "A skill is a self-contained capability module that gives an agent expertise in a specific domain or task. Unlike a raw tool (which exposes a single function), a skill encompasses:"
+        },
+        {
+          "id": "s-23-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.1",
+            "pages": "441"
+          },
+          "text": "• 系统迅速增强:特定领域的指示、限制和人a",
+          "originalExcerpt": "• System prompt augmentation: Domain-specific instructions, constraints, and persona"
+        },
+        {
+          "id": "s-23-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.1",
+            "pages": "441"
+          },
+          "text": "注入Agent上下文的元素。",
+          "originalExcerpt": "elements injected into the agent’s context."
+        },
+        {
+          "id": "s-23-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.1",
+            "pages": "441"
+          },
+          "text": "• 工具绑定:技能所需的一种或多种工具(API、MCP服务器、本地命令)。",
+          "originalExcerpt": "• Tool bindings: One or more tools the skill requires (APIs, MCP servers, local commands)."
+        },
+        {
+          "id": "s-23-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.1",
+            "pages": "441"
+          },
+          "text": "• 知识:Agent需要的参考材料、实例或几枪的演示",
+          "originalExcerpt": "• Knowledge: Reference material, examples, or few-shot demonstrations the agent needs to"
+        },
+        {
+          "id": "s-23-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.1",
+            "pages": "441"
+          },
+          "text": "正确执行技能。",
+          "originalExcerpt": "execute the skill correctly."
+        },
+        {
+          "id": "s-23-1-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.1",
+            "pages": "441"
+          },
+          "text": "• 工作流程逻辑:指导该流程的多步骤程序、决策树或有条件流动",
+          "originalExcerpt": "• Workflow logic: Multi-step procedures, decision trees, or conditional flows that guide the"
+        },
+        {
+          "id": "s-23-1-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.1",
+            "pages": "441"
+          },
+          "text": "Agent通过复杂任务。",
+          "originalExcerpt": "agent through complex tasks."
+        },
+        {
+          "id": "s-23-1-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.1",
+            "pages": "441"
+          },
+          "text": "• 护卫:技能特有的安全限制、产出格式要求和验证规则。",
+          "originalExcerpt": "• Guardrails: Skill-specific safety constraints, output format requirements, and validation rules."
+        },
+        {
+          "id": "s-23-1-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.1",
+            "pages": "441"
+          },
+          "text": "技能对工具对Agent",
+          "originalExcerpt": "Skill vs. Tool vs. Agent"
+        },
+        {
+          "id": "s-23-1-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.1",
+            "pages": "441"
+          },
+          "text": "概念范围工具 单函数称为web search(query) Skill Coherent capalient capalient(即时\"研究分析师\"技能+工具+知识) Agent自主实体 具有mul-A编码助理尖端技能 A工具是锤子。技能是懂得如何设定一个房子。 Agent是选择应用何种技能的木匠。",
+          "originalExcerpt": "Concept Scope Example Tool Single function call web_search(query) Skill Coherent capability (prompts “Research Analyst” skill + tools + knowledge) Agent Autonomous entity with mul- A coding assistant tiple skills A tool is a hammer. A skill is knowing how to frame a house. An agent is the carpenter who selects which skills to apply."
+        }
+      ]
+    },
+    {
+      "id": "s-23-2",
+      "number": "23.2",
+      "level": 1,
+      "enTitle": "Skill Architecture Patterns",
+      "zhTitle": "Skill Architecture Patterns",
+      "pages": "442",
+      "blocks": [
+        {
+          "id": "s-23-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 23,
+            "section": "23.2",
+            "pages": "442"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §23.2「Skill Architecture Patterns」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-23-2-structure-note",
+          "type": "callout",
+          "origin": "source_definition",
+          "source": {
+            "chapter": 23,
+            "section": "23.2",
+            "pages": "442"
+          },
+          "title": "原书结构说明",
+          "text": "§23.2 在原书中是父级目录节，具体论证由紧随其后的子节展开。本站保留这一锚点和来源页码，以维持与原书目录的一一对应，不把目录标题扩写成不存在的正文。"
+        },
+        {
+          "id": "s-23-2-source-note",
+          "type": "callout",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 23,
+            "section": "23.2",
+            "pages": "442"
+          },
+          "text": "本节主要由公式、图表或代码构成，网页转写仍在人工核对中；当前状态不会标记为精读完成。"
+        }
+      ]
+    },
+    {
+      "id": "s-23-2-1",
+      "number": "23.2.1",
+      "level": 2,
+      "enTitle": "Static Skill Loading",
+      "zhTitle": "Static Skill Loading",
+      "pages": "442",
+      "blocks": [
+        {
+          "id": "s-23-2-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 23,
+            "section": "23.2.1",
+            "pages": "442"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §23.2.1「Static Skill Loading」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-23-2-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.2.1",
+            "pages": "442"
+          },
+          "text": "最简单的模式:技能在Agent初始化时根据配置加载。 Agent总是可以使用其所有技能。# Pseudicode - 框架 - 可知模式Agent=Agent(模型= \" claude - sonnet - 4 - 20250514 \"，技能=[ \" 代码 - 复议 \"， \" 文件 \"， \" 测试 \" ]，# 每种技能都给Agent添加了提示，工具和知识。",
+          "originalExcerpt": "The simplest pattern: skills are loaded at agent initialization based on configuration. The agent always has access to all its skills. # Pseudocode -- framework - agnostic pattern agent = Agent ( model = \" claude - sonnet -4 -20250514 \" , skills =[ \" code - review \" , \" documentation \" , \" testing \" ] , # Each skill adds prompts , tools , and knowledge to th..."
+        },
+        {
+          "id": "s-23-2-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.2.1",
+            "pages": "442"
+          },
+          "text": "利:简单，可预见，低潜。",
+          "originalExcerpt": "Pros: Simple, predictable, low latency."
+        },
+        {
+          "id": "s-23-2-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.2.1",
+            "pages": "442"
+          },
+          "text": "康斯: 当技能被使用时， context window会浪费; 无法缩放到数百个技能。",
+          "originalExcerpt": "Cons: Context window waste when skills are unused; doesn’t scale to hundreds of skills."
+        }
+      ]
+    },
+    {
+      "id": "s-23-2-2",
+      "number": "23.2.2",
+      "level": 2,
+      "enTitle": "Dynamic Skill Discovery",
+      "zhTitle": "Dynamic Skill Discovery",
+      "pages": "442",
+      "blocks": [
+        {
+          "id": "s-23-2-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 23,
+            "section": "23.2.2",
+            "pages": "442"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §23.2.2「Dynamic Skill Discovery」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-23-2-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.2.2",
+            "pages": "442"
+          },
+          "text": "Agent根据当前任务选择哪些技能可以激活。 技能路由器( 通常是轻量级分类器或嵌入式匹配器) 确定相关性 :# Pseudodicode - 框架 - 不可知模式 相关 技能 = 技能 路由器。匹配(用户 请求= 消息，可用 技能= 技能 注册，最大 技能=3) Agent。激活(相关 技能)。",
+          "originalExcerpt": "The agent selects which skills to activate based on the current task. A skill router (often a lightweight classifier or embedding-based matcher) determines relevance: # Pseudocode -- framework - agnostic pattern relevant_skills = skill_router . match ( user_request = message , available_skills = skill_registry , max_skills =3 ) agent . activate ( relevant_sk..."
+        },
+        {
+          "id": "s-23-2-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.2.2",
+            "pages": "442"
+          },
+          "text": "Pros: 缩放到大型技能库; 上下文高效。",
+          "originalExcerpt": "Pros: Scales to large skill libraries; context-efficient."
+        },
+        {
+          "id": "s-23-2-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.2.2",
+            "pages": "442"
+          },
+          "text": "康斯:排队错误可能错过相关技能;增加耐久性。",
+          "originalExcerpt": "Cons: Routing errors can miss relevant skills; adds latency."
+        }
+      ]
+    },
+    {
+      "id": "s-23-2-3",
+      "number": "23.2.3",
+      "level": 2,
+      "enTitle": "Hierarchical Skill Composition",
+      "zhTitle": "Hierarchical Skill Composition",
+      "pages": "442",
+      "blocks": [
+        {
+          "id": "s-23-2-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 23,
+            "section": "23.2.3",
+            "pages": "442"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §23.2.3「Hierarchical Skill Composition」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-23-2-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.2.3",
+            "pages": "442"
+          },
+          "text": "技能可以依赖其他技能，形成DAG。高级技能(如“部署应用”)可以引用子技能(“运行测试”、“构建多克图像”、“更新DNS”):",
+          "originalExcerpt": "Skills can depend on other skills, forming a DAG. A high-level skill (e.g., “Deploy Application”) may invoke sub-skills (“Run Tests”, “Build Docker Image”, “Update DNS”):"
+        },
+        {
+          "id": "s-23-2-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.2.3",
+            "pages": "442"
+          },
+          "text": "• 技能明确宣布依赖关系",
+          "originalExcerpt": "• Skills declare dependencies explicitly"
+        },
+        {
+          "id": "s-23-2-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.2.3",
+            "pages": "442"
+          },
+          "text": "• 管弦乐器在执行前解决依赖性图",
+          "originalExcerpt": "• The orchestrator resolves the dependency graph before execution"
+        },
+        {
+          "id": "s-23-2-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.2.3",
+            "pages": "442"
+          },
+          "text": "• 子技能可以由多种父母技能分享",
+          "originalExcerpt": "• Sub-skills can be shared across multiple parent skills"
+        }
+      ]
+    },
+    {
+      "id": "s-23-3",
+      "number": "23.3",
+      "level": 1,
+      "enTitle": "Case Study: Anthropic’s Agent Design",
+      "zhTitle": "Case Study: Anthropic’s Agent Design",
+      "pages": "442",
+      "blocks": [
+        {
+          "id": "s-23-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 23,
+            "section": "23.3",
+            "pages": "442"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §23.3「Case Study: Anthropic’s Agent Design」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-23-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.3",
+            "pages": "442"
+          },
+          "text": "Anthropic对Agent架构的处理方法[10]为生产中基于技能的Agent设计提供了最清晰的表述。他们的哲学强调简单，而不是复杂，强调可混凝土构件，而不是单一框架。 (第20章也从协调的角度阐述了这些模式。 )",
+          "originalExcerpt": "Anthropic’s approach to agent architecture [10] provides one of the clearest articulations of skillbased agent design in production. Their philosophy emphasizes simplicity over complexity and composable building blocks over monolithic frameworks. (These patterns are also covered from an orchestration perspective in Chapter 20.)"
+        }
+      ]
+    },
+    {
+      "id": "s-23-3-1",
+      "number": "23.3.1",
+      "level": 2,
+      "enTitle": "Core Principles",
+      "zhTitle": "Core Principles",
+      "pages": "442-443",
+      "blocks": [
+        {
+          "id": "s-23-3-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 23,
+            "section": "23.3.1",
+            "pages": "442-443"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §23.3.1「Core Principles」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-23-3-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.3.1",
+            "pages": "442"
+          },
+          "text": "1. 从最简单的解决方案开始。在更简单的方法之前不要接触Agent模式",
+          "originalExcerpt": "1. Start with the simplest solution. Don’t reach for agentic patterns until simpler approaches"
+        },
+        {
+          "id": "s-23-3-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.3.1",
+            "pages": "442"
+          },
+          "text": "(单LLM呼叫， retrieved + generation) 已经尝试过，发现不够。",
+          "originalExcerpt": "(single LLM call, retrieval + generation) have been tried and found insufficient."
+        },
+        {
+          "id": "s-23-3-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.3.1",
+            "pages": "442"
+          },
+          "text": "2. 工作流量与Agent。",
+          "originalExcerpt": "2. Workflows vs. agents. Anthropic distinguishes between:"
+        },
+        {
+          "id": "s-23-3-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.3.1",
+            "pages": "443"
+          },
+          "text": "• 工作流程:预先确定LLM调用的协调——与定型控制流程",
+          "originalExcerpt": "• Workflows: Predefined orchestration of LLM calls — deterministic control flow with"
+        },
+        {
+          "id": "s-23-3-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.3.1",
+            "pages": "443"
+          },
+          "text": "LLM 步骤在特定节点， 更可预测， 更容易调试。",
+          "originalExcerpt": "LLM steps at specific nodes. More predictable, easier to debug."
+        },
+        {
+          "id": "s-23-3-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.3.1",
+            "pages": "443"
+          },
+          "text": "• Agent:LLM动态决定下一步要做什么——工具选择、迭代计数，",
+          "originalExcerpt": "• Agents: The LLM dynamically decides what to do next — tool selection, iteration count,"
+        },
+        {
+          "id": "s-23-3-1-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.3.1",
+            "pages": "443"
+          },
+          "text": "停止标准都是模型驱动的 更灵活 更难控制",
+          "originalExcerpt": "and stopping criteria are all model-driven. More flexible, harder to control."
+        },
+        {
+          "id": "s-23-3-1-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.3.1",
+            "pages": "443"
+          },
+          "text": "3. 增强LLM作为原子单位。原始的从来就不是光亮的模型——它始终是一个",
+          "originalExcerpt": "3. Augmented LLM as the atomic unit. The primitive is never a bare model—it is always a"
+        },
+        {
+          "id": "s-23-3-1-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.3.1",
+            "pages": "443"
+          },
+          "text": "模型与它的检索源、可调用工具和持续记忆捆绑在一起。这个复合单元实际上是一个技术装备模型。",
+          "originalExcerpt": "model bundled with its retrieval sources, callable tools, and persistent memory. This composite unit is, in practice, a skill-equipped model."
+        }
+      ]
+    },
+    {
+      "id": "s-23-3-2",
+      "number": "23.3.2",
+      "level": 2,
+      "enTitle": "Building Block Patterns",
+      "zhTitle": "Building Block Patterns",
+      "pages": "443",
+      "blocks": [
+        {
+          "id": "s-23-3-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 23,
+            "section": "23.3.2",
+            "pages": "443"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §23.3.2「Building Block Patterns」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-23-3-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.3.2",
+            "pages": "443"
+          },
+          "text": "Anthropic 确定了五个可共合的工作流程模式，作为技能模板: 表23.1: Anthropic 的可共合Agent模式。",
+          "originalExcerpt": "Anthropic identifies five composable workflow patterns that function as skill templates: Table 23.1: Anthropic’s composable agent patterns."
+        },
+        {
+          "id": "s-23-3-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.3.2",
+            "pages": "443"
+          },
+          "text": "模式机制(Pattern Macticle) 当使用快速链路序列 LLM 时， 将使用清晰解析步骤的多步转换来为下一步输出提供素材。 步骤之间的门验证中间结果。 routing A分类器或LLM 将不同的任务类别指导要求不同演示到基于任务类型的专业处理器tise(技能)。并行化 多重LLM调用运行 simul-Object 子任务;或通过同意的方式进行信任——要么分割 sus(分任务)，要么投票(同任务，汇总)。由劳工中心(A Central LLM)将任务分成无法预测的任务，评估者- 优化者 One LLM 生成， 具有清晰质量标准( 代码， 写入) 的又一个任务 评估; 斜拉到达到质量阈值。",
+          "originalExcerpt": "Pattern Mechanism When to Use Prompt Chaining Sequential LLM calls where Multi-step transformations with clear decompoeach step’s output feeds the sition next. Gates between steps validate intermediate results. Routing A classifier or LLM directs in- Distinct task categories requiring different experput to a specialized handler tise (skill) based on task typ..."
+        }
+      ]
+    },
+    {
+      "id": "s-23-3-3",
+      "number": "23.3.3",
+      "level": 2,
+      "enTitle": "The Augmented LLM",
+      "zhTitle": "The Augmented LLM",
+      "pages": "443",
+      "blocks": [
+        {
+          "id": "s-23-3-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 23,
+            "section": "23.3.3",
+            "pages": "443"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §23.3.3「The Augmented LLM」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-23-3-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.3.3",
+            "pages": "443"
+          },
+          "text": "在Anthropic的架构中，基本单元不是光线模型，而是增强的LLM:",
+          "originalExcerpt": "In Anthropic’s framing, the fundamental unit is not the bare model but the augmented LLM:"
+        },
+        {
+          "id": "s-23-3-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.3.3",
+            "pages": "443"
+          },
+          "text": "增强LLM = 模型+检索+工具+内存 此地图直接与技能概念:每个技能配置，用于检索源，工具和内存存储该模型在特定任务上可以访问。技能界限定义了模型在某一特定引用中能够看到和做的事情。",
+          "originalExcerpt": "Augmented LLM = Model + Retrieval + Tools + Memory This maps directly to the skill concept: each skill configures which retrieval sources, tools, and memory stores the model has access to for a specific task. The skill boundary defines what the model can see and do within a particular invocation."
+        }
+      ]
+    },
+    {
+      "id": "s-23-3-4",
+      "number": "23.3.4",
+      "level": 2,
+      "enTitle": "Practical Implications",
+      "zhTitle": "Practical Implications",
+      "pages": "443-444",
+      "blocks": [
+        {
+          "id": "s-23-3-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 23,
+            "section": "23.3.4",
+            "pages": "443-444"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §23.3.4「Practical Implications」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-23-3-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.3.4",
+            "pages": "443"
+          },
+          "text": "人类的“关键洞察力” 最有效的Agent并不是最复杂的。它们都是带有好工具的简单循环: 虽然没有完成: 动作=LLM。决定(上下文，工具) 结果=执行(动作) 上下文。附加(结果) 完成=LLM。 should stop(上下文)",
+          "originalExcerpt": "Anthropic’s Key Insight The most effective agents aren’t the most complex ones. They are simple loops with good tools: while not done : action = llm . decide ( context , tools ) result = execute ( action ) context . append ( result ) done = llm . should_stop ( context )"
+        },
+        {
+          "id": "s-23-3-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.3.4",
+            "pages": "444"
+          },
+          "text": "智能来自 (1) 模型的能力，(2) 工具描述的质量，(3) 任务框架的清晰度 — — 而不是精心策划的逻辑。 技能为(2)和(3)提供了结构。",
+          "originalExcerpt": "The intelligence comes from (1) the model’s capability, (2) the quality of tool descriptions, and (3) the clarity of the task framing — not from elaborate orchestration logic. Skills provide the structure for (2) and (3)."
+        },
+        {
+          "id": "s-23-3-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.3.4",
+            "pages": "444"
+          },
+          "text": "设计安特罗皮克方法的建议:",
+          "originalExcerpt": "Design recommendations from Anthropic’s approach:"
+        },
+        {
+          "id": "s-23-3-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.3.4",
+            "pages": "444"
+          },
+          "text": "——保持Agent循环简单:避免控制流的过度工程化，让模型决定。",
+          "originalExcerpt": "• Keep agent loops simple: Avoid over-engineering the control flow. Let the model decide."
+        },
+        {
+          "id": "s-23-3-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.3.4",
+            "pages": "444"
+          },
+          "text": "• 投资工具质量:详细、明确的工具说明比",
+          "originalExcerpt": "• Invest in tool quality: Detailed, unambiguous tool descriptions are more valuable than"
+        },
+        {
+          "id": "s-23-3-4-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.3.4",
+            "pages": "444"
+          },
+          "text": "复杂的路由逻辑。",
+          "originalExcerpt": "complex routing logic."
+        },
+        {
+          "id": "s-23-3-4-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.3.4",
+            "pages": "444"
+          },
+          "text": "• 使用结构化产出:强迫模型以可解析的格式输出决策(JSON，第1段)",
+          "originalExcerpt": "• Use structured outputs: Force the model to output decisions in parseable formats (JSON,"
+        },
+        {
+          "id": "s-23-3-4-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.3.4",
+            "pages": "444"
+          },
+          "text": "函数调用) ——减少技能执行错误。",
+          "originalExcerpt": "function calls) — reduces skill execution errors."
+        },
+        {
+          "id": "s-23-3-4-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.3.4",
+            "pages": "444"
+          },
+          "text": "· 恢复中建设:技能应优雅地处理错误——用不同的参数重新试验，",
+          "originalExcerpt": "• Build in recovery: Skills should handle errors gracefully — retry with different parameters,"
+        },
+        {
+          "id": "s-23-3-4-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.3.4",
+            "pages": "444"
+          },
+          "text": "要求澄清，或升级为人类。",
+          "originalExcerpt": "ask for clarification, or escalate to a human."
+        },
+        {
+          "id": "s-23-3-4-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.3.4",
+            "pages": "444"
+          },
+          "text": "· 限制每种技能的范围:一种试图做一切事情的技能不会有什么好处。",
+          "originalExcerpt": "• Limit scope per skill: A skill that tries to do everything will do nothing well. Narrow,"
+        },
+        {
+          "id": "s-23-3-4-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.3.4",
+            "pages": "444"
+          },
+          "text": "定义明确的技能比广义技能要好。",
+          "originalExcerpt": "well-defined skills compose better than broad ones."
+        }
+      ]
+    },
+    {
+      "id": "s-23-4",
+      "number": "23.4",
+      "level": 1,
+      "enTitle": "Skill Lifecycle",
+      "zhTitle": "Skill Lifecycle",
+      "pages": "444",
+      "blocks": [
+        {
+          "id": "s-23-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 23,
+            "section": "23.4",
+            "pages": "444"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §23.4「Skill Lifecycle」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-23-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.4",
+            "pages": "444"
+          },
+          "text": "1. 发现:该系统确定有哪些技能可供使用(注册、市场、当地、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域、区域",
+          "originalExcerpt": "1. Discovery: The system identifies which skills are available (registry, marketplace, local"
+        },
+        {
+          "id": "s-23-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.4",
+            "pages": "444"
+          },
+          "text": "2. 选择:根据用户的要求，相关技能匹配并加载。",
+          "originalExcerpt": "2. Selection: Based on the user request, relevant skills are matched and loaded."
+        },
+        {
+          "id": "s-23-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.4",
+            "pages": "444"
+          },
+          "text": "3. 激活:将技能提示、工具和知识注入Agent的背景。",
+          "originalExcerpt": "3. Activation: Skill prompts, tools, and knowledge are injected into the agent’s context."
+        },
+        {
+          "id": "s-23-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.4",
+            "pages": "444"
+          },
+          "text": "4. 执行:Agent利用技能完成这项任务。",
+          "originalExcerpt": "4. Execution: The agent uses the skill’s capabilities to accomplish the task."
+        },
+        {
+          "id": "s-23-4-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.4",
+            "pages": "444"
+          },
+          "text": "5. 解除:将技能上下文删除，为后续任务腾出context window空间。",
+          "originalExcerpt": "5. Deactivation: Skill context is removed to free context window space for subsequent tasks."
+        },
+        {
+          "id": "s-23-4-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.4",
+            "pages": "444"
+          },
+          "text": "6。学习:执行结果可能更新技能的几率例子或微调路径。",
+          "originalExcerpt": "6. Learning: Execution results may update the skill’s few-shot examples or fine-tune routing."
+        }
+      ]
+    },
+    {
+      "id": "s-23-5",
+      "number": "23.5",
+      "level": 1,
+      "enTitle": "Skill Registries and Marketplaces",
+      "zhTitle": "Skill Registries and Marketplaces",
+      "pages": "444-445",
+      "blocks": [
+        {
+          "id": "s-23-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 23,
+            "section": "23.5",
+            "pages": "444-445"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §23.5「Skill Registries and Marketplaces」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-23-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.5",
+            "pages": "444"
+          },
+          "text": "生产技能系统需要基础设施:",
+          "originalExcerpt": "Production skill systems require infrastructure:"
+        },
+        {
+          "id": "s-23-5-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.5",
+            "pages": "444"
+          },
+          "text": "• 技能清单:结构化说明(姓名、能力、所需工具、投入/产出)",
+          "originalExcerpt": "• Skill manifest: A structured description (name, capabilities, required tools, input/output"
+        },
+        {
+          "id": "s-23-5-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.5",
+            "pages": "444"
+          },
+          "text": "schema)，使自动发现和路由成为可能。",
+          "originalExcerpt": "schema) enabling automatic discovery and routing."
+        },
+        {
+          "id": "s-23-5-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.5",
+            "pages": "444"
+          },
+          "text": "• 版本控制:技能演变;Agent需要定点特定版本才能复制。",
+          "originalExcerpt": "• Version control: Skills evolve; agents need to pin specific versions for reproducibility."
+        },
+        {
+          "id": "s-23-5-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.5",
+            "pages": "444"
+          },
+          "text": "· 依赖性解析:技能可能需要特定的MCP服务器， API密钥，或其他技能。",
+          "originalExcerpt": "• Dependency resolution: Skills may require specific MCP servers, API keys, or other skills."
+        },
+        {
+          "id": "s-23-5-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.5",
+            "pages": "444"
+          },
+          "text": "• 授权模式:并非所有Agent都应享有所有技能(安全、成本、能力)",
+          "originalExcerpt": "• Permission model: Not all agents should have access to all skills (security, cost, capability"
+        },
+        {
+          "id": "s-23-5-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.5",
+            "pages": "444"
+          },
+          "text": "• 市场:各组织可以出版、分享和安装技能——类似于成套技能",
+          "originalExcerpt": "• Marketplace: Organizations can publish, share, and install skills — analogous to package"
+        },
+        {
+          "id": "s-23-5-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.5",
+            "pages": "444"
+          },
+          "text": "代码管理器。",
+          "originalExcerpt": "managers for code."
+        },
+        {
+          "id": "s-23-5-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.5",
+            "pages": "444"
+          },
+          "text": "技能说明 技能说明 说明 乐团需要的装填和引用技能。 尚不存在行业标准计划;下面是一个说明性格式，它能捕捉整个实际执行的常见字段(Anthropic MCP， OpenAI函数规格， LangChain 工具定义): // 说明性计划 - 不是特定的SDK格式",
+          "originalExcerpt": "Skill Manifest Example A skill manifest declares everything an orchestrator needs to load and invoke a skill. No industrystandard schema exists yet; below is an illustrative format that captures common fields across real implementations (Anthropic MCP, OpenAI function specs, LangChain tool definitions): // Illustrative schema -- not a specific SDK format"
+        },
+        {
+          "id": "s-23-5-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.5",
+            "pages": "445"
+          },
+          "text": "{ \" 名称 \" : \" 代码 - 审查 \"， \" 描述 \" : \" 审查错误、样式和安全问题的代码更改 \"， \" 版本 \" : \" 2.1.0 \"， \" 需要 \" :{ \" 工具 \" :[ \" 文件 读 \"， \" grep \"， \" git diff \" ]， \" MCP servers \" :[ \" gi \" ]， \" 型号 \" :[ \" cla - 音调 - 4 - 20250514 \" ]， \" 输入 - schema \" }， \" 输入 \" :{ \" 类型 \" : \" 对象 \"， \" 属性 \" :{ \" 重po \" :{ \" 类型 \" : \" 字符串 \"， \" pr 数字 \" :{ \" 类型 \" : \" 整数 \" }}， \" 提示 \" :[ \" 技能/代码 - 审查/系统。 md \" ]， \" 知识 \" :[ \" 技能/代码 - 审查/风格 - 指导。 md \" ]]",
+          "originalExcerpt": "{ \" name \" : \" code - review \" , \" description \" : \" Review code changes for bugs , style , and security issues \" , \" version \" : \" 2.1.0 \" , \" requires \" : { \" tools \" : [ \" file_read \" , \" grep \" , \" git_diff \" ] , \" mcp_servers \" : [ \" github \" ] , \" models \" : [ \" claude - sonnet -4 -20250514 \" ] }, \" input_schema \" : { \" type \" : \" object \" , \" properti..."
+        }
+      ]
+    },
+    {
+      "id": "s-23-6",
+      "number": "23.6",
+      "level": 1,
+      "enTitle": "Skills vs. Fine-Tuning",
+      "zhTitle": "Skills vs. Fine-Tuning",
+      "pages": "445",
+      "blocks": [
+        {
+          "id": "s-23-6-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 23,
+            "section": "23.6",
+            "pages": "445"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §23.6「Skills vs. Fine-Tuning」 时，不要寻找脱离场景的“最佳方案”。应在质量、latency、计算与存储成本、数据要求、可控性和运维复杂度上逐项比较，并保留原书说明的适用前提与例外。"
+        },
+        {
+          "id": "s-23-6-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.6",
+            "pages": "445"
+          },
+          "text": "一个自然的问题:为什么使用运行时技能注射而不是微调模型？表23.2:技能(内装)与微调，用于添加能力。",
+          "originalExcerpt": "A natural question: why use runtime skill injection instead of fine-tuning the model? Table 23.2: Skills (in-context) vs. fine-tuning for adding capabilities."
+        },
+        {
+          "id": "s-23-6-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.6",
+            "pages": "445"
+          },
+          "text": "尺寸技能(内在) 精细调速部署速度 即时调速 运行时灵活性 交换/压缩 运行时固定 环境成本 使用环境成本 窗口 零运行时成本 深度行为变化 限制按环境长度 深度参数变化 多用户 不同技能 用户 对所有维护 更新 文本文件进行新数据的检索",
+          "originalExcerpt": "Dimension Skills (In-Context) Fine-Tuning Deployment speed Instant Hours–days Flexibility Swap/combine at runtime Fixed at training time Context cost Uses context window Zero runtime cost Deep behavior change Limited by context length Deep parametric change Multi-tenant Different skills per user Same model for all Maintenance Update text files Retrain on new..."
+        },
+        {
+          "id": "s-23-6-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 23,
+            "section": "23.6",
+            "pages": "445"
+          },
+          "text": "在实践中，这两种方法是相辅相成的:微调提供基础能力(以下指令，工具使用格式，推理)，而技能则提供在运行时间上层的针对具体任务的专门知识。",
+          "originalExcerpt": "In practice, the two approaches are complementary: fine-tuning provides base capabilities (instruction following, tool use format, reasoning), while skills provide task-specific expertise layered on top at runtime."
+        }
+      ]
+    }
+  ],
+  "glossary": [
+    {
+      "term": "Agent",
+      "zh": "智能体",
+      "meaning": "由模型、状态、工具和运行循环共同构成的目标导向系统。"
+    },
+    {
+      "term": "MCP",
+      "zh": "MCP",
+      "meaning": "连接 AI application 与外部 tools、resources、prompts 的标准协议。"
+    },
+    {
+      "term": "context window",
+      "zh": "context window",
+      "meaning": "单次模型调用可直接读取的 token 范围。"
+    }
+  ],
+  "summary": [
+    "随着Agent从单质的即时和工具系统演变成模块化的架构，出现了一个关键的设计问题:Agent的能力应该如何组织、发现和组成?答案越来越集中在技能的概念上——可以装入、合并和交换而不进行再培训的离散、可重复使用的行为单元。这个想法被Voyager普及[362]，这证明Minecraft中一个LLM剂可以积累一个不断增长的可执行代码技能库，每个库都经过验证并存储，供以后再使用。同样的原则也适用于生产剂:技能以可混杂、可变格式将域专长包罗在一起，其规模超过任何单一的提示所能持有的范围。技能经常包装用于工具访问的MCP服务器(第22章)，将技能抽象与标准化工具层连接起来。",
+    "技能是自足的能力模块，在特定领域或任务中提供Agent专业知识。与原始工具(暴露单一功能)不同，技能包括:",
+    "• 系统迅速增强:特定领域的指示、限制和人a"
+  ],
+  "metrics": {
+    "chineseCharacters": 4209,
+    "sourceCoverage": 100,
+    "sectionCount": 14,
+    "blockCount": 83
+  }
+}

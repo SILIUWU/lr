@@ -1,0 +1,3732 @@
+{
+  "chapter": 21,
+  "title": "Agentic Environments and Benchmarks",
+  "zhTitle": "Agentic 环境与基准",
+  "pages": "404-420",
+  "minutes": 42,
+  "overview": "谈话语言模型的评估原则上是直截了当的:提出一个迅速的，收集一个答复，并参照一个参考或人类判断来评分。 Agent评估从根本上说是不同的。 Agent必须在一个世界上行动，观察后果，并调整其行为，以适应一系列步骤。 没有单一的反应能够捕捉到这一点;只有结构化的环境才能。 范围。我们从强化学习的角度来使用环境:一个Agent与培训或评估工作互动的世界，而不是在服务时担任Agent所在地的生产基础设施(走廊、管弦乐家)。执行沙盒出现在这里，因为它们能促成这种环境，但毒剂的拉带本身在第18章中涵盖。 Chatbot–Agent Experiment Gap Chatbot评估衡量了单代人的质量:流利，真实，有帮助。 Agent评估衡量政策的质量:Agent是否可靠地实现了不同、长期的任务的目标？差距不仅仅是数量上的——它需要不同的基础设施。三种力量驱动着对专用的Agent环境的需求:",
+  "status": "in_progress",
+  "sections": [
+    {
+      "id": "s-21-1",
+      "number": "21.1",
+      "level": 1,
+      "enTitle": "Motivation: Why Agents Need Environments",
+      "zhTitle": "Motivation: Why Agents Need Environments",
+      "pages": "404",
+      "blocks": [
+        {
+          "id": "s-21-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.1",
+            "pages": "404"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.1「Motivation: Why Agents Need Environments」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-21-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.1",
+            "pages": "404"
+          },
+          "text": "谈话语言模型的评估原则上是直截了当的:提出一个迅速的，收集一个答复，并参照一个参考或人类判断来评分。 Agent评估从根本上说是不同的。 Agent必须在一个世界上行动，观察后果，并调整其行为，以适应一系列步骤。 没有单一的反应能够捕捉到这一点;只有结构化的环境才能。 范围。我们从强化学习的角度来使用环境:一个Agent与培训或评估工作互动的世界，而不是在服务时担任Agent所在地的生产基础设施(走廊、管弦乐家)。执行沙盒出现在这里，因为它们能促成这种环境，但毒剂的拉带本身在第18章中涵盖。 Chatbot–Agent Experiment Gap Chatbot评估衡量了单代人的质量:流利，真实，有帮助。 Agent评估衡量政策的质量:Agent是否可靠地实现了不同、长期的任务的目标？差距不仅仅是数量上的——它需要不同的基础设施。三种力量驱动着对专用的Agent环境的需求:",
+          "originalExcerpt": "The evaluation of a conversational language model is, in principle, straightforward: present a prompt, collect a response, and score it against a reference or via human judgment. Agent evaluation is fundamentally different. An agent must act in a world, observe consequences, and adapt its behavior over a sequence of steps. No single response captures this; o..."
+        },
+        {
+          "id": "s-21-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.1",
+            "pages": "404"
+          },
+          "text": "安全探索:现实世界系统——生产数据库、现场网站、金融API——无法吸收正在接受培训的Agent的探索行为。沙盒环境提供了一种忠实的复制品，在这种复制品中，制剂可以失败，恢复，学习而不会造成不可逆转的伤害。安全隔离(如Docker容器，网络限制VM)不是可选的;它是一等的设计要求。",
+          "originalExcerpt": "Safe Exploration. Real-world systems—production databases, live websites, financial APIs— cannot absorb the exploratory behavior of an agent under training. A sandboxed environment provides a faithful replica in which the agent can fail, recover, and learn without causing irreversible harm. Security isolation (e.g., Docker containers, network-restricted VMs)..."
+        },
+        {
+          "id": "s-21-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.1",
+            "pages": "404"
+          },
+          "text": "编制基准要求每个Agent在同样条件下面临同样的任务。环境必须按需求决定，并有版本控制，可以分配，这样在另一个实验室中可以复制报告的结果。 历史上，没有这种财产使得Agent基准难以比较。",
+          "originalExcerpt": "Reproducible Evaluation. Benchmarking requires that every agent faces the same task under the same conditions. Environments must be deterministic on demand, version-controlled, and distributable so that results reported in one lab can be reproduced in another. The absence of this property has historically made agent benchmarks difficult to compare."
+        },
+        {
+          "id": "s-21-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.1",
+            "pages": "404"
+          },
+          "text": "课程学习:从头到尾培训一名Agent从事艰苦工作，是没有效率的。暴露困难课程的环境——随着因素的改善，任务的复杂性逐步增加——显著减少达到目标业绩水平所需的环境互动数量。这反映了人类的学习方式:掌握子技能先于掌握整个技能。环境作为LLMs的RL “ Gym”， 仅如OpenAI Gym [31] 将RL算法和模拟控制任务的接口标准化， Agent环境将基于LLM的Agent和它们必须解决的不同任务之间的接口标准化。类比很紧:重设()初始化新剧集，步(动作)推进世界，并返回观察和奖励，使()产生人可读的当前状态的视角。",
+          "originalExcerpt": "Curriculum Learning. Training an agent from scratch on hard tasks is sample-inefficient. Environments that expose a difficulty curriculum—gradually increasing task complexity as the agent improves—dramatically reduce the number of environment interactions required to reach a target performance level. This mirrors how humans learn: mastery of sub-skills prece..."
+        }
+      ]
+    },
+    {
+      "id": "s-21-2",
+      "number": "21.2",
+      "level": 1,
+      "enTitle": "Environment Design Principles",
+      "zhTitle": "Environment Design Principles",
+      "pages": "405",
+      "blocks": [
+        {
+          "id": "s-21-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2",
+            "pages": "405"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.2「Environment Design Principles」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-21-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2",
+            "pages": "405"
+          },
+          "text": "设计良好的Agent环境暴露出四个正交设计轴:观测空间，动作空间，奖励信号，以及插曲结构。每一个正确都是必要的;同时正确四个正确都是环境工程的巧妙手法。",
+          "originalExcerpt": "A well-designed agentic environment exposes four orthogonal design axes: the observation space, the action space, the reward signal, and the episode structure. Getting each right is necessary; getting all four right simultaneously is the craft of environment engineering."
+        }
+      ]
+    },
+    {
+      "id": "s-21-2-1",
+      "number": "21.2.1",
+      "level": 2,
+      "enTitle": "Observation Space Design",
+      "zhTitle": "Observation Space Design",
+      "pages": "405",
+      "blocks": [
+        {
+          "id": "s-21-2-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.1",
+            "pages": "405"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.2.1「Observation Space Design」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-21-2-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.1",
+            "pages": "405"
+          },
+          "text": "观察是Agent在每一步骤上所看到的。对于基于LLM的Agent，观察几乎总是作为文本来提供，但源材料差别很大:",
+          "originalExcerpt": "The observation is what the agent sees at each step. For LLM-based agents the observation is almost always rendered as text, but the source material varies widely:"
+        },
+        {
+          "id": "s-21-2-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.1",
+            "pages": "405"
+          },
+          "text": "• 纯文本:终端输出、文件内容、API回复、错误信息。最大程度兼容",
+          "originalExcerpt": "• Pure text: terminal output, file contents, API responses, error messages. Maximally compatible"
+        },
+        {
+          "id": "s-21-2-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.1",
+            "pages": "405"
+          },
+          "text": "具有任何LLM，但失去空间和视觉结构。",
+          "originalExcerpt": "with any LLM but loses spatial and visual structure."
+        },
+        {
+          "id": "s-21-2-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.1",
+            "pages": "405"
+          },
+          "text": "• 结构化(JSON/XML):机器可读状态表示。",
+          "originalExcerpt": "• Structured (JSON/XML): machine-readable state representations. Enables precise ground-"
+        },
+        {
+          "id": "s-21-2-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.1",
+            "pages": "405"
+          },
+          "text": "ing，但要求Agent分析结构而不是读取亲笔。",
+          "originalExcerpt": "ing but requires the agent to parse structure rather than read prose."
+        },
+        {
+          "id": "s-21-2-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.1",
+            "pages": "405"
+          },
+          "text": "• 多式联运:截图、访问树、制作 HTML。",
+          "originalExcerpt": "• Multimodal: screenshots, accessibility trees, rendered HTML. Necessary for GUI and web"
+        },
+        {
+          "id": "s-21-2-1-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.1",
+            "pages": "405"
+          },
+          "text": "任务; 需要一个可视化模型或单独的感知模块。",
+          "originalExcerpt": "tasks; requires a vision-capable model or a separate perception module."
+        },
+        {
+          "id": "s-21-2-1-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.1",
+            "pages": "405"
+          },
+          "text": "• 混合:一个截图，与无障碍树对齐(在OSWorld和VisualWebArena使用)",
+          "originalExcerpt": "• Hybrid: a screenshot paired with an accessibility tree (used in OSWorld and VisualWebArena)"
+        },
+        {
+          "id": "s-21-2-1-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.1",
+            "pages": "405"
+          },
+          "text": "既提供视觉背景，又提供结构化要素识别符，结合了两种模式的优点。通常的设计错误是在观察中包括了Agent不应接触的信息，例如地面真相答案、奖励价值或未来的任务步骤。观测渗漏会提高基准分数，产生在缺乏此类信息的实际环境中部署的试剂将灾难性失效。",
+          "originalExcerpt": "gives both visual context and structured element identifiers, combining the strengths of both modalities. Observation Leakage A common design mistake is including information in the observation that the agent should not have access to—for example, the ground truth answer, the reward value, or future task steps. Observation leakage inflates benchmark scores a..."
+        }
+      ]
+    },
+    {
+      "id": "s-21-2-2",
+      "number": "21.2.2",
+      "level": 2,
+      "enTitle": "Action Space Design",
+      "zhTitle": "Action Space Design",
+      "pages": "405",
+      "blocks": [
+        {
+          "id": "s-21-2-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.2",
+            "pages": "405"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.2.2「Action Space Design」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-21-2-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.2",
+            "pages": "405"
+          },
+          "text": "动作空间定义Agent可以做什么。 对于 LLM Agent， 动作通常是由环境解析和执行的文本字符串。 常见动作类型包括 :",
+          "originalExcerpt": "The action space defines what the agent can do. For LLM agents the action is typically a text string that is parsed and executed by the environment. Common action types include:"
+        },
+        {
+          "id": "s-21-2-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.2",
+            "pages": "405"
+          },
+          "text": "• tool calling:系统引用外部功能(搜索、计算、日历)。",
+          "originalExcerpt": "• Tool calls: structured invocations of external functions (search, calculator, calendar). Often"
+        },
+        {
+          "id": "s-21-2-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.2",
+            "pages": "405"
+          },
+          "text": "格式化为JSON或XML函数调用语法。",
+          "originalExcerpt": "formatted as JSON or XML function-call syntax."
+        },
+        {
+          "id": "s-21-2-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.2",
+            "pages": "405"
+          },
+          "text": "• 代码执行:Agent写在沙盒中运行的代码;stdout/stderr返回",
+          "originalExcerpt": "• Code execution: the agent writes code that is run in a sandbox; the stdout/stderr is returned"
+        },
+        {
+          "id": "s-21-2-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.2",
+            "pages": "405"
+          },
+          "text": "以作为下一个观察。这是最表现性的动作类型。",
+          "originalExcerpt": "as the next observation. This is the most expressive action type."
+        },
+        {
+          "id": "s-21-2-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.2",
+            "pages": "405"
+          },
+          "text": "API交互:HTTP请求到网络服务，数据库查询， shell命令。",
+          "originalExcerpt": "• API interactions: HTTP requests to web services, database queries, shell commands."
+        },
+        {
+          "id": "s-21-2-2-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.2",
+            "pages": "405"
+          },
+          "text": "· 图形用户界面动作:单击(x， y)、类型(“文本”)、滚动(方向)、键(“输入”)。",
+          "originalExcerpt": "• GUI actions: click(x,y), type(\"text\"), scroll(direction), key(\"Enter\"). Used in"
+        },
+        {
+          "id": "s-21-2-2-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.2",
+            "pages": "405"
+          },
+          "text": "计算机使用环境。",
+          "originalExcerpt": "computer-use environments."
+        },
+        {
+          "id": "s-21-2-2-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.2",
+            "pages": "405"
+          },
+          "text": "• 自然语言:针对另一Agent、人类或次级任务规划者的免费文本。",
+          "originalExcerpt": "• Natural language: free-form text directed at another agent, a human, or a sub-task planner."
+        }
+      ]
+    },
+    {
+      "id": "s-21-2-3",
+      "number": "21.2.3",
+      "level": 2,
+      "enTitle": "Reward Signal Design",
+      "zhTitle": "Reward Signal Design",
+      "pages": "405-406",
+      "blocks": [
+        {
+          "id": "s-21-2-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.3",
+            "pages": "405-406"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.2.3「Reward Signal Design」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-21-2-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.3",
+            "pages": "405"
+          },
+          "text": "奖励设计是环境工程中最难的，奖励必须是: 奖励:",
+          "originalExcerpt": "Reward design is the hardest part of environment engineering. The reward must be:"
+        },
+        {
+          "id": "s-21-2-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.3",
+            "pages": "405"
+          },
+          "text": "1. 一致:高报酬应相当于真正完成任务，而不是表面Agent。",
+          "originalExcerpt": "1. Aligned: high reward should correspond to genuine task completion, not to superficial proxies."
+        },
+        {
+          "id": "s-21-2-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.3",
+            "pages": "405"
+          },
+          "text": "2. 可学习性:信号必须足够密集，使Agent能够取得进展;纯稀疏",
+          "originalExcerpt": "2. Learnable: the signal must be dense enough that the agent can make progress; pure sparse"
+        },
+        {
+          "id": "s-21-2-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.3",
+            "pages": "405"
+          },
+          "text": "长视距任务奖励往往不易学习，而无需额外塑造。",
+          "originalExcerpt": "rewards on long-horizon tasks are often unlearnable without additional shaping."
+        },
+        {
+          "id": "s-21-2-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.3",
+            "pages": "405"
+          },
+          "text": "3. Tamper防毒:Agent必须能够取得高回报，而不能实际完成",
+          "originalExcerpt": "3. Tamper-proof : the agent must not be able to achieve high reward without actually completing"
+        },
+        {
+          "id": "s-21-2-3-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.3",
+            "pages": "405"
+          },
+          "text": "任务( reward hacking)。",
+          "originalExcerpt": "the task (reward hacking)."
+        },
+        {
+          "id": "s-21-2-3-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.3",
+            "pages": "406"
+          },
+          "text": "表21.1:具有权衡的Agent环境的奖励信号类型。",
+          "originalExcerpt": "Table 21.1: Reward signal types for agentic environments with trade-offs."
+        },
+        {
+          "id": "s-21-2-3-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.3",
+            "pages": "406"
+          },
+          "text": "奖励类型 Pros Cons Sparse(终局0/1) 相通 难黑 难学 DESENS(步级) 易学 Prone 塑造 文物 Intertrinsic(精密) 驱动 探索 May 偏离 LLM 现职法官的任务 灵活 细微 不够精确 不一致 执行 的 地面 真相 仅用于可核查的任务",
+          "originalExcerpt": "Reward Type Pros Cons Sparse (0/1 at end) Aligned, hard to hack Hard to learn Dense (step-level) Easy to learn Prone to shaping artifacts Intrinsic (curiosity) Drives exploration May diverge from task LLM-as-judge Flexible, nuanced Expensive, inconsistent Execution-based Ground truth Only for verifiable tasks"
+        }
+      ]
+    },
+    {
+      "id": "s-21-2-4",
+      "number": "21.2.4",
+      "level": 2,
+      "enTitle": "Episode Structure",
+      "zhTitle": "Episode Structure",
+      "pages": "406",
+      "blocks": [
+        {
+          "id": "s-21-2-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.4",
+            "pages": "406"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.2.4「Episode Structure」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-21-2-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.4",
+            "pages": "406"
+          },
+          "text": "集可以有几种结构: 集: 集: 集: 集: 集: 集: 集: 集: 集: 集: 集: 集: 集: 集: 集: 集: 集: 集: 集: 集: 集: 集: 集: 集: 集: 集: 集: 集: 集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:集:",
+          "originalExcerpt": "Episodes can be structured in several ways:"
+        },
+        {
+          "id": "s-21-2-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.4",
+            "pages": "406"
+          },
+          "text": "• 固定长度:制剂完全采用T级步骤，执行起来简单;废物计算在",
+          "originalExcerpt": "• Fixed-length: the agent takes exactly T steps. Simple to implement; wastes compute on"
+        },
+        {
+          "id": "s-21-2-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.4",
+            "pages": "406"
+          },
+          "text": "已经解决的任务。",
+          "originalExcerpt": "already-solved tasks."
+        },
+        {
+          "id": "s-21-2-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.4",
+            "pages": "406"
+          },
+          "text": "• 提前终止:当Agent信号完成或终端状态为时结束插曲",
+          "originalExcerpt": "• Early termination: the episode ends when the agent signals completion or a terminal state is"
+        },
+        {
+          "id": "s-21-2-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.4",
+            "pages": "406"
+          },
+          "text": "更有效率但需要可靠的终止探测器。",
+          "originalExcerpt": "reached. More efficient but requires a reliable termination detector."
+        },
+        {
+          "id": "s-21-2-4-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.4",
+            "pages": "406"
+          },
+          "text": "• 无限期:没有固定的视野;Agent业务在资源预算之前运作(电话、API呼叫、",
+          "originalExcerpt": "• Open-ended: no fixed horizon; the agent operates until a resource budget (tokens, API calls,"
+        },
+        {
+          "id": "s-21-2-4-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.4",
+            "pages": "406"
+          },
+          "text": "墙壁时间已经耗尽，离实际部署最近，但最难评估。",
+          "originalExcerpt": "wall time) is exhausted. Closest to real deployment but hardest to evaluate."
+        },
+        {
+          "id": "s-21-2-4-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.4",
+            "pages": "406"
+          },
+          "text": "适应性集长和提前终止。最近的工作对集长必须在培训开始前固定的假设提出质疑:",
+          "originalExcerpt": "Adaptive episode length and early termination. Recent work challenges the assumption that episode length must be fixed before training begins:"
+        },
+        {
+          "id": "s-21-2-4-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.4",
+            "pages": "406"
+          },
+          "text": "• 课程超越视野。",
+          "originalExcerpt": "• Curriculum over horizon. AELA [411] starts with short episodes and gradually extends"
+        },
+        {
+          "id": "s-21-2-4-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.4",
+            "pages": "406"
+          },
+          "text": "以政策内涵趋同度衡量， Agent能力不断增强。 早期短的节目揭示了每个培训样本中更多样化的初始状态。",
+          "originalExcerpt": "the horizon as agent competence grows, measured by policy-entropy convergence. Short early episodes expose more diverse initial states per training sample."
+        },
+        {
+          "id": "s-21-2-4-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.4",
+            "pages": "406"
+          },
+          "text": "• 截断作为RL惩罚。 DLER [235] 显示最简单的长度控制——硬",
+          "originalExcerpt": "• Truncation as RL penalty. DLER [235] shows that the simplest length control—hard"
+        },
+        {
+          "id": "s-21-2-4-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.4",
+            "pages": "406"
+          },
+          "text": "截断-如果与分批奖励正常化和动态取样相结合，推理模型就运作良好，以避免因停产而失去奖励信号。",
+          "originalExcerpt": "truncation—works well for reasoning models when paired with batch-wise reward normalization and dynamic sampling to avoid losing the reward signal from cut-off rollouts."
+        },
+        {
+          "id": "s-21-2-4-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.4",
+            "pages": "406"
+          },
+          "text": "• 学习停止:模式本身可以学会何时停止，而不是固定预算",
+          "originalExcerpt": "• Learned stopping. Rather than a fixed budget, the model itself can learn when to stop"
+        },
+        {
+          "id": "s-21-2-4-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.4",
+            "pages": "406"
+          },
+          "text": "[227] 提出了三项战略:当连续推理步骤一致到同一个答案时停止，提高思维结束的符号概率，或者在隐藏状态激活上训练轻量级分类器来预测最佳的停止点。",
+          "originalExcerpt": "reasoning. [227] propose three strategies: stop when successive reasoning steps converge to the same answer, boost the end-of-thinking token probability, or train a lightweight classifier on hidden-state activations to predict the optimal stopping point."
+        },
+        {
+          "id": "s-21-2-4-b15",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.4",
+            "pages": "406"
+          },
+          "text": "• 部分回收。 APRIL [251] 超额提供推出请求，终止一次",
+          "originalExcerpt": "• Partial-rollout recycling. APRIL [251] over-provisions rollout requests and terminates once"
+        },
+        {
+          "id": "s-21-2-4-b16",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.4",
+            "pages": "406"
+          },
+          "text": "目标批量计数; 在未来的步骤中，不完全的反应作为暖启动前缀被回收，从而消除了长尾摊位，因为一些慢样品阻碍整个批量(20-35%的吞吐量增益)。 TLT[149]通过培训一个适用于飞航的可调整模型，用于投机性地对飞航者进行解码(1.7×端对端加速，无损失)，解决同样的瓶颈问题。",
+          "originalExcerpt": "the target batch count is reached; incomplete responses are recycled as warm-start prefixes in future steps, eliminating the long-tail stall where a few slow samples block the entire batch (20–35% throughput gain). TLT [149] addresses the same bottleneck by training an adaptive draft model on-the-fly for speculative decoding of stragglers (1.7× end-to-end sp..."
+        }
+      ]
+    },
+    {
+      "id": "s-21-2-5",
+      "number": "21.2.5",
+      "level": 2,
+      "enTitle": "Difficulty Curriculum and Adaptive Environments",
+      "zhTitle": "Difficulty Curriculum and Adaptive Environments",
+      "pages": "406-407",
+      "blocks": [
+        {
+          "id": "s-21-2-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.5",
+            "pages": "406-407"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.2.5「Difficulty Curriculum and Adaptive Environments」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-21-2-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.5",
+            "pages": "406"
+          },
+          "text": "静态基准衡量一种固定的Agent能力。适应性环境更进一步:它们监测Agent在线性能，调整任务难度，使Agent保持在 \" 近缘发展区 \" 内，这足够硬，可以学习，而且容易偶尔取得成功。",
+          "originalExcerpt": "Static benchmarks measure a fixed snapshot of agent capability. Adaptive environments go further: they monitor agent performance online and adjust task difficulty to keep the agent in the “zone of proximal development”—hard enough to learn from, easy enough to succeed occasionally. Techniques include:"
+        },
+        {
+          "id": "s-21-2-5-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.5",
+            "pages": "406"
+          },
+          "text": "• 程序生成:从参数化分布中抽样查找任务;难度",
+          "originalExcerpt": "• Procedural generation: tasks are sampled from a parameterized distribution; difficulty"
+        },
+        {
+          "id": "s-21-2-5-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.5",
+            "pages": "406"
+          },
+          "text": "参数根据最近的成功率来调制。优先级重播[167] 根据其估计的学习潜力(如GAE 规模)，对每个级别进行分数，并更经常地重播高值水平。",
+          "originalExcerpt": "parameters are tuned based on recent success rate. Prioritized Level Replay [167] scores each generated level by its estimated learning potential (e.g. GAE magnitude) and replays high-value levels more often."
+        },
+        {
+          "id": "s-21-2-5-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.5",
+            "pages": "407"
+          },
+          "text": "• 自演/对抗环境设计:PAIRED[74]培训一名对手提出",
+          "originalExcerpt": "• Self-play / adversarial environment design: PAIRED [74] trains an adversary to propose"
+        },
+        {
+          "id": "s-21-2-5-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.5",
+            "pages": "407"
+          },
+          "text": "创造出一个自然的复杂课程 而不采用手工设计的难度表 来完成我们的任务",
+          "originalExcerpt": "environments that maximize the regret between a protagonist and antagonist agent, producing a natural curriculum of increasing complexity without hand-designed difficulty schedules."
+        },
+        {
+          "id": "s-21-2-5-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.5",
+            "pages": "407"
+          },
+          "text": "· 光线重贴标签:失败的轨迹重贴标签，以Agent实现的目标为目的，",
+          "originalExcerpt": "• Hindsight relabeling: failed trajectories are relabeled with the goal the agent did achieve,"
+        },
+        {
+          "id": "s-21-2-5-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.5",
+            "pages": "407"
+          },
+          "text": "提供即使是从失败中获取的学习信号(Hindsight Everysy Replay， HER)[8]。",
+          "originalExcerpt": "providing a learning signal even from failures (Hindsight Experience Replay, HER) [8]."
+        },
+        {
+          "id": "s-21-2-5-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.5",
+            "pages": "407"
+          },
+          "text": "• 有限责任管理课程难以选择目标数据:在低脂率培训中，并非所有问题都提供",
+          "originalExcerpt": "• Difficulty-targeted data selection for LLMs: in RLVR training, not all problems provide"
+        },
+        {
+          "id": "s-21-2-5-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.2.5",
+            "pages": "407"
+          },
+          "text": "近代工作将中度难题列为优先事项，这些难题大约解决了30-70%的时间，从而得出了最高梯度信息[370]。 ADCL [230] 定期重新估计随着模型的改进而困难，避免了陈旧的课程。",
+          "originalExcerpt": "equal signal. Recent work prioritizes moderate-difficulty questions—those the model solves roughly 30–70% of the time—which yield the highest gradient information [370]. ADCL [230] periodically re-estimates difficulty as the model improves, avoiding stale curricula."
+        }
+      ]
+    },
+    {
+      "id": "s-21-3",
+      "number": "21.3",
+      "level": 1,
+      "enTitle": "Types of Agentic Environments",
+      "zhTitle": "Types of Agentic Environments",
+      "pages": "407",
+      "blocks": [
+        {
+          "id": "s-21-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.3",
+            "pages": "407"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.3「Types of Agentic Environments」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-21-3-structure-note",
+          "type": "callout",
+          "origin": "source_definition",
+          "source": {
+            "chapter": 21,
+            "section": "21.3",
+            "pages": "407"
+          },
+          "title": "原书结构说明",
+          "text": "§21.3 在原书中是父级目录节，具体论证由紧随其后的子节展开。本站保留这一锚点和来源页码，以维持与原书目录的一一对应，不把目录标题扩写成不存在的正文。"
+        },
+        {
+          "id": "s-21-3-source-note",
+          "type": "callout",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 21,
+            "section": "21.3",
+            "pages": "407"
+          },
+          "text": "本节主要由公式、图表或代码构成，网页转写仍在人工核对中；当前状态不会标记为精读完成。"
+        }
+      ]
+    },
+    {
+      "id": "s-21-3-1",
+      "number": "21.3.1",
+      "level": 2,
+      "enTitle": "Code Execution Sandboxes",
+      "zhTitle": "Code Execution Sandboxes",
+      "pages": "407",
+      "blocks": [
+        {
+          "id": "s-21-3-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.3.1",
+            "pages": "407"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.3.1「Code Execution Sandboxes」 的实现时，不只看 happy path。请同时标出 state schema、外部依赖、权限边界、重试与终止条件、可观测字段和可能产生副作用的 action；代码能运行，并不等于系统已经具备可恢复性。"
+        },
+        {
+          "id": "s-21-3-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.3.1",
+            "pages": "407"
+          },
+          "text": "LLMs 最基本的Agent环境是代码执行沙盒:Agent写代码，沙盒运行，输出被返回。这个简单的循环支撑着一个令人惊讶的一小部分现实世界Agent部署。基于Docker的隔离是最常见的方法。 每集都从已知的图像中生成一个新鲜的容器，执行Agent的密码，并在插曲结尾销毁容器。网络访问、文件系统写作和加工产卵都可以在容器一级加以控制。 1 E2B(环境到基准)2 提供了管理云沙盒 API:Agent发送代码通过HTTP， E2B执行它在一个孤立的火鞭筒微VM中， 靴子在200 ms以下， 并返回 stdout/stderr。 E2B处理集装箱生命周期管理的基础设施复杂问题，使得它容易融入Agent培训循环。 Modal3提供了类似的管理下的执行模式，并提供了更强大的GPU支持，使得它适合需要运行ML工作量的Agent作为其任务的一部分。 Sandbox Escape and Security Code Enterpress sadbox是主攻击表面。足够有能力的剂(或迅速投射的有效载荷)可能试图通过内核开发、网络过滤或资源耗竭来逃离沙盒。防御深度至关重要: 将容器隔离与 seccomp 配置文件， 仅读根文件系统， 网络 egress 过滤， 以及 CPU/ memary coups 组合。 绝不运行Agent生成的代码， 并带有主机级权限。",
+          "originalExcerpt": "The most fundamental agentic environment for LLMs is a code execution sandbox: the agent writes code, the sandbox runs it, and the output is returned. This simple loop underlies a surprising fraction of real-world agent deployments. Docker-based isolation is the most common approach. Each episode spawns a fresh container from a known image, executes the agen..."
+        }
+      ]
+    },
+    {
+      "id": "s-21-3-2",
+      "number": "21.3.2",
+      "level": 2,
+      "enTitle": "Web Environments",
+      "zhTitle": "Web Environments",
+      "pages": "407-408",
+      "blocks": [
+        {
+          "id": "s-21-3-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.3.2",
+            "pages": "407-408"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.3.2「Web Environments」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-21-3-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.3.2",
+            "pages": "407"
+          },
+          "text": "Web环境向Agent呈现浏览器，并要求其完成真实或模拟网站的任务。 WebArena[440]提供一套自备的测试台，由四个功能性的网络应用程序组成——电子商务商店、一个社会论坛、一个GitLab实例和一个CMS-+一个地图服务，总共812个长视距任务。 Agent通过浏览器自动化API进行交互;任务需要多步导航，形式填充，以及信息检索。 人类性能约为78%;最先进的LLMAgent实现约35–45%。 VisualWebArena [188] 扩展了WebArena， 以视网膜为主的任务， 需要网页上解析图像。 观察是一截图， 并配有无障碍树; Agent必须在两种模式下将其行动定位。 Mind2Web[73]是一个由137个真实网站的2000项任务组成的大规模数据集，通过人类演示收集。 Mind2Web专注于向隐形网站的泛化，使其成为更难于分配的测试。 WebArena任务实例任务:“在电子商务网站上找到50美元以下的最便宜的红裙子，并把它加到推车上。”",
+          "originalExcerpt": "Web environments present the agent with a browser and ask it to complete tasks on real or simulated websites. WebArena [440] provides a self-hosted testbed of four functional web applications—an e-commerce store, a social forum, a GitLab instance, and a CMS—plus a map service, totalling 812 long-horizon tasks. The agent interacts via a browser automation API..."
+        },
+        {
+          "id": "s-21-3-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.3.2",
+            "pages": "408"
+          },
+          "text": "1. 穿衣人员类别。",
+          "originalExcerpt": "1. Navigate to the clothing category."
+        },
+        {
+          "id": "s-21-3-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.3.2",
+            "pages": "408"
+          },
+          "text": "2. 应用颜色过滤器:红色。",
+          "originalExcerpt": "2. Apply color filter: red."
+        },
+        {
+          "id": "s-21-3-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.3.2",
+            "pages": "408"
+          },
+          "text": "3. 按价格上升排序。",
+          "originalExcerpt": "3. Sort by price ascending."
+        },
+        {
+          "id": "s-21-3-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.3.2",
+            "pages": "408"
+          },
+          "text": "4. 在50美元以下确定第一个项目。",
+          "originalExcerpt": "4. Identify the first item under $50."
+        },
+        {
+          "id": "s-21-3-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.3.2",
+            "pages": "408"
+          },
+          "text": "5. 点击“添加到墨盒”。",
+          "originalExcerpt": "5. Click “Add to Cart”."
+        },
+        {
+          "id": "s-21-3-2-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.3.2",
+            "pages": "408"
+          },
+          "text": "6。核对车内装物。",
+          "originalExcerpt": "6. Verify cart contents."
+        },
+        {
+          "id": "s-21-3-2-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.3.2",
+            "pages": "408"
+          },
+          "text": "环境对照地面真相检查最终车体状态;如果正确，奖励为1，否则为0。",
+          "originalExcerpt": "The environment checks the final cart state against the ground truth item; reward is 1 if correct, 0 otherwise."
+        }
+      ]
+    },
+    {
+      "id": "s-21-3-3",
+      "number": "21.3.3",
+      "level": 2,
+      "enTitle": "Computer Use Environments",
+      "zhTitle": "Computer Use Environments",
+      "pages": "408",
+      "blocks": [
+        {
+          "id": "s-21-3-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.3.3",
+            "pages": "408"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.3.3「Computer Use Environments」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-21-3-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.3.3",
+            "pages": "408"
+          },
+          "text": "Computer use environment 让 Agent 通过 screenshot 和/或 accessibility API 观察完整桌面操作系统，并使用鼠标、键盘等动作进行控制。OSWorld [397] 在 Ubuntu、Windows 与 macOS 上提供 369 个任务，覆盖 LibreOffice、VS Code、Chrome、GIMP 等 productivity application。与结构化 API 环境相比，桌面环境的 observation 更不稳定，坐标、窗口状态、权限弹窗与长链副作用都会增加评估和恢复难度。",
+          "originalExcerpt": "Computer use environments give the agent control of a full desktop operating system, observed through screenshots and/or accessibility APIs. OSWorld [397] tests desktop automation across three operating systems (Ubuntu, Windows, macOS) with 369 tasks spanning productivity apps (LibreOffice, VS Code, Chrome, GIMP, etc.). The agent observes screenshots and act..."
+        }
+      ]
+    },
+    {
+      "id": "s-21-3-4",
+      "number": "21.3.4",
+      "level": 2,
+      "enTitle": "Software Engineering Environments",
+      "zhTitle": "Software Engineering Environments",
+      "pages": "408",
+      "blocks": [
+        {
+          "id": "s-21-3-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.3.4",
+            "pages": "408"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.3.4「Software Engineering Environments」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-21-3-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.3.4",
+            "pages": "408"
+          },
+          "text": "软件工程(SWE)环境要求Agent解决现实世界编程任务:修复bug，执行特性，写作测试。 SWE-bench [169] 借鉴了12个广泛使用的Python项目(Django， Flask， scikit-learn等)的2，294个真实拉动请求。每个实例都配对一个问题描述，并配有一个只经过正确补丁的停放测试套件。 Agent必须了解寄存器的结构，定位相关代码，执行固定，并与测试套件进行验证。 SWEbench验证子集(500期)已经为正确性进行了人与人验证，并且是标准评估目标。 SWEAgent[404]既是基准环境，也是Agent框架。它引入了Agent-计算机接口(ACI):一组为LLMAgent优化的 shell命令(如搜索 文件，打开，编辑)，与原始的bash相比降低了动作空间的复杂性。 SWE-bench Workflow 输入:一个 GitHub 问题描述和问题存档时的完全寄存器。 Agent动作: find file， 查看， 编辑， python - m pytest test estues/。奖励: 1 如果所有目标测试在Agent补丁后通过; 0 否则。 没有部分信用。",
+          "originalExcerpt": "Software engineering (SWE) environments ask the agent to solve real-world programming tasks: fixing bugs, implementing features, writing tests. SWE-bench [169] draws on 2,294 real pull requests from 12 widely-used Python projects (Django, Flask, scikit-learn, among others). Each instance pairs an issue description with a held-out test suite that passes only ..."
+        }
+      ]
+    },
+    {
+      "id": "s-21-3-5",
+      "number": "21.3.5",
+      "level": 2,
+      "enTitle": "Scientific Research Environments",
+      "zhTitle": "Scientific Research Environments",
+      "pages": "409",
+      "blocks": [
+        {
+          "id": "s-21-3-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.3.5",
+            "pages": "409"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.3.5「Scientific Research Environments」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-21-3-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.3.5",
+            "pages": "409"
+          },
+          "text": "科学研究环境将Agent推向自主知识生成:阅读论文，形成假说，设计实验，解读结果。纸质QA2[245]是一个检索-增强的Agent，通过搜索一组PDF，提取相关段落，用引用来合成一个答案，来解答科学问题。它既是文献推理的工具，也是基准。 AI科学家[240]是一个端对端的研究自动化系统:给定研究方向， Agent生成假说，写作和运行实验，解释结果，并产生论文草稿。环境包括一个Python执行沙盒，一个文献搜索API，和一个LaTeX编译器。 MLAgent Bench [151] 评估机器学习工程任务的Agent:在计算预算范围内提高特定数据集的模型精度， Agent可以读取数据，编写训练脚本，运行实验，以及脚踏实地。",
+          "originalExcerpt": "Scientific research environments push agents toward autonomous knowledge generation: reading papers, forming hypotheses, designing experiments, and interpreting results. PaperQA2 [245] is a retrieval-augmented agent that answers scientific questions by searching a corpus of PDFs, extracting relevant passages, and synthesizing an answer with citations. It ser..."
+        }
+      ]
+    },
+    {
+      "id": "s-21-3-6",
+      "number": "21.3.6",
+      "level": 2,
+      "enTitle": "Game and Simulation Environments",
+      "zhTitle": "Game and Simulation Environments",
+      "pages": "409",
+      "blocks": [
+        {
+          "id": "s-21-3-6-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.3.6",
+            "pages": "409"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.3.6「Game and Simulation Environments」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-21-3-6-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.3.6",
+            "pages": "409"
+          },
+          "text": "游戏为丰富，长距离的环境提供了定义明确的奖励信号，没有现实世界的后果。 NetHack [196] 是一个程序上产生的无赖，拥有巨大的状态空间，需要长期规划，库存管理，以及对意外事件的适应。 NetHack学习环境(NLE)提供了一个Gym兼容的界面。 Voyager / Minecraft [362] 使用Minecraft游戏引擎作为开放环境。 Voyager介绍了一项任务越来越艰巨的课程(收集木头 —— 手工业工具 —— 建造掩体 —— 探索Nether)和一个技能库，该库可累积各种节目中可重复使用的代码片段。 GAIA [254] 提出了466个问题，要求使用链式工具——web搜索，代码执行，文件解析——按涉及的推理步骤数分为三个难度级。基准明显暴露了人的能力(%=92%的准确性)与当前LLM剂(GPT-4，插件在发射时得分为%=15%;后期系统达到%=30%)之间的差距。",
+          "originalExcerpt": "Games provide rich, long-horizon environments with well-defined reward signals and no real-world consequences. NetHack [196] is a procedurally generated roguelike with an enormous state space, requiring long-term planning, inventory management, and adaptation to unexpected events. The NetHack Learning Environment (NLE) provides a Gym-compatible interface. Vo..."
+        }
+      ]
+    },
+    {
+      "id": "s-21-3-7",
+      "number": "21.3.7",
+      "level": 2,
+      "enTitle": "Multi-Agent Environments",
+      "zhTitle": "Multi-Agent Environments",
+      "pages": "409",
+      "blocks": [
+        {
+          "id": "s-21-3-7-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.3.7",
+            "pages": "409"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.3.7「Multi-Agent Environments」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-21-3-7-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.3.7",
+            "pages": "409"
+          },
+          "text": "多剂环境涉及两个或两个以上液压成份相互相互作用和/或共享的世界。",
+          "originalExcerpt": "Multi-agent environments involve two or more LLM agents interacting with each other and/or a shared world."
+        },
+        {
+          "id": "s-21-3-7-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.3.7",
+            "pages": "409"
+          },
+          "text": "• 谈判:具有私人公用事业职能的Agent必须通过对话达成协议。",
+          "originalExcerpt": "• Negotiation: agents with private utility functions must reach a deal through dialogue. Classic"
+        },
+        {
+          "id": "s-21-3-7-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.3.7",
+            "pages": "409"
+          },
+          "text": "环境包括Deal OrNoDeal [206]和CaSi No [42]。",
+          "originalExcerpt": "environments include DealOrNoDeal [206] and CaSiNo [42]."
+        },
+        {
+          "id": "s-21-3-7-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.3.7",
+            "pages": "409"
+          },
+          "text": "• 辩论:两名Agent争辩对立立场;一名法官Agent(或人)评估质量",
+          "originalExcerpt": "• Debate: two agents argue opposing positions; a judge agent (or human) evaluates the quality"
+        },
+        {
+          "id": "s-21-3-7-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.3.7",
+            "pages": "409"
+          },
+          "text": "用来通过对抗性压力来引领真实的推理",
+          "originalExcerpt": "of arguments. Used to elicit truthful reasoning via adversarial pressure."
+        },
+        {
+          "id": "s-21-3-7-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.3.7",
+            "pages": "409"
+          },
+          "text": "• 合作完成任务:具有互补能力的人员(规划员、执行员、",
+          "originalExcerpt": "• Collaborative task completion: agents with complementary capabilities (planner, executor,"
+        },
+        {
+          "id": "s-21-3-7-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.3.7",
+            "pages": "409"
+          },
+          "text": "complete)必须协调完成一个任务，而任务也不可能单独解决。框架包括AutoGen [385]， CrewAI [261]，和MetaGPT [142]。",
+          "originalExcerpt": "critic) must coordinate to complete a task neither could solve alone. Frameworks include AutoGen [385], CrewAI [261], and MetaGPT [142]."
+        },
+        {
+          "id": "s-21-3-7-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.3.7",
+            "pages": "409"
+          },
+          "text": "• 竞争性游戏:Agent在对手所在的地方玩零和游戏(切斯，戈，扑克)",
+          "originalExcerpt": "• Competitive games: agents play zero-sum games (chess, Go, poker) where the opponent is"
+        },
+        {
+          "id": "s-21-3-7-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.3.7",
+            "pages": "409"
+          },
+          "text": "自我游戏在狭小的域中产生了超人性能。",
+          "originalExcerpt": "itself an LLM agent. Self-play in these environments has produced superhuman performance in narrow domains."
+        }
+      ]
+    },
+    {
+      "id": "s-21-4",
+      "number": "21.4",
+      "level": 1,
+      "enTitle": "OpenEnv: Standardized Agentic Environment Interfaces",
+      "zhTitle": "OpenEnv: Standardized Agentic Environment Interfaces",
+      "pages": "409-410",
+      "blocks": [
+        {
+          "id": "s-21-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4",
+            "pages": "409-410"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.4「OpenEnv: Standardized Agentic Environment Interfaces」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-21-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4",
+            "pages": "409"
+          },
+          "text": "Agent环境的激增造成了一个破碎问题:每个环境都暴露出不同的API，使用不同的观测格式，并且需要不同的脚手架。 OpenEnv [88] 是Hugging Face最近推出的直接处理此问题的开源框架: 它提供了",
+          "originalExcerpt": "The proliferation of agentic environments has created a fragmentation problem: each environment exposes a different API, uses different observation formats, and requires different scaffolding. OpenEnv [88] is a recent open-source framework by Hugging Face that addresses this directly: it provides"
+        },
+        {
+          "id": "s-21-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4",
+            "pages": "410"
+          },
+          "text": "a 用于Agent执行环境的Gymnasium-tyle [355] 接口(step()， 重置()，状态())， 与孤立的基于Docker的部署在 WebSocket 上进行通信。 OpenEnv补充了更广泛的标准化努力，例如AgentGym[390]，它为不同环境中的LLMAgent提供了单格式平台，浏览器Gym[201]，它使网络Agent基准的观测和行动空间标准化。以下设计原则反映了这些项目的趋同的最佳做法。",
+          "originalExcerpt": "a Gymnasium-style [355] interface (step(), reset(), state()) for agentic execution environments, with isolated Docker-based deployments communicating over WebSocket. OpenEnv complements broader standardization efforts such as AgentGym [390], which offers a uni-format platform for LLM agents across diverse environments, and BrowserGym [201], which standardize..."
+        },
+        {
+          "id": "s-21-4-b3",
+          "type": "figure",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4",
+            "pages": "410",
+            "figure": "Figure 21.1"
+          },
+          "src": null,
+          "alt": "图21.1: 带有LLMAgent的OpenEnv架构。 Agent通过一个带环来解释，它叫打字的EnvClient。客户端通过WebSocket向运行在Docker容器内的HTTPenvServer通信。 RL教练(dashed)可选地包扎环路，以收集推出和奖励信号，用于政策优化。",
+          "caption": "图21.1: 带有LLMAgent的OpenEnv架构。 Agent通过一个带环来解释，它叫打字的EnvClient。客户端通过WebSocket向运行在Docker容器内的HTTPenvServer通信。 RL教练(dashed)可选地包扎环路，以收集推出和奖励信号，用于政策优化。",
+          "adapted": false
+        }
+      ]
+    },
+    {
+      "id": "s-21-4-1",
+      "number": "21.4.1",
+      "level": 2,
+      "enTitle": "Standardized Agent–Environment Interface",
+      "zhTitle": "Standardized Agent–Environment Interface",
+      "pages": "410-411",
+      "blocks": [
+        {
+          "id": "s-21-4-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.1",
+            "pages": "410-411"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.4.1「Standardized Agent–Environment Interface」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-21-4-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.1",
+            "pages": "410"
+          },
+          "text": "OpenEnv 定义了Agent执行环境的输入界面。 设计镜像是 Gymnasium 的简单， 但目标为 HTTP/ WebSocket 上的工具交互的 LLM Agent :",
+          "originalExcerpt": "OpenEnv defines a typed interface for agentic execution environments. The design mirrors Gymnasium’s simplicity but targets LLM agents interacting with tools over HTTP/WebSocket:"
+        },
+        {
+          "id": "s-21-4-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.1",
+            "pages": "410"
+          },
+          "text": "^ env.reset() → StepResult:开始新的一集;返回初始观察。",
+          "originalExcerpt": "• env.reset() → StepResult: start a new episode; returns the initial observation."
+        },
+        {
+          "id": "s-21-4-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.1",
+            "pages": "410"
+          },
+          "text": "• 步骤(行动) ——步骤Result(观察、奖励、完成):执行一项行动;",
+          "originalExcerpt": "• env.step(action) → StepResult(observation, reward, done): execute one action and"
+        },
+        {
+          "id": "s-21-4-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.1",
+            "pages": "410"
+          },
+          "text": "返回由此而来的观察、悬赏和终止旗帜。",
+          "originalExcerpt": "return the resulting observation, scalar reward, and termination flag."
+        },
+        {
+          "id": "s-21-4-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.1",
+            "pages": "410"
+          },
+          "text": "• env.state() – 当前环境状况(集成ID，步数，环境特有字段)。",
+          "originalExcerpt": "• env.state() → current environment state (episode ID, step count, environment-specific fields)."
+        },
+        {
+          "id": "s-21-4-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.1",
+            "pages": "410"
+          },
+          "text": "· env.close():释放资源(停止容器，紧密连接)。",
+          "originalExcerpt": "• env.close(): release resources (stop containers, close connections)."
+        },
+        {
+          "id": "s-21-4-1-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.1",
+            "pages": "410"
+          },
+          "text": "动作和观测被强烈地输入Python数据类，每个环境都有其特异性。例如，一个编码环境定义了CodeAction(code=.)，并返回一个带有 stdout， stderr， 和exit code的观察;一个游戏环境定义了自己的动作/观察类型。这种每环境打字方式在保持三种核心方法(重置，步，状态)通用的同时，也赋予了Agent结构化，可预测的接口。",
+          "originalExcerpt": "Actions and observations are strongly typed Python dataclasses, specific to each environment. For example, a coding environment defines CodeAction(code=...) and returns an observation with stdout, stderr, and exit_code; a game environment defines its own action/observation types. This per-environment typing gives agents structured, predictable interfaces whi..."
+        },
+        {
+          "id": "s-21-4-1-b8",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.1",
+            "pages": "410"
+          },
+          "language": "python",
+          "code": "Architecture. Each environment is a Python class inheriting from Environment (implementing reset() and step()). It is served inside a Docker container via HTTPEnvServer, which exposes a FastAPI/WebSocket endpoint. Clients use environment-specific subclasses of EnvClient that handle serialization and connection lifecycle. Containers can be launched locally via from_docker_image() or connected to remotely via a base URL: from coding_env import CodeAction , CodingEnv",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-21-4-1-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.1",
+            "pages": "410"
+          },
+          "text": "# 选项1: 从 docker image( \" 编码 - env: 最新 \" ) 启动本地 Docker 容器客户端 = CodingEnv。",
+          "originalExcerpt": "# Option 1: Launch a local Docker container client = CodingEnv . from_docker_image ( \" coding - env : latest \" )"
+        },
+        {
+          "id": "s-21-4-1-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.1",
+            "pages": "410"
+          },
+          "text": "# 选项2: 连接到远程部署 # 客户端 = CodingEnv (base url =\" http://localhost:8000\")。",
+          "originalExcerpt": "# Option 2: Connect to a remote deployment # client = CodingEnv ( base_url =\" http :// localhost :8000\")"
+        },
+        {
+          "id": "s-21-4-1-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.1",
+            "pages": "410"
+          },
+          "text": "# 与环境结果互动 = 客户端。重置( )",
+          "originalExcerpt": "# Interact with the environment result = client . reset ()"
+        },
+        {
+          "id": "s-21-4-1-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.1",
+            "pages": "411"
+          },
+          "text": "打印(结果.观察。 stdout) 打印(结果。 stderr) 打印(结果.观察。 exit code) 打印(结果。",
+          "originalExcerpt": "print ( result . observation . stdout ) print ( result . observation . stderr ) print ( result . observation . exit_code )"
+        },
+        {
+          "id": "s-21-4-1-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.1",
+            "pages": "411"
+          },
+          "text": "results = 客户端。 step (代码:代码行动(代码: \"print 2+2\")) print (结果。观察 stdout) # \"4\\ n\" print (结果。观察。 exit code) # 0 print (结果。奖励，结果。完成)",
+          "originalExcerpt": "result = client . step ( CodeAction ( code = \" print (2 + 2) \" ) ) print ( result . observation . stdout ) # \"4\\ n \" print ( result . observation . exit_code ) # 0 print ( result . reward , result . done )"
+        },
+        {
+          "id": "s-21-4-1-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.1",
+            "pages": "411"
+          },
+          "text": "# 请检查access-date=中的日期值 (帮助) 客户端。 state () print (state id， state step count)。",
+          "originalExcerpt": "# Check state state = client . state () print ( state . episode_id , state . step_count )"
+        },
+        {
+          "id": "s-21-4-1-b15",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.1",
+            "pages": "411"
+          },
+          "text": "客户端。 关闭 ()",
+          "originalExcerpt": "client . close ()"
+        },
+        {
+          "id": "s-21-4-1-b16",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.1",
+            "pages": "411"
+          },
+          "text": "环境作为服务器。 创建新环境只需要执行环境基础类: 从 openenenv。 core。 env server 导入环境， 从数据类创建 app 导入数据类",
+          "originalExcerpt": "Environment as a server. Creating a new environment requires only implementing the Environment base class: from openenv . core . env_server import Environment , create_app from dataclasses import dataclass"
+        },
+        {
+          "id": "s-21-4-1-b17",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.1",
+            "pages": "411"
+          },
+          "text": "@ dataclass 类 My Action: text: str 数据类 :",
+          "originalExcerpt": "@dataclass class MyAction : text : str"
+        },
+        {
+          "id": "s-21-4-1-b18",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.1",
+            "pages": "411"
+          },
+          "text": "@dataclass class MyObservation: response: striel respiration: floo=0.0 完成: bul=虚假",
+          "originalExcerpt": "@dataclass class MyObservation : response : str reward : float = 0.0 done : bool = False"
+        },
+        {
+          "id": "s-21-4-1-b19",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.1",
+            "pages": "411"
+          },
+          "language": "python",
+          "code": "class MyEnvironment ( Environment ) : def reset ( self ) -> MyObservation : return MyObservation ( response = \" Ready \" )",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-21-4-1-b20",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.1",
+            "pages": "411"
+          },
+          "language": "python",
+          "code": "def step ( self , action : MyAction ) -> MyObservation : return MyObservation ( response = f \" Echo : { action . text } \" , reward =1.0 , done = False )",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-21-4-1-b21",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.1",
+            "pages": "411"
+          },
+          "text": "app = 创建 app (My Environment ()， My Action， MyObservation) # 运行:乌维克星模块 : app - 主机 0.0 - 端口 8000",
+          "originalExcerpt": "app = create_app ( MyEnvironment () , MyAction , MyObservation ) # Run : uvicorn module : app -- host 0.0.0.0 -- port 8000"
+        },
+        {
+          "id": "s-21-4-1-b22",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.1",
+            "pages": "411"
+          },
+          "text": "Harness integration(实验性)。 RFC 0054引入了一种Hand-facing层，其中RL训练框架通过MCP风格的tool calling来与环境互动。一个build harness rollout func()帮助器产生一个TRL兼容的rolled功能，将OpenEnv直接连接到火炬福尔格等现有的训练管道[348]。",
+          "originalExcerpt": "Harness integration (experimental). RFC 0054 introduces a harness-facing layer where RL training frameworks interact with environments through MCP-style tool calls. A build_harness_rollout_func() helper produces a TRL-compatible rollout function, bridging OpenEnv directly into existing training pipelines like TorchForge [348]."
+        },
+        {
+          "id": "s-21-4-1-b23",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.1",
+            "pages": "411"
+          },
+          "text": "治理业。 OpenEnv公开由一个技术委员会管理，包括Meta-PyTorch、NVIDIA、Unsloth、Modal、Prime Intellect、Reflection和Hugging Face，确保标准的发展得到广泛的行业投入，而不是单一的供应商议程。",
+          "originalExcerpt": "Governance. OpenEnv is openly governed by a technical committee including Meta-PyTorch, NVIDIA, Unsloth, Modal, Prime Intellect, Reflection, and Hugging Face—ensuring that the standard evolves with broad industry input rather than a single vendor’s agenda."
+        }
+      ]
+    },
+    {
+      "id": "s-21-4-2",
+      "number": "21.4.2",
+      "level": 2,
+      "enTitle": "Environment Registries and Discovery",
+      "zhTitle": "Environment Registries and Discovery",
+      "pages": "411-412",
+      "blocks": [
+        {
+          "id": "s-21-4-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.2",
+            "pages": "411-412"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.4.2「Environment Registries and Discovery」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-21-4-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.2",
+            "pages": "411"
+          },
+          "text": "OpenEnv环境可以作为Hugging Face Spaces或本地的Docker图像部署，使得无需人工安装即可发现和使用。同一客户端接口不管部署目标如何都有效:从hack env导入 EchoAction， EchoEnv",
+          "originalExcerpt": "OpenEnv environments can be deployed as Hugging Face Spaces or local Docker images, enabling discovery and use without manual installation. The same client interface works regardless of deployment target: from echo_env import EchoAction , EchoEnv"
+        },
+        {
+          "id": "s-21-4-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.2",
+            "pages": "411"
+          },
+          "text": "# 连接到远程高频空间部署",
+          "originalExcerpt": "# Connect to a remote HF Space deployment"
+        },
+        {
+          "id": "s-21-4-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.2",
+            "pages": "412"
+          },
+          "text": "客户端=EchoEnv(基数 url= \"https://openenv - 回声 - env.hf.space\") 結果= 客户端 重置 () 打印 (结果。观察。 response message) # \"Echo Environment ready!!!\"",
+          "originalExcerpt": "client = EchoEnv ( base_url = \" https :// openenv - echo - env . hf . space \" ) result = client . reset () print ( result . observation . echoed_message ) # \" Echo environment ready !\""
+        },
+        {
+          "id": "s-21-4-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.2",
+            "pages": "412"
+          },
+          "text": "results=客户端。 step (EchoAction(消息=\"Hello!\")) print (结果。观察回声 message) # \"Hello!\" print (结果。奖励) 客户端 关闭 ()",
+          "originalExcerpt": "result = client . step ( EchoAction ( message = \" Hello ! \" ) ) print ( result . observation . echoed_message ) # \" Hello !\" print ( result . reward ) client . close ()"
+        },
+        {
+          "id": "s-21-4-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.2",
+            "pages": "412"
+          },
+          "text": "OpenEnv生态系统已经跨越70+环境(OpenSpiel游戏， Atari，浏览器Gym，编码沙盒，金融RL，交通模拟等等)。 RFC 0025提议了一个正式的工具发现协议，这样Agent就可以查询一个不熟悉的环境在运行时接受的哪些动作。",
+          "originalExcerpt": "The OpenEnv ecosystem already spans 70+ environments (OpenSpiel games, Atari, BrowserGym, coding sandboxes, financial RL, traffic simulation, and more). RFC 0025 proposes a formal tool discovery protocol so agents can query which actions an unfamiliar environment accepts at runtime."
+        }
+      ]
+    },
+    {
+      "id": "s-21-4-3",
+      "number": "21.4.3",
+      "level": 2,
+      "enTitle": "Compositional Environments",
+      "zhTitle": "Compositional Environments",
+      "pages": "412",
+      "blocks": [
+        {
+          "id": "s-21-4-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.3",
+            "pages": "412"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.4.3「Compositional Environments」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-21-4-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.3",
+            "pages": "412"
+          },
+          "text": "真实Agent部署很少使用单一工具。 OpenEnv 支持通过打字动作曝光多种能力的丰富环境。例如，一个编码环境支持代码执行，文件 I/O，以及单沙箱会话内的 shell 命令: 从编码 env导入代码动作， CodingEnv",
+          "originalExcerpt": "Real agent deployments rarely use a single tool. OpenEnv supports rich environments that expose multiple capabilities through typed actions. For example, a coding environment supports code execution, file I/O, and shell commands within a single sandboxed session: from coding_env import CodeAction , CodingEnv"
+        },
+        {
+          "id": "s-21-4-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.3",
+            "pages": "412"
+          },
+          "text": "客户端 = CodingEnv。 from docker image( \" 编码 - env: 最新 \" ) 结果 = 客户端。重置 ()",
+          "originalExcerpt": "client = CodingEnv . from_docker_image ( \" coding - env : latest \" ) result = client . reset ()"
+        },
+        {
+          "id": "s-21-4-3-b3",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.3",
+            "pages": "412"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "# Execute code result = client . step ( CodeAction ( code = \" x = 42\\ nprint ( x ) \" ) ) print ( result . observation . stdout ) # \"42\" print ( result . observation . exit_code ) # 0"
+        },
+        {
+          "id": "s-21-4-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.3",
+            "pages": "412"
+          },
+          "text": "# 状态在插曲结果 = 客户端 中坚持跨步骤 步骤 (代码 = \"print (x + 1)\") 打印 (结果 观察 stdout ) # \"43\"",
+          "originalExcerpt": "# State persists across steps within an episode result = client . step ( CodeAction ( code = \" print ( x + 1) \" ) ) print ( result . observation . stdout ) # \"43\""
+        },
+        {
+          "id": "s-21-4-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.3",
+            "pages": "412"
+          },
+          "text": "状态=客户端。状态 () 打印 (状态。 step count) # 2",
+          "originalExcerpt": "state = client . state () print ( state . step_count ) # 2"
+        },
+        {
+          "id": "s-21-4-3-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.3",
+            "pages": "412"
+          },
+          "text": "客户端。 关闭 ()",
+          "originalExcerpt": "client . close ()"
+        },
+        {
+          "id": "s-21-4-3-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.3",
+            "pages": "412"
+          },
+          "text": "对于需要多种工具访问(代码+web+文件)的Agent， OpenEnv的RFC 0036提出MCP集成，允许任何MCP兼容的工具服务器作为OpenEnv环境包裹。此外， openenv CLI还可以使用单指令在Hugging Face Spaces上架脚手架，构建，并部署新的环境。",
+          "originalExcerpt": "For agents requiring diverse tool access (code + web + files), OpenEnv’s RFC 0036 proposes MCP integration, allowing any MCP-compatible tool server to be wrapped as an OpenEnv environment. Additionally, the openenv CLI can scaffold, build, and deploy new environments to Hugging Face Spaces with a single command."
+        }
+      ]
+    },
+    {
+      "id": "s-21-4-4",
+      "number": "21.4.4",
+      "level": 2,
+      "enTitle": "Environment Versioning and Reproducibility",
+      "zhTitle": "Environment Versioning and Reproducibility",
+      "pages": "412",
+      "blocks": [
+        {
+          "id": "s-21-4-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.4",
+            "pages": "412"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.4.4「Environment Versioning and Reproducibility」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-21-4-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.4",
+            "pages": "412"
+          },
+          "text": "基准完整性要求在评估时冻结环境行为。",
+          "originalExcerpt": "Benchmark integrity requires that environment behavior is frozen at evaluation time. Best practices include:"
+        },
+        {
+          "id": "s-21-4-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.4",
+            "pages": "412"
+          },
+          "text": "• 语义版本:WebArena-v1.2.0保证未成年人内部的后向兼容性",
+          "originalExcerpt": "• Semantic versioning: WebArena-v1.2.0 guarantees backward compatibility within a minor"
+        },
+        {
+          "id": "s-21-4-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.4",
+            "pages": "412"
+          },
+          "text": "• 嵌入式图像披针:环境运行时间被包装为嵌入式图像",
+          "originalExcerpt": "• Docker image pinning: the environment runtime is packaged as a Docker image with a"
+        },
+        {
+          "id": "s-21-4-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.4",
+            "pages": "412"
+          },
+          "text": "内容地址为散列。",
+          "originalExcerpt": "content-addressed hash."
+        },
+        {
+          "id": "s-21-4-4-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.4",
+            "pages": "412"
+          },
+          "text": "• 种子决定主义:所有结构因素(程序生成、网络响应)",
+          "originalExcerpt": "• Seed-based determinism: all stochastic elements (procedural generation, network responses)"
+        },
+        {
+          "id": "s-21-4-4-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.4",
+            "pages": "412"
+          },
+          "text": "种子和记录，以便任何轨迹都能完全重播。",
+          "originalExcerpt": "are seeded and logged so that any trajectory can be exactly replayed."
+        },
+        {
+          "id": "s-21-4-4-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.4",
+            "pages": "412"
+          },
+          "text": "• 领导板快照:公共领导板与环境记录同时记录环境版本",
+          "originalExcerpt": "• Leaderboard snapshots: public leaderboards record the environment version alongside the"
+        },
+        {
+          "id": "s-21-4-4-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.4.4",
+            "pages": "412"
+          },
+          "text": "分数，防止无声基准漂移。",
+          "originalExcerpt": "score, preventing silent benchmark drift."
+        }
+      ]
+    },
+    {
+      "id": "s-21-5",
+      "number": "21.5",
+      "level": 1,
+      "enTitle": "Building Custom Environments",
+      "zhTitle": "Building Custom Environments",
+      "pages": "413",
+      "blocks": [
+        {
+          "id": "s-21-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.5",
+            "pages": "413"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.5「Building Custom Environments」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-21-5-structure-note",
+          "type": "callout",
+          "origin": "source_definition",
+          "source": {
+            "chapter": 21,
+            "section": "21.5",
+            "pages": "413"
+          },
+          "title": "原书结构说明",
+          "text": "§21.5 在原书中是父级目录节，具体论证由紧随其后的子节展开。本站保留这一锚点和来源页码，以维持与原书目录的一一对应，不把目录标题扩写成不存在的正文。"
+        },
+        {
+          "id": "s-21-5-source-note",
+          "type": "callout",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 21,
+            "section": "21.5",
+            "pages": "413"
+          },
+          "text": "本节主要由公式、图表或代码构成，网页转写仍在人工核对中；当前状态不会标记为精读完成。"
+        }
+      ]
+    },
+    {
+      "id": "s-21-5-1",
+      "number": "21.5.1",
+      "level": 2,
+      "enTitle": "Gymnasium-Style API for LLM Agents",
+      "zhTitle": "Gymnasium-Style API for LLM Agents",
+      "pages": "413",
+      "blocks": [
+        {
+          "id": "s-21-5-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.5.1",
+            "pages": "413"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.5.1「Gymnasium-Style API for LLM Agents」 的实现时，不只看 happy path。请同时标出 state schema、外部依赖、权限边界、重试与终止条件、可观测字段和可能产生副作用的 action；代码能运行，并不等于系统已经具备可恢复性。"
+        },
+        {
+          "id": "s-21-5-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.5.1",
+            "pages": "413"
+          },
+          "text": "体操API [355]7(接力到OpenAI Gym)是RL环境的事实上的标准。为LLMAgent修改它需要两个修改:(1)观察和行动是字符串(或包含字符串的dicts)而不是数字数组，(2)步骤方法必须处理同步工具执行。",
+          "originalExcerpt": "The Gymnasium API [355]7 (successor to OpenAI Gym) is the de facto standard for RL environments. Adapting it for LLM agents requires two modifications: (1) observations and actions are strings (or dicts containing strings) rather than numeric arrays, and (2) the step method must handle asynchronous tool execution."
+        }
+      ]
+    },
+    {
+      "id": "s-21-5-2",
+      "number": "21.5.2",
+      "level": 2,
+      "enTitle": "Reward Function Engineering",
+      "zhTitle": "Reward Function Engineering",
+      "pages": "413",
+      "blocks": [
+        {
+          "id": "s-21-5-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.5.2",
+            "pages": "413"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.5.2「Reward Function Engineering」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-21-5-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.5.2",
+            "pages": "413"
+          },
+          "text": "LLMAgent环境的奖励功能一般基于执行:每集后环境运行一个验证器，如果任务解决则返回1，否则返回0。对于没有明确验证器的任务，选项包括:",
+          "originalExcerpt": "Reward functions for LLM agent environments are typically execution-based: the environment runs a verifier after each episode and returns 1 if the task is solved, 0 otherwise. For tasks without a clear verifier, options include:"
+        },
+        {
+          "id": "s-21-5-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.5.2",
+            "pages": "413"
+          },
+          "text": "· 液压定时法官:单独使用液压定时器对Agent的最终状态进行评分，而不是任务描述。",
+          "originalExcerpt": "• LLM-as-judge: a separate LLM scores the agent’s final state against the task description."
+        },
+        {
+          "id": "s-21-5-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.5.2",
+            "pages": "413"
+          },
+          "text": "• Rubric-based 评分:一个结构化的标点将任务分解为次级标准，每个分数",
+          "originalExcerpt": "• Rubric-based scoring: a structured rubric decomposes the task into sub-criteria, each scored"
+        },
+        {
+          "id": "s-21-5-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.5.2",
+            "pages": "413"
+          },
+          "text": "• 人的说明:人评估员对轨迹随机抽样的评分;评分",
+          "originalExcerpt": "• Human annotation: a human evaluator scores a random sample of trajectories; the scores"
+        },
+        {
+          "id": "s-21-5-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.5.2",
+            "pages": "413"
+          },
+          "text": "用于校准自动Agent。",
+          "originalExcerpt": "are used to calibrate an automated proxy."
+        }
+      ]
+    },
+    {
+      "id": "s-21-5-3",
+      "number": "21.5.3",
+      "level": 2,
+      "enTitle": "State Management and Checkpointing",
+      "zhTitle": "State Management and Checkpointing",
+      "pages": "413",
+      "blocks": [
+        {
+          "id": "s-21-5-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.5.3",
+            "pages": "413"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.5.3「State Management and Checkpointing」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-21-5-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.5.3",
+            "pages": "413"
+          },
+          "text": "长距离任务可能需要几个小时的墙壁时间。",
+          "originalExcerpt": "Long-horizon tasks may require hours of wall time. Environments should support:"
+        },
+        {
+          "id": "s-21-5-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.5.3",
+            "pages": "413"
+          },
+          "text": "• 国家序列化:整个环境状态(文件系统、浏览器饼干、数据库内容)",
+          "originalExcerpt": "• State serialization: the full environment state (filesystem, browser cookies, database contents)"
+        },
+        {
+          "id": "s-21-5-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.5.3",
+            "pages": "413"
+          },
+          "text": "也可以序列化为磁盘并恢复。",
+          "originalExcerpt": "can be serialized to disk and restored."
+        },
+        {
+          "id": "s-21-5-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.5.3",
+            "pages": "413"
+          },
+          "text": "• 中段检查站:Agent人员可以随时挽救检查站，并从",
+          "originalExcerpt": "• Mid-episode checkpointing: the agent can save a checkpoint at any step and resume from"
+        },
+        {
+          "id": "s-21-5-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.5.3",
+            "pages": "413"
+          },
+          "text": "能够进行树型搜索探索",
+          "originalExcerpt": "it, enabling tree-search-style exploration."
+        },
+        {
+          "id": "s-21-5-3-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.5.3",
+            "pages": "413"
+          },
+          "text": "• 轨迹记录:每一次观察、行动和奖励都记录在结构化档案中，以便",
+          "originalExcerpt": "• Trajectory logging: every observation, action, and reward is logged to a structured file for"
+        },
+        {
+          "id": "s-21-5-3-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.5.3",
+            "pages": "413"
+          },
+          "text": "离线分析和奖励模式培训。",
+          "originalExcerpt": "offline analysis and reward model training."
+        }
+      ]
+    },
+    {
+      "id": "s-21-5-4",
+      "number": "21.5.4",
+      "level": 2,
+      "enTitle": "Parallelization for Training Data Collection",
+      "zhTitle": "Parallelization for Training Data Collection",
+      "pages": "413",
+      "blocks": [
+        {
+          "id": "s-21-5-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.5.4",
+            "pages": "413"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.5.4「Parallelization for Training Data Collection」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-21-5-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.5.4",
+            "pages": "413"
+          },
+          "text": "通过RL培训LLMAgent需要数百万次环境互动。",
+          "originalExcerpt": "Training LLM agents via RL requires millions of environment interactions. Parallelization strategies include:"
+        },
+        {
+          "id": "s-21-5-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.5.4",
+            "pages": "413"
+          },
+          "text": "• 进程层面的平行:产卵式N独立环境进程;收集轨迹",
+          "originalExcerpt": "• Process-level parallelism: spawn N independent environment processes; collect trajectories"
+        },
+        {
+          "id": "s-21-5-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.5.4",
+            "pages": "413"
+          },
+          "text": "• Async推出工人:使用Async事件循环(如Asyncio)来重叠LLM推论",
+          "originalExcerpt": "• Async rollout workers: use an async event loop (e.g., asyncio) to overlap LLM inference"
+        },
+        {
+          "id": "s-21-5-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.5.4",
+            "pages": "413"
+          },
+          "text": "环境执行的暂时性。",
+          "originalExcerpt": "latency with environment execution."
+        },
+        {
+          "id": "s-21-5-4-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.5.4",
+            "pages": "413"
+          },
+          "text": "• 病媒环境:将多个环境分批成一个步骤，分期摊还",
+          "originalExcerpt": "• Vectorized environments: batch multiple environments into a single step call, amortizing"
+        },
+        {
+          "id": "s-21-5-4-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.5.4",
+            "pages": "413"
+          },
+          "text": "彼菩萨上。",
+          "originalExcerpt": "Python overhead."
+        },
+        {
+          "id": "s-21-5-4-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.5.4",
+            "pages": "413"
+          },
+          "text": "• 云土尺度:使用工作排程器(Ray、SLURM)来分配环境工人",
+          "originalExcerpt": "• Cloud-native scaling: use a job scheduler (Ray, SLURM) to distribute environment workers"
+        },
+        {
+          "id": "s-21-5-4-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.5.4",
+            "pages": "413"
+          },
+          "text": "跨越一个集群，有一个集中的重播缓冲器，集合了轨迹。",
+          "originalExcerpt": "across a cluster, with a central replay buffer aggregating trajectories."
+        }
+      ]
+    },
+    {
+      "id": "s-21-6",
+      "number": "21.6",
+      "level": 1,
+      "enTitle": "Environment–Agent Interface Patterns",
+      "zhTitle": "Environment–Agent Interface Patterns",
+      "pages": "413-415",
+      "blocks": [
+        {
+          "id": "s-21-6-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.6",
+            "pages": "413-415"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.6「Environment–Agent Interface Patterns」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-21-6-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.6",
+            "pages": "413"
+          },
+          "text": "图21.2说明了实践中采用的四种主要接口模式。",
+          "originalExcerpt": "Figure 21.2 illustrates the four main interface patterns used in practice."
+        },
+        {
+          "id": "s-21-6-b2",
+          "type": "figure",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.6",
+            "pages": "414",
+            "figure": "Figure 21.2"
+          },
+          "src": null,
+          "alt": "图21.2:四种Agent - 环境界面模式。 (a) 文本是LLMs最常见的。 (b) 结构化JSON能够精确解析。 (c) 多式联运将截图和无障碍树结合起来，用于GUI任务。 (d) 流动支持实时互动，而无需离散转弯边界。",
+          "caption": "图21.2:四种Agent - 环境界面模式。 (a) 文本是LLMs最常见的。 (b) 结构化JSON能够精确解析。 (c) 多式联运将截图和无障碍树结合起来，用于GUI任务。 (d) 流动支持实时互动，而无需离散转弯边界。",
+          "adapted": false
+        },
+        {
+          "id": "s-21-6-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.6",
+            "pages": "414"
+          },
+          "text": "基于文本的观察/动作。 Agent接收字符串观察并生成字符串动作。 环境描述动作( 例如， 从 <tool>..。</tool > 块中提取tool calling)， 并将结果作为字符串返回。这是最兼容的模式:任何LLM都可以参与，而无需特殊架构。",
+          "originalExcerpt": "Text-Based Observation/Action. The agent receives a string observation and produces a string action. The environment parses the action (e.g., extracts a tool call from a <tool>...</tool> block) and returns the result as a string. This is the most compatible pattern: any LLM can participate without special architecture."
+        },
+        {
+          "id": "s-21-6-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.6",
+            "pages": "414"
+          },
+          "text": "结构化JSON观测/行动。观测与行动是具有定义的计数的JSON对象。这使得能进行严格的验证(在执行前的拒绝错误动作)，有条理的记录，以及更容易的对轨迹进行程序分析。权衡是， Agent必须可靠地生产有效的JSON，这需要微调或受约束的解码。",
+          "originalExcerpt": "Structured JSON Observation/Action. Observations and actions are JSON objects with a defined schema. This enables strict validation (reject malformed actions before execution), structured logging, and easier programmatic analysis of trajectories. The tradeoff is that the agent must reliably produce valid JSON, which requires either fine-tuning or constrained..."
+        },
+        {
+          "id": "s-21-6-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.6",
+            "pages": "414"
+          },
+          "text": "多模式(Screenshot + 访问树)。 用于计算机使用和网络环境。 观测是拖曳( 截图: PIL。 Image， a11y tree: dict)。截图提供了视觉上下文;可访问树提供了元素识别符，可以在没有像素级坐标规格的情况下用于动作中。这种混合方法比纯截图控制更强。",
+          "originalExcerpt": "Multimodal (Screenshot + Accessibility Tree). Used in computer-use and web environments. The observation is a tuple (screenshot: PIL.Image, a11y_tree: dict). The screenshot provides visual context; the accessibility tree provides element identifiers that can be used in actions without pixel-level coordinate specification. This hybrid approach is more robust ..."
+        },
+        {
+          "id": "s-21-6-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.6",
+            "pages": "415"
+          },
+          "text": "流对转动。 大部分当前环境使用转动模型: Agent生成一个完整的动作， 环境执行， 并返回下一个观测。流环境允许Agent在到达时接收部分的观测(例如一个长期运行的命令的输出)，并中断或重定向执行中流。这更接近人类与计算机的互动，但需要更复杂的Agent架构。",
+          "originalExcerpt": "Streaming vs. Turn-Based Interaction. Most current environments use a turn-based model: the agent produces a complete action, the environment executes it, and the next observation is returned. Streaming environments allow the agent to receive partial observations as they arrive (e.g., the output of a long-running command) and to interrupt or redirect executi..."
+        }
+      ]
+    },
+    {
+      "id": "s-21-7",
+      "number": "21.7",
+      "level": 1,
+      "enTitle": "Evaluation Harness Design",
+      "zhTitle": "Evaluation Harness Design",
+      "pages": "415",
+      "blocks": [
+        {
+          "id": "s-21-7-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.7",
+            "pages": "415"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.7「Evaluation Harness Design」 时，明确被评估的对象是单次输出、完整 trajectory 还是系统行为；随后分别记录数据来源、metric、judge、聚合方式和置信边界。一个分数只有在测量对象与失败类型对应时才有解释力。"
+        },
+        {
+          "id": "s-21-7-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.7",
+            "pages": "415"
+          },
+          "text": "利用评估的基础设施是跨越基准套件、收集结果和制作简要统计数据的基础设施。 良好的利用设计与良好的环境设计同样重要。",
+          "originalExcerpt": "An evaluation harness is the infrastructure that runs an agent across a benchmark suite, collects results, and produces summary statistics. Good harness design is as important as good environment design."
+        }
+      ]
+    },
+    {
+      "id": "s-21-7-1",
+      "number": "21.7.1",
+      "level": 2,
+      "enTitle": "Deterministic vs. Stochastic Environments",
+      "zhTitle": "Deterministic vs. Stochastic Environments",
+      "pages": "415",
+      "blocks": [
+        {
+          "id": "s-21-7-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.7.1",
+            "pages": "415"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.7.1「Deterministic vs. Stochastic Environments」 时，不要寻找脱离场景的“最佳方案”。应在质量、latency、计算与存储成本、数据要求、可控性和运维复杂度上逐项比较，并保留原书说明的适用前提与例外。"
+        },
+        {
+          "id": "s-21-7-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.7.1",
+            "pages": "415"
+          },
+          "text": "• 确定性环境为同一行动产生相同的观测序列",
+          "originalExcerpt": "• Deterministic environments produce the same observation sequence for the same action"
+        },
+        {
+          "id": "s-21-7-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.7.1",
+            "pages": "415"
+          },
+          "text": "序列。它们很容易调试和复制，但可能不反映现实世界的可变性。",
+          "originalExcerpt": "sequence. They are easy to debug and reproduce but may not reflect real-world variability."
+        },
+        {
+          "id": "s-21-7-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.7.1",
+            "pages": "415"
+          },
+          "text": "• 随机环境(程序生成、网络延时性、",
+          "originalExcerpt": "• Stochastic environments introduce randomness (procedural generation, network latency,"
+        },
+        {
+          "id": "s-21-7-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.7.1",
+            "pages": "415"
+          },
+          "text": "它们要求每个任务进行多次运行，以估计平均性能和信心间隔。",
+          "originalExcerpt": "user simulation). They require multiple runs per task to estimate mean performance and confidence intervals."
+        },
+        {
+          "id": "s-21-7-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.7.1",
+            "pages": "415"
+          },
+          "text": "有多少运行足够了？具有 N 任务和二进制奖励的 Forpa 基准， 平均成功率的标准错误为 p(1 - p)/ N。 N = 500 任务， p = 0.4， 95% 的置信间隔约为 ± 4.3%。对于结构环境， 乘以 k 表示每个任务的独立运行次数。 通常的惯例是 3–5 运行每个任务， 用于结构基准。",
+          "originalExcerpt": "How Many Runs Are Enough? Forpa benchmark with N tasks and binary rewards, the standard error of the mean success rate is p(1 − p)/N . With N = 500 tasks and p = 0.4,√the 95% confidence interval is approximately ±4.3%. For stochastic environments, multiply by k where k is the number of independent runs per task. A common practice is 3–5 runs per task for sto..."
+        }
+      ]
+    },
+    {
+      "id": "s-21-7-2",
+      "number": "21.7.2",
+      "level": 2,
+      "enTitle": "Held-Out Test Environments",
+      "zhTitle": "Held-Out Test Environments",
+      "pages": "415",
+      "blocks": [
+        {
+          "id": "s-21-7-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.7.2",
+            "pages": "415"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.7.2「Held-Out Test Environments」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-21-7-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.7.2",
+            "pages": "415"
+          },
+          "text": "基准完整性要求在环境层面，而不仅仅是任务层面严格划分列车/测试，对已接受过WebArena任务培训的Agent，应评估在培训期间没有使用的被搁置的一组任务。理想的情况是，被搁置的套装涵盖不同网站，任务类型，以及难度水平等，而不及培训套装。",
+          "originalExcerpt": "Benchmark integrity requires a strict train/test split at the environment level, not just the task level. An agent that has been trained on WebArena tasks should be evaluated on a held-out set of tasks that were not used during training. Ideally, the held-out set covers different websites, task types, and difficulty levels than the training set."
+        }
+      ]
+    },
+    {
+      "id": "s-21-7-3",
+      "number": "21.7.3",
+      "level": 2,
+      "enTitle": "Cross-Environment Generalization",
+      "zhTitle": "Cross-Environment Generalization",
+      "pages": "415",
+      "blocks": [
+        {
+          "id": "s-21-7-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.7.3",
+            "pages": "415"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.7.3「Cross-Environment Generalization」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-21-7-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.7.3",
+            "pages": "415"
+          },
+          "text": "一种Agent的最终检验标准是，在一个环境中学到的技能是否转移到另一个环境中。",
+          "originalExcerpt": "The ultimate test of an agent is whether skills learned in one environment transfer to another. Cross-environment evaluation protocols measure:"
+        },
+        {
+          "id": "s-21-7-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.7.3",
+            "pages": "415"
+          },
+          "text": "零射转接:环境A型列车，环境B型试验，不进行微调。",
+          "originalExcerpt": "• Zero-shot transfer: train on environment A, test on environment B with no fine-tuning."
+        },
+        {
+          "id": "s-21-7-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.7.3",
+            "pages": "415"
+          },
+          "text": "· 少许镜头的适应:在评估前提供环境B的k演示。",
+          "originalExcerpt": "• Few-shot adaptation: provide k demonstrations from environment B before evaluation."
+        },
+        {
+          "id": "s-21-7-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.7.3",
+            "pages": "415"
+          },
+          "text": "• 继续学习:按顺序对A、B、C环境进行培训;衡量所有人的绩效",
+          "originalExcerpt": "• Continual learning: train sequentially on environments A, B, C; measure performance on all"
+        },
+        {
+          "id": "s-21-7-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.7.3",
+            "pages": "415"
+          },
+          "text": "3个在C训练后。",
+          "originalExcerpt": "three after training on C."
+        }
+      ]
+    },
+    {
+      "id": "s-21-7-4",
+      "number": "21.7.4",
+      "level": 2,
+      "enTitle": "Human Baseline Collection",
+      "zhTitle": "Human Baseline Collection",
+      "pages": "415-416",
+      "blocks": [
+        {
+          "id": "s-21-7-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.7.4",
+            "pages": "415-416"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.7.4「Human Baseline Collection」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-21-7-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.7.4",
+            "pages": "415"
+          },
+          "text": "每一基准都应将人类业绩作为参照点。",
+          "originalExcerpt": "Every benchmark should include human performance as a reference point. Human baselines serve three purposes:"
+        },
+        {
+          "id": "s-21-7-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.7.4",
+            "pages": "415"
+          },
+          "text": "1. 它们在任务难度方面确立了上限。",
+          "originalExcerpt": "1. They establish an upper bound on task difficulty."
+        },
+        {
+          "id": "s-21-7-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.7.4",
+            "pages": "415"
+          },
+          "text": "2. 报告揭示一项任务是否完全可以解决(有些基准任务最终是模糊的)",
+          "originalExcerpt": "2. They reveal whether a task is solvable at all (some benchmark tasks turn out to be ambiguous"
+        },
+        {
+          "id": "s-21-7-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.7.4",
+            "pages": "416"
+          },
+          "text": "3. 它们为解释Agent的分数提供了一个校准点(“Agent达到40%的分数”",
+          "originalExcerpt": "3. They provide a calibration point for interpreting agent scores (“the agent achieves 40% of"
+        },
+        {
+          "id": "s-21-7-4-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.7.4",
+            "pages": "416"
+          },
+          "text": "人类的表演”)。",
+          "originalExcerpt": "human performance”)."
+        },
+        {
+          "id": "s-21-7-4-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.7.4",
+            "pages": "416"
+          },
+          "text": "人类基线应当从具有领域专长的工人(例如， SWE-bench软件工程师，而不是人群工作者)那里收集，并且应当包括任务时测量，以便能够进行效率比较。",
+          "originalExcerpt": "Human baselines should be collected from workers with domain expertise (e.g., software engineers for SWE-bench, not crowdworkers) and should include time-on-task measurements to enable efficiency comparisons."
+        }
+      ]
+    },
+    {
+      "id": "s-21-8",
+      "number": "21.8",
+      "level": 1,
+      "enTitle": "Code Example: Minimal Custom LLM Agent Environment",
+      "zhTitle": "Code Example: Minimal Custom LLM Agent Environment",
+      "pages": "416-419",
+      "blocks": [
+        {
+          "id": "s-21-8-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "416-419"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.8「Code Example: Minimal Custom LLM Agent Environment」 的实现时，不只看 happy path。请同时标出 state schema、外部依赖、权限边界、重试与终止条件、可观测字段和可能产生副作用的 action；代码能运行，并不等于系统已经具备可恢复性。"
+        },
+        {
+          "id": "s-21-8-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "416"
+          },
+          "text": "LLMAgent培训的最小自定义环境 以下的 Python 类执行文件编辑环境， Agent必须修改 Python 文件才能通过失败的测试。它遵循了适合 LLM Agent的 Gymnasium API。",
+          "originalExcerpt": "Minimal Custom Environment for LLM Agent Training The following Python class implements a file-editing environment where the agent must modify a Python file to make a failing test pass. It follows the Gymnasium API adapted for LLM agents."
+        },
+        {
+          "id": "s-21-8-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "416"
+          },
+          "text": "\"\" 最小 env。 py - 最小文件 - 编辑 LLM Agent的环境。",
+          "originalExcerpt": "\"\"\" minimal_env . py -- A minimal file - editing environment for LLM agents ."
+        },
+        {
+          "id": "s-21-8-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "416"
+          },
+          "text": "Agent接收一个带有错误和失败测试的 Python 文件。 它必须编辑文件直到测试通过。 奖励 : 1.0 如果所有测试都通过。 \"' 0.0 否则\"",
+          "originalExcerpt": "The agent receives a Python file with a bug and a failing test . It must edit the file until the test passes . Reward : 1.0 if all tests pass , 0.0 otherwise . \"\"\""
+        },
+        {
+          "id": "s-21-8-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "416"
+          },
+          "text": "从 {future} 导入注释 导入子进程、 hutil、 titlefile、 从 pathlib 导入路径导入路径 导入数据类 输入字段输入导入数据类 输入字段",
+          "originalExcerpt": "from __future__ import annotations import subprocess , shutil , tempfile , textwrap from pathlib import Path from dataclasses import dataclass , field from typing import Any"
+        },
+        {
+          "id": "s-21-8-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "416"
+          },
+          "text": "○--------------------------------------------------------------------------------------------------------------------------- ----------------- - --- - - - -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -",
+          "originalExcerpt": "# --------------------------------------------------------------------------- # Data structures # ---------------------------------------------------------------------------"
+        },
+        {
+          "id": "s-21-8-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "416"
+          },
+          "text": "@dataclass class StepResult:观察:str # 文本输入 LLM 奖励 : floo # 0.0 或 1.0 终止 : bul # Episode over(任务解决或最大步骤) 截断 : bul # Episode 截断(预算超过) 信息 :dict [str， Any] = 字段(默认 factory = dict)",
+          "originalExcerpt": "@dataclass class StepResult : observation : str # Text fed to the LLM reward : float # 0.0 or 1.0 terminated : bool # Episode over ( task solved or max steps ) truncated : bool # Episode cut short ( budget exceeded ) info : dict [ str , Any ] = field ( default_factory = dict )"
+        },
+        {
+          "id": "s-21-8-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "416"
+          },
+          "text": "#---------------------------------------------------------------------------------------------------------------------- - - - -- --- --- -- - -- --- -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -",
+          "originalExcerpt": "# --------------------------------------------------------------------------- # Environment # ---------------------------------------------------------------------------"
+        },
+        {
+          "id": "s-21-8-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "416"
+          },
+          "text": "类 FileEditEnv : \"\" A Gymnasium - LLM的样式环境 - 基于代码的修复。",
+          "originalExcerpt": "class FileEditEnv : \"\"\" A Gymnasium - style environment for LLM - based code repair ."
+        },
+        {
+          "id": "s-21-8-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "416"
+          },
+          "text": "观测空间 : str(文件内容+测试输出) 动作空间 : str(其中之一:视图，编辑，运行 测试，提交) 奖励:通过所有测试时的1.0， 0.0 否则\"。",
+          "originalExcerpt": "Observation space : str ( file contents + test output ) Action space : str ( one of : view , edit , run_tests , submit ) Reward : 1.0 on passing all tests , 0.0 otherwise \"\"\""
+        },
+        {
+          "id": "s-21-8-b10",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "416"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "MAX_STEPS = 20 # Hard episode limit TIMEOUT = 30 # Seconds per test run"
+        },
+        {
+          "id": "s-21-8-b11",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "416"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "def __init__ ( self , buggy_code : str , test_code : str , task_description : str ) : self . buggy_code = buggy_code self . test_code = test_code self . task_description = task_description self . _workdir : Path | None = None self . _step_count = 0"
+        },
+        {
+          "id": "s-21-8-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "417"
+          },
+          "text": "#--------------------------------------------------------------------------------------------------------- -------- -- - --- -- - - -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -",
+          "originalExcerpt": "# ------------------------------------------------------------------ # Core API # ------------------------------------------------------------------"
+        },
+        {
+          "id": "s-21-8-b13",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "417"
+          },
+          "language": "python",
+          "code": "def reset ( self , seed : int | None = None ) -> tuple [ str , dict ]: \" \" \" Initialise a fresh episode ; return ( observation , info ) . \" \" \" if self . _workdir and self . _workdir . exists () : shutil . rmtree ( self . _workdir )",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-21-8-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "417"
+          },
+          "text": "本身。 workdir = 路径 (titlefile。 mkdtemp (前缀 = \" fileenv \" )) 自。 step count = 0",
+          "originalExcerpt": "self . _workdir = Path ( tempfile . mkdtemp ( prefix = \" fileenv_ \" ) ) self . _step_count = 0"
+        },
+        {
+          "id": "s-21-8-b15",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "417"
+          },
+          "text": "# 写入初始文件( 自我。 workdir / \" 溶液。 py \" )， 写入 text( 自我。 buggy code) ( 自我。 workdir / \" test solution。 py \" )， 写入 text( 自我。 test code)。",
+          "originalExcerpt": "# Write initial files ( self . _workdir / \" solution . py \" ) . write_text ( self . buggy_code ) ( self . _workdir / \" test_solution . py \" ) . write_text ( self . test_code )"
+        },
+        {
+          "id": "s-21-8-b16",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "417"
+          },
+          "text": "obs=自。 building observation(动作 taken= \"[集始]\"，测试 output=自。 run tests ()) return obs， { \"步\":0}",
+          "originalExcerpt": "obs = self . _build_observation ( action_taken = \" [ Episode start ] \" , test_output = self . _run_tests () ) return obs , { \" step \" : 0}"
+        },
+        {
+          "id": "s-21-8-b17",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "417"
+          },
+          "language": "python",
+          "code": "def step ( self , action : str ) -> StepResult : \" \" \" Execute one agent action ; return StepResult . \" \" \" self . _step_count += 1 action = action . strip ()",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-21-8-b18",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "417"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "# --- Parse and dispatch action --if action . startswith ( \" view \" ) : result_text = self . _action_view () elif action . startswith ( \" edit \" ) : result_text = self . _action_edit ( action ) elif action . startswith ( \" run_tests \" ) : result_text = self . _run_tests () elif action . startswith ( \" submit \" ) : result_text = self . _run_tests () else : re..."
+        },
+        {
+          "id": "s-21-8-b19",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "417"
+          },
+          "text": "测试 输出=自。 run tests ()通过=在测试 输出中 \" 通过 \"，没有通过测试 输出奖励=1.0。如果通过其他方法，则终止=0.0 结束=通过或动作。开始( \" 提交 \" ) 截断=自。 step count self。步调",
+          "originalExcerpt": "test_output = self . _run_tests () passed = \" passed \" in test_output and \" failed \" not in test_output reward = 1.0 if passed else 0.0 terminated = passed or action . startswith ( \" submit \" ) truncated = self . _step_count >= self . MAX_STEPS"
+        },
+        {
+          "id": "s-21-8-b20",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "417"
+          },
+          "text": "obs = 自。 build observation(动作，测试 output) 返回步复(obs，奖励，终止，截断，{ \"步复\":自。 步复数，\"通过\":通过) }",
+          "originalExcerpt": "obs = self . _build_observation ( action , test_output ) return StepResult ( obs , reward , terminated , truncated , { \" step \" : self . _step_count , \" passed \" : passed })"
+        },
+        {
+          "id": "s-21-8-b21",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "417"
+          },
+          "language": "python",
+          "code": "def render ( self ) -> str : \" \" \" Return a human - readable summary of the current state . \" \" \" if self . _workdir is None : return \" [ Environment not initialised ] \" code = ( self . _workdir / \" solution . py \" ) . read_text () return f \" === solution . py ===\\ n { code }\\ n \"",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-21-8-b22",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "417"
+          },
+          "text": "def close(自) - > 无: \" 释放资源。\" 如果自。 workdir and self。 workdir.存在 (): shutil。 rmtree(自。 workdir) self。 workdir=无",
+          "originalExcerpt": "def close ( self ) -> None : \" \" \" Release resources . \" \" \" if self . _workdir and self . _workdir . exists () : shutil . rmtree ( self . _workdir ) self . _workdir = None"
+        },
+        {
+          "id": "s-21-8-b23",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "418"
+          },
+          "text": ")------------------------------------------------- ----------------------------------------- ------------ -- -- -- -- --- -- -- - -- -- -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -- - - - - - - - - - - - - - - - - - - - - - - - - - - -- - - - - - - - - - - - - - - -- - -- -- - -- -- -- -- -- -- -- - -- -- -- -- -- -- -- -- -- -- -- -- - -- -- --",
+          "originalExcerpt": "# ------------------------------------------------------------------ # Private helpers # ------------------------------------------------------------------"
+        },
+        {
+          "id": "s-21-8-b24",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "418"
+          },
+          "language": "python",
+          "code": "def _action_view ( self ) -> str : code = ( self . _workdir / \" solution . py \" ) . read_text () return f \" Current solution . py :\\ n ‘ ‘ ‘ python \\ n { code }\\ n ‘ ‘ ‘ \"",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-21-8-b25",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "418"
+          },
+          "language": "python",
+          "code": "def _action_edit ( self , action : str ) -> str : # Expect : edit \\n ‘ ‘ ‘ python \\n < code >\\ n ‘ ‘ ‘ try : new_code = action . split ( \" ‘‘‘ python \" ) [1]. split ( \" ‘‘‘\" ) [0] ( self . _workdir / \" solution . py \" ) . write_text ( new_code ) return \" File updated successfully . \" except IndexError : return \" Edit failed : wrap new code in ‘‘‘ python ... ‘‘‘\"",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-21-8-b26",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "418"
+          },
+          "language": "python",
+          "code": "def _run_tests ( self ) -> str : result = subprocess . run ( [ \" python \" , \" -m \" , \" pytest \" , \" test_solution . py \" , \" -v \" , \" -- tb = short \" , \" --no - header \" ] , cwd = self . _workdir , capture_output = True , text = True , timeout = self . TIMEOUT ) return result . stdout + result . stderr",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-21-8-b27",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "418"
+          },
+          "language": "python",
+          "code": "def _b uild_observation ( self , action_taken : str , test_output : str ) -> str : code = ( self . _workdir / \" solution . py \" ) . read_text () return textwrap . dedent ( f \" \" \" TASK : { self . task_description } STEP : { self . _step_count }/{ self . MAX_STEPS }",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-21-8-b28",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "418"
+          },
+          "text": "-- -- 最后动作 -- -- { 动作 已取}",
+          "originalExcerpt": "--- Last action --- { action_taken }"
+        },
+        {
+          "id": "s-21-8-b29",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "418"
+          },
+          "text": "--- 当前解决方案。 py --- { 代码}",
+          "originalExcerpt": "--- Current solution . py --- { code }"
+        },
+        {
+          "id": "s-21-8-b30",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "418"
+          },
+          "text": "--- 测试输出 --- { 测试 输出}",
+          "originalExcerpt": "--- Test output --- { test_output }"
+        },
+        {
+          "id": "s-21-8-b31",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "418"
+          },
+          "text": "--- 可用的动作 -- 视图 # 显示当前文件编辑\\n \\\\n \\\\\\ n < 代码\\\\ n > \\ \\ > 替换文件内容 run tests # 运行 pytest 提交 # final 和 end scot \" \" \")。 条 ()",
+          "originalExcerpt": "--- Available actions --view # show current file edit \\n ‘ ‘ ‘ python \\n < code >\\ n ‘ ‘ ‘ # replace file contents run_tests # run pytest submit # finalise and end episode \" \" \" ) . strip ()"
+        },
+        {
+          "id": "s-21-8-b32",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "418"
+          },
+          "text": "#--------------------------------------------------------------------------------------------------------------------------------------------------------------- --- -------- - - - -- -- - - -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -",
+          "originalExcerpt": "# --------------------------------------------------------------------------- # Example usage # ---------------------------------------------------------------------------"
+        },
+        {
+          "id": "s-21-8-b33",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "418"
+          },
+          "language": "python",
+          "code": "if __name__ == \" __main__ \" : BUGGY = \" def add (a , b ) :\\ n return a - b \\ n \" # bug : minus not plus TESTS = ( \" from solution import add \\ n \" \" def test_add () : assert add (2 , 3) == 5\\ n \" )",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-21-8-b34",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "418"
+          },
+          "text": "env = FileEditEnv (BUGGY， TESTS)， \" 修补添加()函数。\" obs， =env。重置(种子=0) 打印(obs)。",
+          "originalExcerpt": "env = FileEditEnv ( BUGGY , TESTS , \" Fix the add () function . \" ) obs , _ = env . reset ( seed =0) print ( obs )"
+        },
+        {
+          "id": "s-21-8-b35",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "419"
+          },
+          "language": "python",
+          "code": "# Simulate one correct edit fix = \" edit \\n ‘ ‘ ‘ python \\ ndef add (a , b ) :\\ n return a + b \\n ‘ ‘ ‘ \" result = env . step ( fix ) print ( f \" \\ nReward : { result . reward } | Terminated : { result . terminated } \" ) env . close ()",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-21-8-b36",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "419"
+          },
+          "text": "列出 21.1: 体操API之后最小LLM剂环境。",
+          "originalExcerpt": "Listing 21.1: Minimal LLM agent environment following the Gymnasium API."
+        },
+        {
+          "id": "s-21-8-b37",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "419"
+          },
+          "text": "示例环境中的设计决定",
+          "originalExcerpt": "Design Decisions in the Example Environment"
+        },
+        {
+          "id": "s-21-8-b38",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "419"
+          },
+          "text": "^ 只文本接口:观测和行动是纯字符串，与任何LLM兼容。",
+          "originalExcerpt": "• Text-only interface: observations and actions are plain strings, compatible with any LLM."
+        },
+        {
+          "id": "s-21-8-b39",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "419"
+          },
+          "text": "• 执行奖励:奖励来自实际的测试套房，而不是",
+          "originalExcerpt": "• Execution-based reward: the reward is derived from running the actual test suite, not"
+        },
+        {
+          "id": "s-21-8-b40",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "419"
+          },
+          "text": "这使得它能防篡改 并完美地配合",
+          "originalExcerpt": "from an LLM judge. This makes it tamper-proof and perfectly aligned."
+        },
+        {
+          "id": "s-21-8-b41",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "419"
+          },
+          "text": "• 孤立子进程:试验在单独的进程中进行，超时，防止无限",
+          "originalExcerpt": "• Isolated subprocess: tests run in a separate process with a timeout, preventing infinite"
+        },
+        {
+          "id": "s-21-8-b42",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "419"
+          },
+          "text": "循环从崩溃训练循环。",
+          "originalExcerpt": "loops from crashing the training loop."
+        },
+        {
+          "id": "s-21-8-b43",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "419"
+          },
+          "text": "• 与体操兼容:重设/步/制/接近标准API，启用",
+          "originalExcerpt": "• Gymnasium-compatible: reset/step/ render/close follow the standard API, enabling"
+        },
+        {
+          "id": "s-21-8-b44",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.8",
+            "pages": "419"
+          },
+          "text": "使用RL培训框架的即时使用。",
+          "originalExcerpt": "drop-in use with RL training frameworks."
+        }
+      ]
+    },
+    {
+      "id": "s-21-9",
+      "number": "21.9",
+      "level": 1,
+      "enTitle": "Comparison of Major Agentic Environments",
+      "zhTitle": "Comparison of Major Agentic Environments",
+      "pages": "419",
+      "blocks": [
+        {
+          "id": "s-21-9-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.9",
+            "pages": "419"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.9「Comparison of Major Agentic Environments」 时，不要寻找脱离场景的“最佳方案”。应在质量、latency、计算与存储成本、数据要求、可控性和运维复杂度上逐项比较，并保留原书说明的适用前提与例外。"
+        },
+        {
+          "id": "s-21-9-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.9",
+            "pages": "419"
+          },
+          "text": "表21.2概述了本节讨论的主要剂环境的关键特性。表21.2: LLM剂的主要剂环境比较 “SOTA”是指在编写本报告时公布的LLM剂的最佳结果，在有可用的情况下显示人类性能。",
+          "originalExcerpt": "Table 21.2 summarizes the key properties of the major agentic environments discussed in this section. Table 21.2: Comparison of major agentic environments for LLM agents. “SoTA” refers to the best published LLM agent result at the time of writing. Human performance is shown where available."
+        },
+        {
+          "id": "s-21-9-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.9",
+            "pages": "419"
+          },
+          "text": "环保署。行动领域 任务 人类SoTA LLM空间 网络空间 网络空间 文字+浏览器 API网络 Naviga- 812 78% → ∼ % % % % % % D D Browse Browse Browse PI PI PI PI PI Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q > > > > + > + + + > > > > > + Q + Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q + + + + + + + + + >",
+          "originalExcerpt": "Environment Obs. Type Action Domain # Tasks Human SoTA LLM Space WebArena Text + Browser API Web naviga- 812 78% ∼45% DOM tion VisualWebArena Screenshot + Browser API Visual web 910 88% ∼35% DOM Mind2Web Screenshot + Browser API Real web- 2,000 — ∼30% DOM sites OSWorld Screenshot Mouse + Desktop OS 369 72% ∼18% keyboard WindowsAgentArena Screenshot Mouse + W..."
+        },
+        {
+          "id": "s-21-9-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.9",
+            "pages": "419"
+          },
+          "text": "阅读比较表 人类性能与SoTA LLM性能的差距在计算机使用任务(OSWorld:72%对18%)中最大，在代码修补(SWE-bench:100%对50%)中最小。这种模式反映了动作空间的成熟性:LLMs接受了大量代码的培训，但基于截图的交互数据相对较少。随着计算机使用培训数据的积累，差距预计将缩小。",
+          "originalExcerpt": "Reading the Comparison Table The gap between human performance and SoTA LLM performance is largest for computer use tasks (OSWorld: 72% vs. 18%) and smallest for code repair (SWE-bench: 100% vs. 50%). This pattern reflects the maturity of the action space: LLMs have been trained on vast amounts of code but relatively little screenshot-based interaction data...."
+        }
+      ]
+    },
+    {
+      "id": "s-21-10",
+      "number": "21.10",
+      "level": 1,
+      "enTitle": "Summary",
+      "zhTitle": "Summary",
+      "pages": "420",
+      "blocks": [
+        {
+          "id": "s-21-10-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.10",
+            "pages": "420"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.10「Summary」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-21-10-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.10",
+            "pages": "420"
+          },
+          "text": "Agent环境是LLMAgent员接受训练和评估的底物。",
+          "originalExcerpt": "Agentic environments are the substrate on which LLM agents are trained and evaluated. The key takeaways from this section are:"
+        },
+        {
+          "id": "s-21-10-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.10",
+            "pages": "420"
+          },
+          "text": "1. 环境不是可选的，安全探索、可复制的评估和课程",
+          "originalExcerpt": "1. Environments are not optional. Safe exploration, reproducible evaluation, and curriculum"
+        },
+        {
+          "id": "s-21-10-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.10",
+            "pages": "420"
+          },
+          "text": "学习都需要一个结构化的环境。没有一个，聊天机和Agent评估之间的鸿沟是无法弥补的。",
+          "originalExcerpt": "learning all require a structured environment. The gap between chatbot and agent evaluation cannot be bridged without one."
+        },
+        {
+          "id": "s-21-10-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.10",
+            "pages": "420"
+          },
+          "text": "2. 仔细设计所有四轴。观测空间，动作空间，奖励信号，和插曲",
+          "originalExcerpt": "2. Design all four axes carefully. Observation space, action space, reward signal, and episode"
+        },
+        {
+          "id": "s-21-10-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.10",
+            "pages": "420"
+          },
+          "text": "结构中每个结构都有失败模式，可以使整个基准无效。",
+          "originalExcerpt": "structure each have failure modes that can invalidate an entire benchmark."
+        },
+        {
+          "id": "s-21-10-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.10",
+            "pages": "420"
+          },
+          "text": "3. 地貌丰富但支离破碎:密码沙盒、网络环境、计算机使用",
+          "originalExcerpt": "3. The landscape is rich but fragmented. Code sandboxes, web environments, computer-use"
+        },
+        {
+          "id": "s-21-10-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.10",
+            "pages": "420"
+          },
+          "text": "环境、SWE环境、科学环境、游戏和多Agent竞技场都测试着不同的能力。 没有一个单一的环境是足够的。 环境是不同的，但环境是不同的。",
+          "originalExcerpt": "environments, SWE environments, scientific environments, games, and multi-agent arenas each test different capabilities. No single environment is sufficient."
+        },
+        {
+          "id": "s-21-10-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.10",
+            "pages": "420"
+          },
+          "text": "4. 标准化事项。 OpenEnv [88] 提供了一种带有多克的健身式API",
+          "originalExcerpt": "4. Standardization matters. OpenEnv [88] provides a Gymnasium-style API with Docker"
+        },
+        {
+          "id": "s-21-10-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.10",
+            "pages": "420"
+          },
+          "text": "将隔离和拥抱面部空间作为登记簿——减少建造新环境的费用，并比较它们之间的Agent。",
+          "originalExcerpt": "isolation and Hugging Face Spaces as a registry—reducing the cost of building new environments and comparing agents across them."
+        },
+        {
+          "id": "s-21-10-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.10",
+            "pages": "420"
+          },
+          "text": "5. 人的差距是真实的，并且是缩小的。",
+          "originalExcerpt": "5. The human gap is real and closing. Current LLM agents achieve 20–50% of human"
+        },
+        {
+          "id": "s-21-10-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.10",
+            "pages": "420"
+          },
+          "text": "进展最快的领域是训练数据丰富的领域(代码)，而要求精细感知(GUI控制)的领域进展最快。",
+          "originalExcerpt": "performance on most benchmarks. The fastest progress is in domains with abundant training data (code) and the slowest in domains requiring fine-grained perception (GUI control)."
+        },
+        {
+          "id": "s-21-10-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.10",
+            "pages": "420"
+          },
+          "text": "Agent环境中的开放研究问题",
+          "originalExcerpt": "Open Research Questions in Agentic Environments"
+        },
+        {
+          "id": "s-21-10-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.10",
+            "pages": "420"
+          },
+          "text": "• 在正确性主观或背景的情况下，我们如何设计奖励职能?",
+          "originalExcerpt": "• How do we design reward functions for tasks where correctness is subjective or context-"
+        },
+        {
+          "id": "s-21-10-b15",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.10",
+            "pages": "420"
+          },
+          "text": "• 单一Agent架构能否在基于文本和多式联运的环境中普遍推广",
+          "originalExcerpt": "• Can a single agent architecture generalize across text-based and multimodal environments"
+        },
+        {
+          "id": "s-21-10-b16",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.10",
+            "pages": "420"
+          },
+          "text": "不需要任务特定的微调吗 ?",
+          "originalExcerpt": "without task-specific fine-tuning?"
+        },
+        {
+          "id": "s-21-10-b17",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.10",
+            "pages": "420"
+          },
+          "text": "• 培训的环境忠诚程度如何?",
+          "originalExcerpt": "• What is the right level of environment fidelity for training? Does training on simplified"
+        },
+        {
+          "id": "s-21-10-b18",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.10",
+            "pages": "420"
+          },
+          "text": "模拟器转移到真正的部署?",
+          "originalExcerpt": "simulators transfer to real deployments?"
+        },
+        {
+          "id": "s-21-10-b19",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.10",
+            "pages": "420"
+          },
+          "text": "• 如何防止基准污染，因为LLMs在日益扩大的网络上接受培训",
+          "originalExcerpt": "• How do we prevent benchmark contamination as LLMs are trained on ever-larger web"
+        },
+        {
+          "id": "s-21-10-b20",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.10",
+            "pages": "420"
+          },
+          "text": "可能包括基准解决方案的公司?",
+          "originalExcerpt": "corpora that may include benchmark solutions?"
+        }
+      ]
+    },
+    {
+      "id": "s-21-10-1",
+      "number": "21.10.1",
+      "level": 2,
+      "enTitle": "Emerging Benchmarks (2026)",
+      "zhTitle": "Emerging Benchmarks (2026)",
+      "pages": "420",
+      "blocks": [
+        {
+          "id": "s-21-10-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 21,
+            "section": "21.10.1",
+            "pages": "420"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §21.10.1「Emerging Benchmarks (2026)」 时，明确被评估的对象是单次输出、完整 trajectory 还是系统行为；随后分别记录数据来源、metric、judge、聚合方式和置信边界。一个分数只有在测量对象与失败类型对应时才有解释力。"
+        },
+        {
+          "id": "s-21-10-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.10.1",
+            "pages": "420"
+          },
+          "text": "Unilaw Bench。 UnilClaw Bench [214] 在现场直播中执行400项双语现实世界任务，孤立的Docker容器——测试Agent跨越包括跨平台协调在内的五个功能领域。它的显著特征是多Agent反馈循环:隐藏主管和一个模拟用户注入现实世界摩擦(模糊请求、不断变化的要求、部分故障)，衡量互动复原力而不是一拍任务完成情况。截至2026年中，它是评估生产准备剂的最严格的基准。",
+          "originalExcerpt": "UniClawBench. UniClawBench [214] runs 400 bilingual real-world tasks inside live, isolated Docker containers—testing agents across five functional areas including cross-platform coordination. Its distinguishing feature is a multi-agent feedback loop: a hidden supervisor and a simulated user inject real-world friction (ambiguous requests, changing requirement..."
+        },
+        {
+          "id": "s-21-10-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 21,
+            "section": "21.10.1",
+            "pages": "420"
+          },
+          "text": "Long-Horizon-Terminal-Bench [386] 包含 21 个领域的 46 项复杂任务，用于检验 Agent 能否完成需要数小时而非数分钟的命令行操作。它的关键设计是 dense reward grading：每一步都评估中间进展，而不是只在终点判断成败。结果揭示，即使最强的 frontier model，也很难在连续执行约 15 条以上终端命令时不偏离轨道；long-horizon execution 仍是尚未解决的基础问题。",
+          "originalExcerpt": "Long-Horizon-Terminal-Bench. Long-Horizon-Terminal-Bench [386] spans 46 complex tasks across 21 domains, testing whether agents can navigate command-line operations that take hours rather than minutes. Its key innovation is dense reward-based grading: scoring intermediate progress at each step rather than relying on binary success at the finish line. This ex..."
+        }
+      ]
+    }
+  ],
+  "glossary": [
+    {
+      "term": "Agent",
+      "zh": "智能体",
+      "meaning": "由模型、状态、工具和运行循环共同构成的目标导向系统。"
+    },
+    {
+      "term": "Agent Harness",
+      "zh": "智能体运行框架",
+      "meaning": "负责上下文、工具执行、状态、重试、审批与可观测性的 runtime。"
+    },
+    {
+      "term": "MCP",
+      "zh": "MCP",
+      "meaning": "连接 AI application 与外部 tools、resources、prompts 的标准协议。"
+    },
+    {
+      "term": "rollout",
+      "zh": "轨迹采样",
+      "meaning": "使用当前策略生成完整 response 或交互 trajectory 的过程。"
+    },
+    {
+      "term": "reward model",
+      "zh": "Reward Model",
+      "meaning": "把人类或规则偏好映射为可优化标量信号的模型。"
+    },
+    {
+      "term": "token",
+      "zh": "词元",
+      "meaning": "模型处理和生成文本时使用的离散单位。"
+    }
+  ],
+  "summary": [
+    "谈话语言模型的评估原则上是直截了当的:提出一个迅速的，收集一个答复，并参照一个参考或人类判断来评分。 Agent评估从根本上说是不同的。 Agent必须在一个世界上行动，观察后果，并调整其行为，以适应一系列步骤。 没有单一的反应能够捕捉到这一点;只有结构化的环境才能。 范围。我们从强化学习的角度来使用环境:一个Agent与培训或评估工作互动的世界，而不是在服务时担任Agent所在地的生产基础设施(走廊、管弦乐家)。执行沙盒出现在这里，因为它们能促成这种环境，但毒剂的拉带本身在第18章中涵盖。 Chatbot–Agent Experiment Gap Chatbot评估衡量了单代人的质量:流利，真实，有帮助。 Agent评估衡量政策的质量:Agent是否可靠地实现了不同、长期的任务的目标？差距不仅仅是数量上的——它需要不同的基础设施。三种力量驱动着对专用的Agent环境的需求:",
+    "安全探索:现实世界系统——生产数据库、现场网站、金融API——无法吸收正在接受培训的Agent的探索行为。沙盒环境提供了一种忠实的复制品，在这种复制品中，制剂可以失败，恢复，学习而不会造成不可逆转的伤害。安全隔离(如Docker容器，网络限制VM)不是可选的;它是一等的设计要求。",
+    "编制基准要求每个Agent在同样条件下面临同样的任务。环境必须按需求决定，并有版本控制，可以分配，这样在另一个实验室中可以复制报告的结果。 历史上，没有这种财产使得Agent基准难以比较。"
+  ],
+  "metrics": {
+    "chineseCharacters": 12257,
+    "sourceCoverage": 94,
+    "sectionCount": 35,
+    "blockCount": 276
+  }
+}

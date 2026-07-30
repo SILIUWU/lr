@@ -1,0 +1,422 @@
+[
+  {
+    "chapter": 1,
+    "title": "LLM Architecture and Optimization Methods",
+    "zhTitle": "LLM 架构与优化方法",
+    "pages": "39-110",
+    "minutes": 95,
+    "status": "in_progress",
+    "metrics": {
+      "chineseCharacters": 45646,
+      "sourceCoverage": 98,
+      "sectionCount": 115,
+      "blockCount": 1170
+    }
+  },
+  {
+    "chapter": 2,
+    "title": "Systems Foundations for LLMs",
+    "zhTitle": "LLM 的系统基础",
+    "pages": "111-124",
+    "minutes": 28,
+    "status": "in_progress",
+    "metrics": {
+      "chineseCharacters": 8660,
+      "sourceCoverage": 97,
+      "sectionCount": 22,
+      "blockCount": 212
+    }
+  },
+  {
+    "chapter": 3,
+    "title": "Introduction to Reinforcement Learning",
+    "zhTitle": "强化学习入门",
+    "pages": "125-138",
+    "minutes": 30,
+    "status": "in_progress",
+    "metrics": {
+      "chineseCharacters": 7586,
+      "sourceCoverage": 88,
+      "sectionCount": 23,
+      "blockCount": 212
+    }
+  },
+  {
+    "chapter": 4,
+    "title": "RL Foundations for Language Models",
+    "zhTitle": "面向语言模型的 RL 基础",
+    "pages": "139-141",
+    "minutes": 12,
+    "status": "in_progress",
+    "metrics": {
+      "chineseCharacters": 2595,
+      "sourceCoverage": 100,
+      "sectionCount": 5,
+      "blockCount": 59
+    }
+  },
+  {
+    "chapter": 5,
+    "title": "PPO - Proximal Policy Optimization",
+    "zhTitle": "PPO：近端策略优化",
+    "pages": "142-150",
+    "minutes": 24,
+    "status": "in_progress",
+    "metrics": {
+      "chineseCharacters": 5925,
+      "sourceCoverage": 84,
+      "sectionCount": 23,
+      "blockCount": 157
+    }
+  },
+  {
+    "chapter": 6,
+    "title": "DPO - Direct Preference Optimization",
+    "zhTitle": "DPO：直接偏好优化",
+    "pages": "151-163",
+    "minutes": 30,
+    "status": "in_progress",
+    "metrics": {
+      "chineseCharacters": 8063,
+      "sourceCoverage": 88,
+      "sectionCount": 27,
+      "blockCount": 218
+    }
+  },
+  {
+    "chapter": 7,
+    "title": "GRPO - Group Relative Policy Optimization",
+    "zhTitle": "GRPO：组相对策略优化",
+    "pages": "164-179",
+    "minutes": 36,
+    "status": "in_progress",
+    "metrics": {
+      "chineseCharacters": 8187,
+      "sourceCoverage": 91,
+      "sectionCount": 17,
+      "blockCount": 235
+    }
+  },
+  {
+    "chapter": 8,
+    "title": "Preference Optimization Variants",
+    "zhTitle": "偏好优化变体",
+    "pages": "180-187",
+    "minutes": 22,
+    "status": "in_progress",
+    "metrics": {
+      "chineseCharacters": 5795,
+      "sourceCoverage": 90,
+      "sectionCount": 27,
+      "blockCount": 126
+    }
+  },
+  {
+    "chapter": 9,
+    "title": "Reward Model Training",
+    "zhTitle": "Reward Model 训练",
+    "pages": "188-195",
+    "minutes": 22,
+    "status": "in_progress",
+    "metrics": {
+      "chineseCharacters": 3836,
+      "sourceCoverage": 96,
+      "sectionCount": 8,
+      "blockCount": 132
+    }
+  },
+  {
+    "chapter": 10,
+    "title": "SFT Best Practices and Techniques",
+    "zhTitle": "SFT 最佳实践与技术",
+    "pages": "196-204",
+    "minutes": 24,
+    "status": "in_progress",
+    "metrics": {
+      "chineseCharacters": 4764,
+      "sourceCoverage": 97,
+      "sectionCount": 11,
+      "blockCount": 143
+    }
+  },
+  {
+    "chapter": 11,
+    "title": "System Architecture & Infrastructure at Scale",
+    "zhTitle": "大规模系统架构与基础设施",
+    "pages": "205-228",
+    "minutes": 48,
+    "status": "in_progress",
+    "metrics": {
+      "chineseCharacters": 14556,
+      "sourceCoverage": 97,
+      "sectionCount": 43,
+      "blockCount": 371
+    }
+  },
+  {
+    "chapter": 12,
+    "title": "LLM Agentic Training",
+    "zhTitle": "LLM 的 Agentic Training",
+    "pages": "229-259",
+    "minutes": 60,
+    "status": "in_progress",
+    "metrics": {
+      "chineseCharacters": 18898,
+      "sourceCoverage": 98,
+      "sectionCount": 53,
+      "blockCount": 601
+    }
+  },
+  {
+    "chapter": 13,
+    "title": "RL for Large Reasoning Models",
+    "zhTitle": "大型推理模型的强化学习",
+    "pages": "260-286",
+    "minutes": 54,
+    "status": "in_progress",
+    "metrics": {
+      "chineseCharacters": 19578,
+      "sourceCoverage": 94,
+      "sectionCount": 53,
+      "blockCount": 477
+    }
+  },
+  {
+    "chapter": 14,
+    "title": "LLM Evaluation",
+    "zhTitle": "LLM 评估",
+    "pages": "287-304",
+    "minutes": 42,
+    "status": "in_progress",
+    "metrics": {
+      "chineseCharacters": 12873,
+      "sourceCoverage": 99,
+      "sectionCount": 48,
+      "blockCount": 290
+    }
+  },
+  {
+    "chapter": 15,
+    "title": "Introduction to Agentic AI",
+    "zhTitle": "Agentic AI 导论",
+    "pages": "305-307",
+    "minutes": 16,
+    "status": "in_progress",
+    "metrics": {
+      "chineseCharacters": 4418,
+      "sourceCoverage": 100,
+      "sectionCount": 3,
+      "blockCount": 6
+    }
+  },
+  {
+    "chapter": 16,
+    "title": "Retrieval-Augmented Generation (RAG)",
+    "zhTitle": "RAG： RAG",
+    "pages": "308-332",
+    "minutes": 58,
+    "status": "in_progress",
+    "metrics": {
+      "chineseCharacters": 15564,
+      "sourceCoverage": 94,
+      "sectionCount": 54,
+      "blockCount": 444
+    }
+  },
+  {
+    "chapter": 17,
+    "title": "Agentic Memory Systems",
+    "zhTitle": "Agentic Memory 系统",
+    "pages": "333-356",
+    "minutes": 54,
+    "status": "in_progress",
+    "metrics": {
+      "chineseCharacters": 14498,
+      "sourceCoverage": 94,
+      "sectionCount": 45,
+      "blockCount": 422
+    }
+  },
+  {
+    "chapter": 18,
+    "title": "Agent Harness - Context Management and Orchestration",
+    "zhTitle": "Agent Harness：上下文管理与编排",
+    "pages": "357-382",
+    "minutes": 62,
+    "status": "in_progress",
+    "metrics": {
+      "chineseCharacters": 14005,
+      "sourceCoverage": 92,
+      "sectionCount": 43,
+      "blockCount": 428
+    }
+  },
+  {
+    "chapter": 19,
+    "title": "Loop Engineering",
+    "zhTitle": "Loop Engineering：让循环可靠收敛",
+    "pages": "383-397",
+    "minutes": 38,
+    "status": "in_progress",
+    "metrics": {
+      "chineseCharacters": 12248,
+      "sourceCoverage": 99,
+      "sectionCount": 35,
+      "blockCount": 256
+    }
+  },
+  {
+    "chapter": 20,
+    "title": "Agent Design Patterns",
+    "zhTitle": "Agent 设计模式",
+    "pages": "398-403",
+    "minutes": 22,
+    "status": "in_progress",
+    "metrics": {
+      "chineseCharacters": 4315,
+      "sourceCoverage": 94,
+      "sectionCount": 14,
+      "blockCount": 79
+    }
+  },
+  {
+    "chapter": 21,
+    "title": "Agentic Environments and Benchmarks",
+    "zhTitle": "Agentic 环境与基准",
+    "pages": "404-420",
+    "minutes": 42,
+    "status": "in_progress",
+    "metrics": {
+      "chineseCharacters": 12257,
+      "sourceCoverage": 94,
+      "sectionCount": 35,
+      "blockCount": 276
+    }
+  },
+  {
+    "chapter": 22,
+    "title": "Model Context Protocol (MCP)",
+    "zhTitle": "MCP： MCP",
+    "pages": "421-440",
+    "minutes": 48,
+    "status": "in_progress",
+    "metrics": {
+      "chineseCharacters": 11200,
+      "sourceCoverage": 95,
+      "sectionCount": 45,
+      "blockCount": 270
+    }
+  },
+  {
+    "chapter": 23,
+    "title": "Agent Skills",
+    "zhTitle": "Agent Skills：可复用能力模块",
+    "pages": "441-445",
+    "minutes": 20,
+    "status": "in_progress",
+    "metrics": {
+      "chineseCharacters": 4209,
+      "sourceCoverage": 100,
+      "sectionCount": 14,
+      "blockCount": 83
+    }
+  },
+  {
+    "chapter": 24,
+    "title": "Agent-to-Agent Communication (A2A)",
+    "zhTitle": "A2A： Agent 间通信",
+    "pages": "446-467",
+    "minutes": 52,
+    "status": "in_progress",
+    "metrics": {
+      "chineseCharacters": 11901,
+      "sourceCoverage": 88,
+      "sectionCount": 43,
+      "blockCount": 286
+    }
+  },
+  {
+    "chapter": 25,
+    "title": "Multi-Agent Systems",
+    "zhTitle": "Multi-Agent 系统",
+    "pages": "468-488",
+    "minutes": 50,
+    "status": "in_progress",
+    "metrics": {
+      "chineseCharacters": 13963,
+      "sourceCoverage": 92,
+      "sectionCount": 54,
+      "blockCount": 339
+    }
+  },
+  {
+    "chapter": 26,
+    "title": "Agent Development Frameworks",
+    "zhTitle": "Agent 开发框架",
+    "pages": "489-521",
+    "minutes": 68,
+    "status": "in_progress",
+    "metrics": {
+      "chineseCharacters": 17165,
+      "sourceCoverage": 87,
+      "sectionCount": 38,
+      "blockCount": 458
+    }
+  },
+  {
+    "chapter": 27,
+    "title": "Agentic UI Frameworks",
+    "zhTitle": "Agentic UI 框架",
+    "pages": "522-544",
+    "minutes": 52,
+    "status": "in_progress",
+    "metrics": {
+      "chineseCharacters": 14641,
+      "sourceCoverage": 95,
+      "sectionCount": 49,
+      "blockCount": 441
+    }
+  },
+  {
+    "chapter": 28,
+    "title": "Quiz Questions & Detailed Answers",
+    "zhTitle": "测验问题与详细答案",
+    "pages": "545-596",
+    "minutes": 105,
+    "status": "in_progress",
+    "metrics": {
+      "chineseCharacters": 29493,
+      "sourceCoverage": 99,
+      "sectionCount": 31,
+      "blockCount": 1037
+    }
+  },
+  {
+    "chapter": 29,
+    "title": "Quick Reference",
+    "zhTitle": "快速参考",
+    "pages": "597-604",
+    "minutes": 22,
+    "status": "in_progress",
+    "metrics": {
+      "chineseCharacters": 4105,
+      "sourceCoverage": 90,
+      "sectionCount": 24,
+      "blockCount": 65
+    }
+  },
+  {
+    "chapter": 30,
+    "title": "Conclusion and Future Directions",
+    "zhTitle": "结论与未来方向",
+    "pages": "605-608",
+    "minutes": 18,
+    "status": "in_progress",
+    "metrics": {
+      "chineseCharacters": 3165,
+      "sourceCoverage": 100,
+      "sectionCount": 14,
+      "blockCount": 103
+    }
+  }
+]

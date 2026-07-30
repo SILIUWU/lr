@@ -9,6 +9,12 @@ import {
   useState,
 } from "react";
 import { scheduleReview } from "@/lib/scheduler";
+import {
+  emptyLearningState,
+  isLearningState,
+  isLearningStateV1,
+  migrateLearningStateV1,
+} from "@/lib/learning-state";
 import type {
   LearningState,
   NoteItem,
@@ -16,17 +22,8 @@ import type {
   ReviewCard,
 } from "@/lib/types";
 
-const STORAGE_KEY = "agentic-ai-guide-state-v1";
-
-const emptyState: LearningState = {
-  version: 1,
-  completedLessons: [],
-  lastLesson: null,
-  attempts: [],
-  cards: {},
-  notes: [],
-  theme: "light",
-};
+const STORAGE_KEY = "agentic-ai-guide-state-v2";
+const LEGACY_STORAGE_KEY = "agentic-ai-guide-state-v1";
 
 type RecordQuizInput = {
   quiz: Quiz;
@@ -40,6 +37,9 @@ type CourseContextValue = {
   hydrated: boolean;
   markLessonComplete: (slug: string) => void;
   rememberLesson: (slug: string) => void;
+  rememberChapter: (chapter: number, sectionId?: string) => void;
+  markSectionComplete: (sectionId: string) => void;
+  updateReadingPosition: (chapter: number, position: number) => void;
   recordQuiz: (input: RecordQuizInput) => ReviewCard;
   addNote: (note: Omit<NoteItem, "id" | "createdAt">) => void;
   deleteNote: (id: string) => void;
@@ -50,31 +50,26 @@ type CourseContextValue = {
 
 const CourseContext = createContext<CourseContextValue | null>(null);
 
-function isLearningState(value: unknown): value is LearningState {
-  if (!value || typeof value !== "object") return false;
-  const candidate = value as Partial<LearningState>;
-  return (
-    candidate.version === 1 &&
-    Array.isArray(candidate.completedLessons) &&
-    Array.isArray(candidate.attempts) &&
-    Array.isArray(candidate.notes) &&
-    typeof candidate.cards === "object" &&
-    (candidate.theme === "light" || candidate.theme === "dark")
-  );
-}
-
 export function CourseProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<LearningState>(emptyState);
+  const [state, setState] = useState<LearningState>(emptyLearningState);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw =
+        localStorage.getItem(STORAGE_KEY) ??
+        localStorage.getItem(LEGACY_STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        // Hydration intentionally restores browser-only state after the server render.
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        if (isLearningState(parsed)) setState(parsed);
+        let restored: LearningState | null = null;
+        if (isLearningState(parsed)) {
+          restored = parsed;
+        } else if (isLearningStateV1(parsed)) {
+          restored = migrateLearningStateV1(parsed);
+        }
+        if (restored) {
+          queueMicrotask(() => setState(restored));
+        }
       }
     } catch {
       localStorage.removeItem(STORAGE_KEY);
@@ -103,6 +98,38 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
         : [...current.completedLessons, slug],
     }));
   }, []);
+
+  const rememberChapter = useCallback((chapter: number, sectionId?: string) => {
+    setState((current) => ({
+      ...current,
+      lastChapter: chapter,
+      lastSection: sectionId ?? current.lastSection,
+    }));
+  }, []);
+
+  const markSectionComplete = useCallback((sectionId: string) => {
+    setState((current) => ({
+      ...current,
+      lastSection: sectionId,
+      completedSections: current.completedSections.includes(sectionId)
+        ? current.completedSections
+        : [...current.completedSections, sectionId],
+    }));
+  }, []);
+
+  const updateReadingPosition = useCallback(
+    (chapter: number, position: number) => {
+      setState((current) => ({
+        ...current,
+        lastChapter: chapter,
+        readingPositions: {
+          ...current.readingPositions,
+          [String(chapter)]: Math.max(0, Math.min(1, position)),
+        },
+      }));
+    },
+    [],
+  );
 
   const recordQuiz = useCallback(
     ({ quiz, lessonSlug, correct, score }: RecordQuizInput) => {
@@ -170,8 +197,12 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
   const importState = useCallback((payload: string) => {
     try {
       const parsed = JSON.parse(payload);
+      if (isLearningStateV1(parsed)) {
+        setState(migrateLearningStateV1(parsed));
+        return { ok: true, message: "旧版学习状态已迁移并恢复。" };
+      }
       if (!isLearningState(parsed)) {
-        return { ok: false, message: "文件结构不符合 LearningState v1。" };
+        return { ok: false, message: "文件结构不符合 LearningState v1/v2。" };
       }
       setState(parsed);
       return { ok: true, message: "学习状态已恢复。" };
@@ -186,6 +217,9 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
       hydrated,
       markLessonComplete,
       rememberLesson,
+      rememberChapter,
+      markSectionComplete,
+      updateReadingPosition,
       recordQuiz,
       addNote,
       deleteNote,
@@ -198,6 +232,9 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
       hydrated,
       markLessonComplete,
       rememberLesson,
+      rememberChapter,
+      markSectionComplete,
+      updateReadingPosition,
       recordQuiz,
       addNote,
       deleteNote,

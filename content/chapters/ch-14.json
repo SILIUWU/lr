@@ -1,0 +1,3999 @@
+{
+  "chapter": 14,
+  "title": "LLM Evaluation",
+  "zhTitle": "LLM 评估",
+  "pages": "287-304",
+  "minutes": 42,
+  "overview": "评估是任何严格的机器学习程序的基础，然而，在开发LLM方面，评估也许是最不受到重视的部分。与古典监督学习不同，在这种学习中，带有地面真实标签的搁置测试提供了干净的信号，评估有限责任公司需要努力进行开放式的一代、主观的质量判断、多步骤推理链以及长期存在的基准污染风险。本节系统地处理评估情况:从评估类型分类学和人类注释力学，通过排名测量的数学和LLM-as-judge的实用性，到沉默地破坏评估管道的陷阱。三个基本挑战将LLM评估与传统ML评估区分开来:",
+  "status": "in_progress",
+  "sections": [
+    {
+      "id": "s-14-introduction",
+      "number": null,
+      "level": 1,
+      "enTitle": "Chapter introduction",
+      "zhTitle": "章节导入",
+      "pages": "287",
+      "blocks": [
+        {
+          "id": "s-14-introduction-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": null,
+            "pages": "287"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 本章导入「章节导入」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-14-introduction-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": null,
+            "pages": "287"
+          },
+          "text": "评估是任何严格的机器学习程序的基础，然而，在开发LLM方面，评估也许是最不受到重视的部分。与古典监督学习不同，在这种学习中，带有地面真实标签的搁置测试提供了干净的信号，评估有限责任公司需要努力进行开放式的一代、主观的质量判断、多步骤推理链以及长期存在的基准污染风险。本节系统地处理评估情况:从评估类型分类学和人类注释力学，通过排名测量的数学和LLM-as-judge的实用性，到沉默地破坏评估管道的陷阱。三个基本挑战将LLM评估与传统ML评估区分开来:",
+          "originalExcerpt": "Evaluation is the backbone of any rigorous machine learning pipeline, yet it is perhaps the most underappreciated component in the development of large language models. Unlike classical supervised learning, where a held-out test set with ground-truth labels provides a clean signal, evaluating LLMs requires grappling with open-ended generation, subjective qua..."
+        },
+        {
+          "id": "s-14-introduction-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": null,
+            "pages": "287"
+          },
+          "text": "1. 输出空间没有限制。语言模型可以产生任意字符串;很少出现",
+          "originalExcerpt": "1. Output space is unbounded. A language model can produce any string; there is rarely a"
+        },
+        {
+          "id": "s-14-introduction-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": null,
+            "pages": "287"
+          },
+          "text": "单正确答案。",
+          "originalExcerpt": "single correct answer."
+        },
+        {
+          "id": "s-14-introduction-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": null,
+            "pages": "287"
+          },
+          "text": "2. 质量是多层面的，帮助、事实、安全、一致性和风格",
+          "originalExcerpt": "2. Quality is multidimensional. Helpfulness, factuality, safety, coherence, and style are"
+        },
+        {
+          "id": "s-14-introduction-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": null,
+            "pages": "287"
+          },
+          "text": "不同的轴线可以相互交换",
+          "originalExcerpt": "distinct axes that may trade off against each other."
+        },
+        {
+          "id": "s-14-introduction-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": null,
+            "pages": "287"
+          },
+          "text": "3. 评估本身是一项语言任务，判断答复是否良好需要",
+          "originalExcerpt": "3. Evaluation is itself a language task. Judging whether a response is good requires"
+        },
+        {
+          "id": "s-14-introduction-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": null,
+            "pages": "287"
+          },
+          "text": "理解，这意味着评估容易与生成相同发生故障模式。",
+          "originalExcerpt": "understanding, which means evaluation is susceptible to the same failure modes as generation."
+        }
+      ]
+    },
+    {
+      "id": "s-14-1",
+      "number": "14.1",
+      "level": 1,
+      "enTitle": "Evaluation Scheme Design",
+      "zhTitle": "评估计划设计",
+      "pages": "287",
+      "blocks": [
+        {
+          "id": "s-14-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.1",
+            "pages": "287"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.1「评估计划设计」 时，明确被评估的对象是单次输出、完整 trajectory 还是系统行为；随后分别记录数据来源、metric、judge、聚合方式和置信边界。一个分数只有在测量对象与失败类型对应时才有解释力。"
+        },
+        {
+          "id": "s-14-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.1",
+            "pages": "287"
+          },
+          "text": "在收集单一数据点之前，从业人员必须决定测量什么以及如何测量。原则分类方法可以防止通过方便而不是通过与部署目标保持一致来选择衡量标准这一常见错误。",
+          "originalExcerpt": "Before collecting a single data point, practitioners must decide what to measure and how to measure it. A principled taxonomy prevents the common mistake of choosing metrics by convenience rather than by alignment with the deployment objective."
+        }
+      ]
+    },
+    {
+      "id": "s-14-1-1",
+      "number": "14.1.1",
+      "level": 2,
+      "enTitle": "Taxonomy of Evaluation Types",
+      "zhTitle": "评估类型分类",
+      "pages": "287-288",
+      "blocks": [
+        {
+          "id": "s-14-1-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.1.1",
+            "pages": "287-288"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.1.1「评估类型分类」 时，明确被评估的对象是单次输出、完整 trajectory 还是系统行为；随后分别记录数据来源、metric、judge、聚合方式和置信边界。一个分数只有在测量对象与失败类型对应时才有解释力。"
+        },
+        {
+          "id": "s-14-1-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.1.1",
+            "pages": "287"
+          },
+          "text": "Intrinsic vs。 Extrinsic Evaluation。 Intrinsic评估在孤立地测量模型输出的属性，而不参考下游应用。在一个搁置的目录上， BLEU的得分与参考翻译和通过@k的编码基准都是固有的。外向评估衡量模型对现实世界任务或系统的影响:将LLM整合到客户服务管道中是否降低票价上涨率?编码助理是否提高开发者速度?内源性 — — 外源性 — — 的“差距”指标是便宜的，可以复制的，但往往与现实世界的效用不甚相关。 一种难度较低的模型不一定更有用。外部测量标准昂贵，而且缓慢，但直接衡量我们所关心的东西。 成熟的评估战略使用内在测量标准进行快速迭代，外部测量标准进行最后验证。",
+          "originalExcerpt": "Intrinsic vs. Extrinsic Evaluation. Intrinsic evaluation measures properties of the model output in isolation, without reference to a downstream application. Perplexity on a held-out corpus, BLEU score against reference translations, and pass@k on coding benchmarks are all intrinsic. Extrinsic evaluation measures the impact of the model on a real-world task ..."
+        },
+        {
+          "id": "s-14-1-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.1.1",
+            "pages": "288"
+          },
+          "text": "自动对人评估 自动评估使用定型函数(BLEU，精确匹配)或学习模型(BERTScore， LLM-as-judge)来评分产出，而无需人类参与。人类评估涉及对产出进行评级或排名的注释员，表14.1概述了权衡结果。 表14.1:评估方法与关键权衡的分类。",
+          "originalExcerpt": "Automatic vs. Human Evaluation. Automatic evaluation uses deterministic functions (BLEU, exact match) or learned models (BERTScore, LLM-as-judge) to score outputs without human involvement. Human evaluation involves annotators rating or ranking model outputs. Table 14.1 summarises the trade-offs. Table 14.1: Taxonomy of evaluation approaches with key trade-o..."
+        },
+        {
+          "id": "s-14-1-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.1.1",
+            "pages": "288"
+          },
+          "text": "成本速率可复制性 自动(基于规则) 极低 极快 完美 低-中度 自动(基于模型) 低速 高 中-高 人群 人类 中日 中度 专家 人类 高周 低-中度 高 外度 / A/B 测试 甚高 月 低 甚高",
+          "originalExcerpt": "Type Cost Speed Reproducibility Validity Automatic (rule-based) Very low Very fast Perfect Low–Medium Automatic (model-based) Low Fast High Medium–High Crowdsourced human Medium Days Medium Medium Expert human High Weeks Low–Medium High Extrinsic / A/B test Very high Months Low Very high"
+        },
+        {
+          "id": "s-14-1-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.1.1",
+            "pages": "288"
+          },
+          "text": "基于参考的参考性与无参考性评估。基于参考的衡量标准(BLEU， ROUGE， BERTScore)将模型输出比作一个或多个金本位参考。无参考度量衡(复杂、作为法官的LLM、人偏好)评估质量而不参考。在产出空间太大，无法像开放式对话那样收集详尽无遗的参考资料时，无参考性办法至关重要。",
+          "originalExcerpt": "Reference-Based vs. Reference-Free Evaluation. Reference-based metrics (BLEU, ROUGE, BERTScore) compare model output to one or more gold-standard references. Reference-free metrics (perplexity, LLM-as-judge, human preference) assess quality without a reference. Reference-free approaches are essential when the output space is too large for exhaustive referenc..."
+        }
+      ]
+    },
+    {
+      "id": "s-14-1-2",
+      "number": "14.1.2",
+      "level": 2,
+      "enTitle": "When to Use What",
+      "zhTitle": "何时使用",
+      "pages": "288",
+      "blocks": [
+        {
+          "id": "s-14-1-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.1.2",
+            "pages": "288"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.1.2「何时使用」 时，不要寻找脱离场景的“最佳方案”。应在质量、latency、计算与存储成本、数据要求、可控性和运维复杂度上逐项比较，并保留原书说明的适用前提与例外。"
+        },
+        {
+          "id": "s-14-1-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.1.2",
+            "pages": "288"
+          },
+          "text": "对话助理开发阶段的评估战略:使用自动计量标准(复杂度，汇总子任务为ROUGE，通过@k关于工具使用)进行快速迭代。运行标准套房的夜间基准(MMLU， HelaSwag， HumanEval)。发布前阶段:进行人肉偏好研究，将新模式与前一个检查站进行比较。使用 LLM 的双向参数来比较不同的快捷集。 释放后阶段: 监视外部计量( 用户满意度、 任务完成率)， 并监视生产快捷器的分布变化。有用的决策框架:",
+          "originalExcerpt": "Evaluation Strategy for a Dialogue Assistant Development phase: Use automatic metrics (perplexity, ROUGE on summarisation sub-tasks, pass@k on tool-use) for rapid iteration. Run nightly benchmarks on standard suites (MMLU, HellaSwag, HumanEval). Pre-release phase: Conduct a human preference study comparing the new model to the previous checkpoint. Use LLM-as..."
+        },
+        {
+          "id": "s-14-1-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.1.2",
+            "pages": "288"
+          },
+          "text": "• 如果任务有明确的正确答案(内容、代码、事实质量):使用精确的匹配或执行——",
+          "originalExcerpt": "• If the task has a clear correct answer (math, code, factual QA): use exact match or execution-"
+        },
+        {
+          "id": "s-14-1-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.1.2",
+            "pages": "288"
+          },
+          "text": "• 如果任务没有期限，但有参考产出:使用参考度量衡作为较低值",
+          "originalExcerpt": "• If the task is open-ended but has reference outputs: use reference-based metrics as a lower"
+        },
+        {
+          "id": "s-14-1-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.1.2",
+            "pages": "288"
+          },
+          "text": "约束，补充 LLM -as -judge。",
+          "originalExcerpt": "bound, supplement with LLM-as-judge."
+        },
+        {
+          "id": "s-14-1-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.1.2",
+            "pages": "288"
+          },
+          "text": "• 如果任务主观(帮助、语气、创造):使用人的评估或精准的校准",
+          "originalExcerpt": "• If the task is subjective (helpfulness, tone, creativity): use human evaluation or a well-calibrated"
+        },
+        {
+          "id": "s-14-1-2-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.1.2",
+            "pages": "288"
+          },
+          "text": "• 如果任务涉及多步骤Agent行为:使用任务成功率和轨迹效率",
+          "originalExcerpt": "• If the task involves multi-step agent behaviour: use task success rate and trajectory efficiency"
+        }
+      ]
+    },
+    {
+      "id": "s-14-2",
+      "number": "14.2",
+      "level": 1,
+      "enTitle": "Data Collection for Evaluation",
+      "zhTitle": "收集评估数据",
+      "pages": "288",
+      "blocks": [
+        {
+          "id": "s-14-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2",
+            "pages": "288"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.2「收集评估数据」 时，明确被评估的对象是单次输出、完整 trajectory 还是系统行为；随后分别记录数据来源、metric、judge、聚合方式和置信边界。一个分数只有在测量对象与失败类型对应时才有解释力。"
+        },
+        {
+          "id": "s-14-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2",
+            "pages": "288"
+          },
+          "text": "高质量的评估数据是可信赖的基准的基础，本节涵盖人的说明管道的设计，说明质量的统计计量，以及众包和专家说明之间的选择。",
+          "originalExcerpt": "High-quality evaluation data is the foundation of trustworthy benchmarks. This section covers the design of human annotation pipelines, statistical measures of annotation quality, and the choice between crowdsourcing and expert annotation."
+        }
+      ]
+    },
+    {
+      "id": "s-14-2-1",
+      "number": "14.2.1",
+      "level": 2,
+      "enTitle": "Human Annotation Pipelines",
+      "zhTitle": "人文注释管道",
+      "pages": "288-289",
+      "blocks": [
+        {
+          "id": "s-14-2-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.1",
+            "pages": "288-289"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.2.1「人文注释管道」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-14-2-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.1",
+            "pages": "288"
+          },
+          "text": "强有力的注解管道包括五个阶段:",
+          "originalExcerpt": "A robust annotation pipeline consists of five stages:"
+        },
+        {
+          "id": "s-14-2-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.1",
+            "pages": "288"
+          },
+          "text": "1. 任务定义。精确地说明任务:被评分的是什么，在什么规模上，",
+          "originalExcerpt": "1. Task definition. Specify the annotation task precisely: what is being rated, on what scale,"
+        },
+        {
+          "id": "s-14-2-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.1",
+            "pages": "288"
+          },
+          "text": "以什么标准 假象在现阶段传播成吵闹的标签",
+          "originalExcerpt": "and with what criteria. Ambiguity at this stage propagates into noisy labels."
+        },
+        {
+          "id": "s-14-2-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.1",
+            "pages": "289"
+          },
+          "text": "2. 准则的制定:用涵盖边缘的工作实例编写说明准则",
+          "originalExcerpt": "2. Guideline development. Write annotation guidelines with worked examples covering edge"
+        },
+        {
+          "id": "s-14-2-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.1",
+            "pages": "289"
+          },
+          "text": "在全面部署之前与一个小型试点小组进行过渡。",
+          "originalExcerpt": "cases. Iterate with a small pilot group before full deployment."
+        },
+        {
+          "id": "s-14-2-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.1",
+            "pages": "289"
+          },
+          "text": "3. 征聘和培训书记员 挑选具有适当背景的书记员",
+          "originalExcerpt": "3. Annotator recruitment and training. Select annotators with appropriate background"
+        },
+        {
+          "id": "s-14-2-1-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.1",
+            "pages": "289"
+          },
+          "text": "进行校准，由注释者标出相同的例子，讨论分歧。",
+          "originalExcerpt": "knowledge. Conduct a calibration session where annotators label the same examples and discuss disagreements."
+        },
+        {
+          "id": "s-14-2-1-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.1",
+            "pages": "289"
+          },
+          "text": "4. 质量控制。将已知标签的金标准实例嵌入注释队列。",
+          "originalExcerpt": "4. Quality control. Embed gold-standard examples with known labels into the annotation queue."
+        },
+        {
+          "id": "s-14-2-1-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.1",
+            "pages": "289"
+          },
+          "text": "旗下注解者，其金色实例的准确度低于阈值。",
+          "originalExcerpt": "Flag annotators whose accuracy on gold examples falls below a threshold."
+        },
+        {
+          "id": "s-14-2-1-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.1",
+            "pages": "289"
+          },
+          "text": "5. 汇总:利用多数表决、平均票或a合并每个项目的多份说明",
+          "originalExcerpt": "5. Aggregation. Combine multiple annotations per item using majority vote, averaging, or a"
+        },
+        {
+          "id": "s-14-2-1-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.1",
+            "pages": "289"
+          },
+          "text": "概率模型(如达维德-斯肯内)。",
+          "originalExcerpt": "probabilistic model (e.g., Dawid–Skene)."
+        }
+      ]
+    },
+    {
+      "id": "s-14-2-2",
+      "number": "14.2.2",
+      "level": 2,
+      "enTitle": "Inter-Annotator Agreement",
+      "zhTitle": "通知人协定",
+      "pages": "289",
+      "blocks": [
+        {
+          "id": "s-14-2-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.2",
+            "pages": "289"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.2.2「通知人协定」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-14-2-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.2",
+            "pages": "289"
+          },
+          "text": "原始协议(所有注释者都同意的违反项目)是一项不适当的措施，因为它没有考虑到机会协议。科恩的“共同责任”(两个注释)和弗莱斯的“共同责任”(两个注释)。",
+          "originalExcerpt": "Raw agreement (fraction of items where all annotators agree) is an inadequate measure because it does not account for chance agreement. Two standard chance-corrected measures are Cohen’s κ [60] (two annotators) and Fleiss’ κ [92] (multiple annotators)."
+        },
+        {
+          "id": "s-14-2-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.2",
+            "pages": "289"
+          },
+          "text": "科恩的Kappa。鉴于两个标注N类物品的标注符，应该把所遵守的协议当作Po，把pe作为独立下的预期协议:po − p → → → 14.1) 1 − pe",
+          "originalExcerpt": "Cohen’s Kappa. Given two annotators labelling N items into k categories, let po be the observed agreement and pe be the expected agreement under independence: po − p e κ= (14.1) 1 − pe"
+        },
+        {
+          "id": "s-14-2-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.2",
+            "pages": "289"
+          },
+          "text": "N 1 X po = 1[注解 1 同意关于项目i的注解 2 (14.2) N = 1",
+          "originalExcerpt": "where N 1 X po = 1[annotator 1 agrees with annotator 2 on item i] (14.2) N i=1"
+        },
+        {
+          "id": "s-14-2-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.2",
+            "pages": "289"
+          },
+          "text": "和 k X pe = p1c = p2c (14.3) c = 1",
+          "originalExcerpt": "and k X pe = p1c · p2c (14.3) c=1"
+        },
+        {
+          "id": "s-14-2-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.2",
+            "pages": "289"
+          },
+          "text": "说明人j。 Cohen的“总”从−1(完美分歧)到0(合同)到1(完美协议)不等。0.6以上值一般认为可以接受;0.8以上值是强烈的共识。",
+          "originalExcerpt": "with pjc being the proportion of items assigned to category c by annotator j. Cohen’s κ ranges from −1 (perfect disagreement) through 0 (chance agreement) to 1 (perfect agreement). Values above 0.6 are generally considered acceptable; above 0.8 is strong agreement."
+        },
+        {
+          "id": "s-14-2-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.2",
+            "pages": "289"
+          },
+          "text": "Fleiss的Kappa。对于N标注为K类物品的注释器，请nij为指定i类物品为j的注释器数量。定义:k N 1 X 1 X P'i = nij (nij - 1)， P' = P'i (14.4) n(n - 1) j= 1 N = 1 i= 1",
+          "originalExcerpt": "Fleiss’ Kappa. For n annotators labelling N items into k categories, let nij be the number of annotators who assigned item i to category j. Define: k N 1 X 1 X P̄i = nij (nij − 1), P̄ = P̄i (14.4) n(n − 1) j=1 N i=1"
+        },
+        {
+          "id": "s-14-2-2-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.2",
+            "pages": "289"
+          },
+          "text": "Nk → 1 X X → 2 P'je = nij， Pe = P'je (14.5) N i= 1 j=1 = ̄ ̄ ̄ ̄ \u0010 \u0010 ̄ ̄ ̄ ̄ \u0010 \u0010 ̄ ̄ ̄ ̄ ̄ ̄ ̄ ̄ ̄ ̄ ̄ ̄ \u0010 \u0010 \u0010 ̄ ̄ ̄ ̄ ̄ ̄ ̄ ̄ ̄ ̄ \u0010 \u0010 ̄ \u0010 ̄ \u0010 ̄ \u0010 ̄ \u0010 \u0010 Pe i Pe Pe Pe Pe Pe Pe Pe Pe Pe Pe Pe Pe (14.5) N i= 1 j= 1 j = = = = = = ̄ ̄ ̄ ̄ ̄ ̄ ̄ ̄ ̄ Pe ̄ Pe Pe ̄ Pe Pe ̄ Pe Pe Pe Pe Pe Pe Pe Pe",
+          "originalExcerpt": "N k \u0010 1 X X \u00112 P̄je = nij , Pe = P̄je (14.5) N n i=1 j=1"
+        },
+        {
+          "id": "s-14-2-2-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.2",
+            "pages": "289"
+          },
+          "text": "P' – Pe obsF = (14.6) 1 – Pe Kappa 限制 Kappa 对类别流行性很敏感:当一个类别占主导地位时，即使原始协议很高(kappa悖论)， kappa也可以低。通常，在低价比值上，加权卡帕(按照距离按比例惩罚分歧 ) 更为合适。 对于LLM评估，通常在1比5的比值上评分，则总是报告加权卡帕。",
+          "originalExcerpt": "P̄ − Pe κF = (14.6) 1 − Pe Kappa Limitations Kappa is sensitive to the prevalence of categories: when one category dominates, kappa can be low even when raw agreement is high (the kappa paradox). For ordinal scales, weighted kappa (which penalises disagreements proportionally to their distance) is more appropriate. For LLM evaluation, where ratings are often..."
+        }
+      ]
+    },
+    {
+      "id": "s-14-2-3",
+      "number": "14.2.3",
+      "level": 2,
+      "enTitle": "Annotation Guideline Design",
+      "zhTitle": "注释准则设计",
+      "pages": "290",
+      "blocks": [
+        {
+          "id": "s-14-2-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.3",
+            "pages": "290"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.2.3「注释准则设计」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-14-2-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.3",
+            "pages": "290"
+          },
+          "text": "有效的注释准则具有以下几种属性:",
+          "originalExcerpt": "Effective annotation guidelines share several properties:"
+        },
+        {
+          "id": "s-14-2-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.3",
+            "pages": "290"
+          },
+          "text": "• 实用标准:用具体、可观察的“帮助”等含糊用语取代“帮助”",
+          "originalExcerpt": "• Operationalised criteria. Replace vague terms like “helpful” with concrete, observable"
+        },
+        {
+          "id": "s-14-2-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.3",
+            "pages": "290"
+          },
+          "text": "行为: \" 答复直接涉及用户的问题，并提供完成所述任务所需的所有信息。 \"",
+          "originalExcerpt": "behaviours: “The response directly addresses the user’s question and provides all information needed to complete the stated task.”"
+        },
+        {
+          "id": "s-14-2-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.3",
+            "pages": "290"
+          },
+          "text": "• 行之有效的例子:每个评级级别至少提供两个例子，包括边缘案例。",
+          "originalExcerpt": "• Worked examples. Provide at least two examples per rating level, including borderline cases."
+        },
+        {
+          "id": "s-14-2-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.3",
+            "pages": "290"
+          },
+          "text": "• 决定树:对于复杂的任务，一个流程图，通过一系列程序指导注释者",
+          "originalExcerpt": "• Decision trees. For complex tasks, a flowchart that guides annotators through a sequence of"
+        },
+        {
+          "id": "s-14-2-3-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.3",
+            "pages": "290"
+          },
+          "text": "二进制决定减少认知负荷，提高一致性。",
+          "originalExcerpt": "binary decisions reduces cognitive load and improves consistency."
+        },
+        {
+          "id": "s-14-2-3-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.3",
+            "pages": "290"
+          },
+          "text": "• 明确范围:说明说明者不应考虑的事项(例如，“不惩罚有型性的行为”。",
+          "originalExcerpt": "• Explicit scope. State what annotators should not consider (e.g., “Do not penalise for stylistic"
+        },
+        {
+          "id": "s-14-2-3-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.3",
+            "pages": "290"
+          },
+          "text": "偏好;只注重事实准确性)。",
+          "originalExcerpt": "preferences; focus only on factual accuracy”)."
+        }
+      ]
+    },
+    {
+      "id": "s-14-2-4",
+      "number": "14.2.4",
+      "level": 2,
+      "enTitle": "Crowdsourcing vs. Expert Annotation",
+      "zhTitle": "众包与专家注释",
+      "pages": "290",
+      "blocks": [
+        {
+          "id": "s-14-2-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.4",
+            "pages": "290"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.2.4「众包与专家注释」 时，不要寻找脱离场景的“最佳方案”。应在质量、latency、计算与存储成本、数据要求、可控性和运维复杂度上逐项比较，并保留原书说明的适用前提与例外。"
+        },
+        {
+          "id": "s-14-2-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.4",
+            "pages": "290"
+          },
+          "text": "表14.2:LLM评估的众包和专家说明的比较。",
+          "originalExcerpt": "Table 14.2: Comparison of crowdsourcing and expert annotation for LLM evaluation."
+        },
+        {
+          "id": "s-14-2-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.4",
+            "pages": "290"
+          },
+          "text": "低(0.01 - 0.10)高(1 - 50) 高(0.50) 低域知识 低域知识 低一致性 高适量任务 简单偏好 流利 技术精度 安全平台 MTurk Prolific AI域专家 内部质量控制金 注意校准会 同行评审检查",
+          "originalExcerpt": "Dimension Crowdsourcing Expert Annotation Cost per item Low (0.01 − −0.10) High (1 − −50) Throughput Very high Low Domain knowledge Low High Consistency Variable High Suitable tasks Simple preference, fluency Technical accuracy, safety Platforms MTurk, Prolific, Scale AI Domain specialists, in-house Quality control Gold examples, attention Calibration sessio..."
+        },
+        {
+          "id": "s-14-2-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.2.4",
+            "pages": "290"
+          },
+          "text": "对于安全关键评估(如检测有害的产物，评估医疗建议)，专家注释是不可谈判的。对于大规模优惠收集(如建立奖励模式培训集)，严格质量控制的众包往往是唯一可行的选择。",
+          "originalExcerpt": "For safety-critical evaluation (e.g., detecting harmful outputs, evaluating medical advice), expert annotation is non-negotiable. For large-scale preference collection (e.g., building a reward model training set), crowdsourcing with rigorous quality control is often the only feasible option."
+        }
+      ]
+    },
+    {
+      "id": "s-14-3",
+      "number": "14.3",
+      "level": 1,
+      "enTitle": "Synthetic Data Generation for Evaluation",
+      "zhTitle": "供评估使用的合成数据生成",
+      "pages": "290",
+      "blocks": [
+        {
+          "id": "s-14-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3",
+            "pages": "290"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.3「供评估使用的合成数据生成」 时，明确被评估的对象是单次输出、完整 trajectory 还是系统行为；随后分别记录数据来源、metric、judge、聚合方式和置信边界。一个分数只有在测量对象与失败类型对应时才有解释力。"
+        },
+        {
+          "id": "s-14-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3",
+            "pages": "290"
+          },
+          "text": "人类注释很昂贵，而且很慢。合成数据生成使用LLMs本身来制作规模的评估数据，本节涵盖主要范式。",
+          "originalExcerpt": "Human annotation is expensive and slow. Synthetic data generation uses LLMs themselves to produce evaluation data at scale. This section covers the major paradigms."
+        }
+      ]
+    },
+    {
+      "id": "s-14-3-1",
+      "number": "14.3.1",
+      "level": 2,
+      "enTitle": "LLM-as-Judge for Calibration",
+      "zhTitle": "校准法学硕士",
+      "pages": "290",
+      "blocks": [
+        {
+          "id": "s-14-3-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.1",
+            "pages": "290"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.3.1「校准法学硕士」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-14-3-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.1",
+            "pages": "290"
+          },
+          "text": "当使用LLM来生成评估标签时，校准至关重要:法官的分数必须与人类判断一致。 将“嗨 ”， [0] 1作为i项的人类偏好分，将“Qi”作为法官的预测分。校准错误由预期校准错误(欧洲经委会)测量 [124]:B X X X +Bb → ECE = |acc(Bb) − conf(Bb) → (14.7) b=1 n",
+          "originalExcerpt": "When using an LLM to generate evaluation labels, calibration is essential: the judge’s scores must be aligned with human judgments. Let hi ∈ [0, 1] be the human preference score for item i and ĥi be the judge’s predicted score. Calibration error is measured by the Expected Calibration Error (ECE) [124]: B X |Bb | ECE = |acc(Bb ) − conf(Bb )| (14.7) b=1 n"
+        },
+        {
+          "id": "s-14-3-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.1",
+            "pages": "290"
+          },
+          "text": "Bb是b-th信任桶， acc(Bb)是法官与人类一致的垃圾箱中物品的一小部分， conf(Bb)是法官对该垃圾箱的刻意信任。一个精准的法官满足E[ĥi|i i=i=p]=p 全部满足p ∈ [0， 1]。校准可以通过温度缩放来改进:将法官的原始对数z替换为z/T，其中T调用一个被搁置的校准装置，以尽量减少负对数的相似性。",
+          "originalExcerpt": "where Bb is the b-th confidence bin, acc(Bb ) is the fraction of items in the bin where the judge agrees with humans, and conf(Bb ) is the mean judge confidence in that bin. A well-calibrated judge satisfies E[ĥi | ĥi = p] = p for all p ∈ [0, 1]. Calibration can be improved by temperature scaling: replacing the judge’s raw logit z with z/T where T is tuned..."
+        }
+      ]
+    },
+    {
+      "id": "s-14-3-2",
+      "number": "14.3.2",
+      "level": 2,
+      "enTitle": "Self-Instruct",
+      "zhTitle": "自行指示",
+      "pages": "291",
+      "blocks": [
+        {
+          "id": "s-14-3-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.2",
+            "pages": "291"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.3.2「自行指示」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-14-3-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.2",
+            "pages": "291"
+          },
+          "text": "自导自演 [371] 靴子陷阱 指令 - 遵循从种子集中人类写成的任务的数据。 算法 :",
+          "originalExcerpt": "Self-Instruct [371] bootstraps instruction-following data from a seed set of human-written tasks. The algorithm:"
+        },
+        {
+          "id": "s-14-3-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.2",
+            "pages": "291"
+          },
+          "text": "1. 维持一个任务池，其中175项种子任务已关闭。",
+          "originalExcerpt": "1. Maintain a task pool initialised with 175 seed tasks."
+        },
+        {
+          "id": "s-14-3-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.2",
+            "pages": "291"
+          },
+          "text": "2. 集合中的8项任务样本;将它们作为少见的例子，以促使 LLM 生成",
+          "originalExcerpt": "2. Sample 8 tasks from the pool; use them as few-shot examples to prompt the LLM to generate"
+        },
+        {
+          "id": "s-14-3-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.2",
+            "pages": "291"
+          },
+          "text": "3. 过滤器生成的任务:删除近似复制件(ROUGE-L相似度 > 0.7)，同时保留任何现有任务",
+          "originalExcerpt": "3. Filter generated tasks: remove near-duplicates (ROUGE-L similarity > 0.7 with any existing"
+        },
+        {
+          "id": "s-14-3-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.2",
+            "pages": "291"
+          },
+          "text": "，将它归为分类与非分类，并生成输入-输出实例。",
+          "originalExcerpt": "task), classify as classification vs. non-classification, and generate input–output instances."
+        },
+        {
+          "id": "s-14-3-2-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.2",
+            "pages": "291"
+          },
+          "text": "4. 将接受的任务添加到池中。",
+          "originalExcerpt": "4. Add accepted tasks to the pool."
+        },
+        {
+          "id": "s-14-3-2-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.2",
+            "pages": "291"
+          },
+          "text": "5. 重复，直到达到理想的池积。",
+          "originalExcerpt": "5. Repeat until the desired pool size is reached."
+        },
+        {
+          "id": "s-14-3-2-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.2",
+            "pages": "291"
+          },
+          "text": "自导自导的提示模板",
+          "originalExcerpt": "Self-Instruct Prompt Template"
+        },
+        {
+          "id": "s-14-3-2-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.2",
+            "pages": "291"
+          },
+          "text": "系统 promt = \" 出现一系列任务 : 任务 1: { se e ta s k 1 i ns t ru cti on } 任务 2: { se e ta k 2 i ns t ri tu ti on }。任务 8: { se e ta s k 8 i ns ti on } 任务 9: \"",
+          "originalExcerpt": "system_prompt = \" \" \" Come up with a series of tasks : Task 1: { se e d_ ta s k_ 1 _i ns t ru c ti on } Task 2: { se e d_ ta s k_ 2 _i ns t ru c ti on } ... Task 8: { se e d_ ta s k_ 8 _i ns t ru c ti on } Task 9: \" \" \""
+        },
+        {
+          "id": "s-14-3-2-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.2",
+            "pages": "291"
+          },
+          "text": "模型完成 : 生成新的任务指令。 然后一个单独的 : 生成新任务的输入- 输出对。",
+          "originalExcerpt": "The model completes the prompt, generating a new task instruction. A separate prompt then generates input–output pairs for the new task."
+        }
+      ]
+    },
+    {
+      "id": "s-14-3-3",
+      "number": "14.3.3",
+      "level": 2,
+      "enTitle": "Evol-Instruct",
+      "zhTitle": "沃尔福指示",
+      "pages": "291",
+      "blocks": [
+        {
+          "id": "s-14-3-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.3",
+            "pages": "291"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.3.3「沃尔福指示」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-14-3-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.3",
+            "pages": "291"
+          },
+          "text": "Evol-Instruct [398] 演化出一个通过迭代重写指令设定的种子指令，使之更为复杂或多样。两个演化操作符被应用:",
+          "originalExcerpt": "Evol-Instruct [398] evolves a seed instruction set by iteratively rewriting instructions to be more complex or diverse. Two evolution operators are applied:"
+        },
+        {
+          "id": "s-14-3-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.3",
+            "pages": "291"
+          },
+          "text": "• 深入进化:增加限制，增加推理步骤，具体抽象，深化",
+          "originalExcerpt": "• In-depth evolution: Add constraints, increase reasoning steps, concretise abstractions, deepen"
+        },
+        {
+          "id": "s-14-3-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.3",
+            "pages": "291"
+          },
+          "text": "域知识要求。",
+          "originalExcerpt": "domain knowledge requirements."
+        },
+        {
+          "id": "s-14-3-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.3",
+            "pages": "291"
+          },
+          "text": "• 面包内演变:就一个相关但不同的专题编写新的指示，增加",
+          "originalExcerpt": "• In-breadth evolution: Generate a new instruction on a related but different topic, increasing"
+        },
+        {
+          "id": "s-14-3-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.3",
+            "pages": "291"
+          },
+          "text": "专题多样性。",
+          "originalExcerpt": "topic diversity."
+        },
+        {
+          "id": "s-14-3-3-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.3",
+            "pages": "291"
+          },
+          "text": "如果指令通过消除过滤器，则接受:进化指令不得是简单的副本，不得包含“抱歉”或类似的拒绝，不得短于原件。",
+          "originalExcerpt": "An instruction is accepted if it passes an elimination filter: the evolved instruction must not be a simple copy, must not contain “I’m sorry” or similar refusals, and must not be shorter than the original."
+        }
+      ]
+    },
+    {
+      "id": "s-14-3-4",
+      "number": "14.3.4",
+      "level": 2,
+      "enTitle": "Constitutional AI Data Generation",
+      "zhTitle": "宪法AI 数据生成",
+      "pages": "291",
+      "blocks": [
+        {
+          "id": "s-14-3-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.4",
+            "pages": "291"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.3.4「宪法AI 数据生成」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-14-3-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.4",
+            "pages": "291"
+          },
+          "text": "宪法AI(CAI)[16]通过让模型批评并按照一套原则(即“宪法”)修订自己的产出来生成偏好数据。",
+          "originalExcerpt": "Constitutional AI (CAI) [16] generates preference data by having the model critique and revise its own outputs according to a set of principles (the “constitution”). The pipeline:"
+        },
+        {
+          "id": "s-14-3-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.4",
+            "pages": "291"
+          },
+          "text": "1. 监督学习阶段:取样有害的迅速反应，产生初步反应，然后",
+          "originalExcerpt": "1. Supervised learning phase: Sample a harmful prompt, generate an initial response, then"
+        },
+        {
+          "id": "s-14-3-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.4",
+            "pages": "291"
+          },
+          "text": "促使模型根据宪法原则批评并修改反应。将订正反应作为监督的微调目标。",
+          "originalExcerpt": "prompt the model to critique the response according to a constitutional principle and revise it. Use the revised response as a supervised fine-tuning target."
+        },
+        {
+          "id": "s-14-3-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.4",
+            "pages": "291"
+          },
+          "text": "2. RL阶段:生成对答复(原对修订)，使用模型来标注:",
+          "originalExcerpt": "2. RL phase: Generate pairs of responses (original vs. revised), use the model to label which is"
+        },
+        {
+          "id": "s-14-3-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.4",
+            "pages": "291"
+          },
+          "text": "比较符合宪法，并在这些标签上培训一个偏好模式。使用偏好模式作为RLHF的奖励信号。",
+          "originalExcerpt": "more constitutional, and train a preference model on these labels. Use the preference model as a reward signal for RLHF."
+        },
+        {
+          "id": "s-14-3-4-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.4",
+            "pages": "291"
+          },
+          "text": "这种方法生成的偏好数据没有人类对有害内容的标签，减少了注释者接触令人困扰的材料。",
+          "originalExcerpt": "This approach generates preference data without human labelling of harmful content, reducing annotator exposure to distressing material."
+        }
+      ]
+    },
+    {
+      "id": "s-14-3-5",
+      "number": "14.3.5",
+      "level": 2,
+      "enTitle": "Distillation for Evaluation Data",
+      "zhTitle": "评估数据的消沉",
+      "pages": "292",
+      "blocks": [
+        {
+          "id": "s-14-3-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.5",
+            "pages": "292"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.3.5「评估数据的消沉」 时，明确被评估的对象是单次输出、完整 trajectory 还是系统行为；随后分别记录数据来源、metric、judge、聚合方式和置信边界。一个分数只有在测量对象与失败类型对应时才有解释力。"
+        },
+        {
+          "id": "s-14-3-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.5",
+            "pages": "292"
+          },
+          "text": "强大的教师模式(例如GPT-4)可以为培训较小的法官模式生成高质量的评估数据。",
+          "originalExcerpt": "A powerful teacher model (e.g., GPT-4) can generate high-quality evaluation data for training a smaller judge model. The distillation pipeline:"
+        },
+        {
+          "id": "s-14-3-5-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.5",
+            "pages": "292"
+          },
+          "text": "1. 收集各种提示和示范反应。",
+          "originalExcerpt": "1. Collect a diverse set of prompts and model responses."
+        },
+        {
+          "id": "s-14-3-5-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.5",
+            "pages": "292"
+          },
+          "text": "2. 利用教师生成详细的判断(分数+理由)。",
+          "originalExcerpt": "2. Use the teacher to generate detailed judgments (scores + rationales)."
+        },
+        {
+          "id": "s-14-3-5-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.5",
+            "pages": "292"
+          },
+          "text": "3. 调整一个较小的模型，以三重(即时、反应、判断)为基准。",
+          "originalExcerpt": "3. Fine-tune a smaller model on (prompt, response, judgment) triples."
+        },
+        {
+          "id": "s-14-3-5-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.5",
+            "pages": "292"
+          },
+          "text": "4. 对照被搁置的注解，对学生法官进行鉴定。",
+          "originalExcerpt": "4. Validate the student judge against held-out human annotations."
+        },
+        {
+          "id": "s-14-3-5-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.5",
+            "pages": "292"
+          },
+          "text": "学生法官从一名教师中提炼出来的“扭曲比亚斯”会继承教师的偏见，包括马鞭草偏差(更优先的反应)、自我增强偏差(如果教师也是被评估的模特)和职位偏差。总是根据独立的人类说明来验证 精选法官",
+          "originalExcerpt": "Distillation Bias A student judge distilled from a single teacher inherits the teacher’s biases, including verbosity bias (preferring longer responses), self-enhancement bias (if the teacher is also the model being evaluated), and positional bias. Always validate distilled judges against independent human annotations."
+        }
+      ]
+    },
+    {
+      "id": "s-14-3-6",
+      "number": "14.3.6",
+      "level": 2,
+      "enTitle": "Arena-Style Pairwise Generation",
+      "zhTitle": "竞技场- 风格对等的世代",
+      "pages": "292",
+      "blocks": [
+        {
+          "id": "s-14-3-6-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.6",
+            "pages": "292"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.3.6「竞技场- 风格对等的世代」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-14-3-6-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.6",
+            "pages": "292"
+          },
+          "text": "Chatbot Arena [433]通过一个众包战斗平台生成评估数据，用户在该平台上提交提示并投票表决他们喜欢的两个匿名模型响应中哪一个。由此产生一个大规模、自然多样的对等偏好数据集。关键设计选择 :",
+          "originalExcerpt": "Chatbot Arena [433] generates evaluation data through a crowdsourced battle platform where users submit prompts and vote on which of two anonymised model responses they prefer. This produces a large-scale, naturally diverse dataset of pairwise preferences. The key design choices:"
+        },
+        {
+          "id": "s-14-3-6-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.6",
+            "pages": "292"
+          },
+          "text": "• 匿名:模式身份被隐藏，以防止品牌偏差。",
+          "originalExcerpt": "• Anonymisation: Model identities are hidden to prevent brand bias."
+        },
+        {
+          "id": "s-14-3-6-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.6",
+            "pages": "292"
+          },
+          "text": "• 用户提交的提示:确保迅速实现多样性和现实世界的相关性。",
+          "originalExcerpt": "• User-submitted prompts: Ensures prompt diversity and real-world relevance."
+        },
+        {
+          "id": "s-14-3-6-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.6",
+            "pages": "292"
+          },
+          "text": "· 绑定处理:用户可以宣布领带或表示两种反应都不好。",
+          "originalExcerpt": "• Tie handling: Users can declare a tie or indicate that both responses are bad."
+        },
+        {
+          "id": "s-14-3-6-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.3.6",
+            "pages": "292"
+          },
+          "text": "• 重复:过滤近重复提示，以防止常见现象的过多",
+          "originalExcerpt": "• Deduplication: Near-duplicate prompts are filtered to prevent over-representation of common"
+        }
+      ]
+    },
+    {
+      "id": "s-14-4",
+      "number": "14.4",
+      "level": 1,
+      "enTitle": "Metrics for Ranking Tasks",
+      "zhTitle": "排名任务的标准",
+      "pages": "292",
+      "blocks": [
+        {
+          "id": "s-14-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.4",
+            "pages": "292"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.4「排名任务的标准」 时，明确被评估的对象是单次输出、完整 trajectory 还是系统行为；随后分别记录数据来源、metric、judge、聚合方式和置信边界。一个分数只有在测量对象与失败类型对应时才有解释力。"
+        },
+        {
+          "id": "s-14-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.4",
+            "pages": "292"
+          },
+          "text": "当目标是按质量排列模型时，对等比较数据比绝对分数更可靠，本节得出LLM评估中使用的主要排名系统。",
+          "originalExcerpt": "When the goal is to rank models by quality, pairwise comparison data is more reliable than absolute scores. This section derives the major ranking systems used in LLM evaluation."
+        }
+      ]
+    },
+    {
+      "id": "s-14-4-1",
+      "number": "14.4.1",
+      "level": 2,
+      "enTitle": "ELO Rating System",
+      "zhTitle": "ELO 评分系统",
+      "pages": "292-293",
+      "blocks": [
+        {
+          "id": "s-14-4-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.4.1",
+            "pages": "292-293"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.4.1「ELO 评分系统」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-14-4-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.4.1",
+            "pages": "292"
+          },
+          "text": "最初为国际象棋开发的ELO系统[84]，为每个棋手(型号)分配了一个Scalar分数R，这样， A对选手B的预期分数是:EA=(14.8) 1+10(RB −RA)/400",
+          "originalExcerpt": "The ELO system [84], originally developed for chess, assigns each player (model) a scalar rating R such that the expected score of player A against player B is: EA = (14.8) 1 + 10(RB −RA )/400"
+        },
+        {
+          "id": "s-14-4-1-b2",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 14,
+            "section": "14.4.1",
+            "pages": "292"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "Derivation. The ELO model assumes that each player’s performance on a given game is a random variable drawn from a logistic distribution centred at their rating. The probability that A beats B is: RA − RB 1 \u0012 \u0013 P (A ≻ B) = σ = (14.9) s 1 + e−(RA −RB )/s where s = 400/ ln(10) ≈ 173.7 is a scale parameter chosen so that a 400-point difference corresponds to a ..."
+        },
+        {
+          "id": "s-14-4-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.4.1",
+            "pages": "293"
+          },
+          "text": "ELO Intuition ELO是对后勤模型下观测到的结果的日志相似度的斜度下降更新。每款游戏都提供一个吵闹的渐度信号;K因素控制步数大小。一个大K适应速度快但很吵;一个小K是稳定的，但缓慢地反映了真正的技能变化。",
+          "originalExcerpt": "ELO Intuition ELO is a stochastic gradient descent update on the log-likelihood of the observed outcomes under the logistic model. Each game provides a noisy gradient signal; the K-factor controls the step size. A large K adapts quickly but is noisy; a small K is stable but slow to reflect true skill changes."
+        },
+        {
+          "id": "s-14-4-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.4.1",
+            "pages": "293"
+          },
+          "text": "游戏的游戏间距由游戏间距的顺序决定，因此，信任间隔通过游戏间距的重新取样计算:用替换B=1000次重新模拟战斗日志，从头对每次重采的ELO收视率进行重制，并将2.5和97.5百分位数作为95%的置信间隔报告。",
+          "originalExcerpt": "Bootstrap Confidence Intervals for ELO. Because ELO ratings depend on the order in which games are processed, confidence intervals are computed by bootstrap resampling: resample the battle log with replacement B = 1000 times, recompute ELO ratings from scratch for each resample, and report the 2.5th and 97.5th percentiles as the 95% confidence interval."
+        }
+      ]
+    },
+    {
+      "id": "s-14-4-2",
+      "number": "14.4.2",
+      "level": 2,
+      "enTitle": "Bradley–Terry Model",
+      "zhTitle": "布拉德利 - 泰利模型",
+      "pages": "293",
+      "blocks": [
+        {
+          "id": "s-14-4-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.4.2",
+            "pages": "293"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.4.2「布拉德利 - 泰利模型」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-14-4-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.4.2",
+            "pages": "293"
+          },
+          "text": "Bradley–Terry(BT)型[29]是ELO的极限相似性替代品。.， .， βn > 0， model I beats model j的概率是:",
+          "originalExcerpt": "The Bradley–Terry (BT) model [29] is a maximum-likelihood alternative to ELO. Given n models with strength parameters β1 , . . . , βn > 0, the probability that model i beats model j is:"
+        },
+        {
+          "id": "s-14-4-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.4.2",
+            "pages": "293"
+          },
+          "text": "βi P(i ≻ j) = (14.11) βi + βj",
+          "originalExcerpt": "βi P (i ≻ j) = (14.11) βi + βj"
+        },
+        {
+          "id": "s-14-4-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.4.2",
+            "pages": "293"
+          },
+          "text": "假设一组对偶的结果{(ik， jk， yk)}M k=1，其中yk=1 如果ik比jk和yk=0，则日志的相似性是:",
+          "originalExcerpt": "Given a set of pairwise outcomes {(ik , jk , yk )}M k=1 where yk = 1 if ik beats jk and yk = 0 otherwise, the log-likelihood is:"
+        },
+        {
+          "id": "s-14-4-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.4.2",
+            "pages": "293"
+          },
+          "text": "M \" # X βik βjk l(β) = yk log + (1 − yk) log (14.12) k=1 βik + βjk βjk + βjk",
+          "originalExcerpt": "M \" # X βik βjk ℓ(β) = yk log + (1 − yk ) log (14.12) k=1 βik + βjk βik + βjk"
+        },
+        {
+          "id": "s-14-4-2-b5",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.4.2",
+            "pages": "293"
+          },
+          "expression": "The MLE β̂ is found by iterative scaling or gradient ascent. The BT model is identifiable only up P to a multiplicative constant; a common normalisation is i log βi = 0. Working in log-space with θi = log βi gives: P (i ≻ j) = σ(θi − θj ) (14.13)",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-14-4-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.4.2",
+            "pages": "293"
+          },
+          "text": "，它相当于逻辑回归，带有特定项目的截取。当完整的战斗历史存在时， BT模型比ELO更受青睐，因为它同时使用所有数据，而不是按顺序处理游戏。",
+          "originalExcerpt": "which is equivalent to a logistic regression with item-specific intercepts. The BT model is preferred over ELO when the full battle history is available, as it uses all data simultaneously rather than processing games sequentially."
+        }
+      ]
+    },
+    {
+      "id": "s-14-4-3",
+      "number": "14.4.3",
+      "level": 2,
+      "enTitle": "TrueSkill",
+      "zhTitle": "True 技能",
+      "pages": "293",
+      "blocks": [
+        {
+          "id": "s-14-4-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.4.3",
+            "pages": "293"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.4.3「True 技能」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-14-4-3-b1",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.4.3",
+            "pages": "293"
+          },
+          "expression": "TrueSkill [138] is a Bayesian skill rating system that models each player’s skill as a Gaussian random variable si ∼ N (µi , σi2 ). The performance of player i in a game is pi = si + ϵi where ϵi ∼ N (0, β 2 ) is game-specific noise. Player i beats player j if pi > pj . The posterior update after observing i ≻ j is computed via expectation propagation (EP). The key update equations for the winner are:",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-14-4-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.4.3",
+            "pages": "293"
+          },
+          "text": "σ(σ) σ(σ) σ(μ) μ(μ) μ(μ) σ(μ) σ(μ) σ(μ) σ(μ) σ(μ) σ(μ) σ(μ) σ(μ) σ(μ) σ(μ) σ(μ) σ(μ) σ(μ) σ(μ) μ(μ) μ(μ) μ(μ) μ(μ) μ(μ) μ(μ) μ(μ) μ(μ) μ(μ) μ(μ) μ(μ) μ(μ) +(μ) +(μ) +( i) +( i) +( i) +( i) ·( i) ·( v) ·) ·( v) ·( v) ·( v) ·) ·( v) v( (14( (14) v) v( v) ·( v) v( v) ·) ·( v) ·(",
+          "originalExcerpt": "σ2 µi − µ j \u0012 \u0013 µi ← µi + i · v (14.14) c c"
+        },
+        {
+          "id": "s-14-4-3-b3",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.4.3",
+            "pages": "293"
+          },
+          "expression": "\" \u0013# σ2 µi − µ j \u0012 σi2 ← σi2 1 − 2i · w (14.15) c c q where c = 2β 2 + σi2 + σj2 , and v(t) = ϕ(t)/Φ(t), w(t) = v(t)(v(t) + t) are the truncated Gaussian correction factors (ϕ and Φ are the standard normal PDF and CDF). TrueSkill’s uncertainty estimate σi is particularly useful for identifying models that need more evaluation data.",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        }
+      ]
+    },
+    {
+      "id": "s-14-4-4",
+      "number": "14.4.4",
+      "level": 2,
+      "enTitle": "Win Rate with Confidence Intervals",
+      "zhTitle": "具有信任的中和率",
+      "pages": "294",
+      "blocks": [
+        {
+          "id": "s-14-4-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.4.4",
+            "pages": "294"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.4.4「具有信任的中和率」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-14-4-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.4.4",
+            "pages": "294"
+          },
+          "text": "最简单的排名衡量标准是胜率:选择模式A的对等比较的分数。考虑到n与 w 胜率的比较，胜率是 pQ= w/n。威尔逊的得分信任间隔[380]比天真瓦尔德的间隔更受青睐，因为它的覆盖范围在p=0和p=1附近更优厚:q z 2 p=(1−p̂) z2 p̂ + 2n ±z n + 4n 2 CI = z2 (14.16) 1+n 其中z=1.96的间隔为95%。为进行多向比较，应参照固定基准模型计算中赢率，以确保可比性。",
+          "originalExcerpt": "The simplest ranking metric is the win rate: the fraction of pairwise comparisons in which model A is preferred. Given n comparisons with w wins, the win rate is p̂ = w/n. A Wilson score confidence interval [380] is preferred over the naive Wald interval because it has better coverage near p = 0 and p = 1: q z 2 p̂(1−p̂) z2 p̂ + 2n ±z n + 4n 2 CI = z2 (14.16..."
+        }
+      ]
+    },
+    {
+      "id": "s-14-4-5",
+      "number": "14.4.5",
+      "level": 2,
+      "enTitle": "Chatbot Arena Methodology",
+      "zhTitle": "聊天场方法",
+      "pages": "294",
+      "blocks": [
+        {
+          "id": "s-14-4-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.4.5",
+            "pages": "294"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.4.5「聊天场方法」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-14-4-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.4.5",
+            "pages": "294"
+          },
+          "text": "Chatbot Arena [433] 将上述元素结合到生产规模评估系统中:",
+          "originalExcerpt": "Chatbot Arena [433] combines the above elements into a production-scale evaluation system:"
+        },
+        {
+          "id": "s-14-4-5-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.4.5",
+            "pages": "294"
+          },
+          "text": "1. 用户提交提示，并从两个匿名模式得到答复。",
+          "originalExcerpt": "1. Users submit prompts and receive responses from two anonymised models."
+        },
+        {
+          "id": "s-14-4-5-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.4.5",
+            "pages": "294"
+          },
+          "text": "2. 用户投票支持首选的响应(或宣布平局)。",
+          "originalExcerpt": "2. Users vote for the preferred response (or declare a tie)."
+        },
+        {
+          "id": "s-14-4-5-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.4.5",
+            "pages": "294"
+          },
+          "text": "3. 使用BT模式汇总选票，以制作领导板。",
+          "originalExcerpt": "3. Votes are aggregated using the BT model to produce a leaderboard."
+        },
+        {
+          "id": "s-14-4-5-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.4.5",
+            "pages": "294"
+          },
+          "text": "4. 对每个模型的得分报告 bootstrap confidence interval。",
+          "originalExcerpt": "4. Bootstrap confidence intervals are reported for each model’s score."
+        },
+        {
+          "id": "s-14-4-5-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.4.5",
+            "pages": "294"
+          },
+          "text": "5. 信心间隔重叠的模式在统计学上是无法区分的。",
+          "originalExcerpt": "5. Models with overlapping confidence intervals are considered statistically indistinguishable."
+        },
+        {
+          "id": "s-14-4-5-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.4.5",
+            "pages": "294"
+          },
+          "text": "截至2024年，查特博特竞技场已经收集了超过100万张人类偏好票，成为了最大的公开LLM偏好数据集。",
+          "originalExcerpt": "As of 2024, Chatbot Arena has collected over one million human preference votes, making it the largest publicly available LLM preference dataset."
+        }
+      ]
+    },
+    {
+      "id": "s-14-5",
+      "number": "14.5",
+      "level": 1,
+      "enTitle": "Metrics for Generation Tasks",
+      "zhTitle": "生成任务的计量",
+      "pages": "294",
+      "blocks": [
+        {
+          "id": "s-14-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5",
+            "pages": "294"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.5「生成任务的计量」 时，明确被评估的对象是单次输出、完整 trajectory 还是系统行为；随后分别记录数据来源、metric、judge、聚合方式和置信边界。一个分数只有在测量对象与失败类型对应时才有解释力。"
+        },
+        {
+          "id": "s-14-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5",
+            "pages": "294"
+          },
+          "text": "生成计量法将模型产出的质量量化，并附有参考答案或明确界定的正确性标准。",
+          "originalExcerpt": "Generation metrics quantify the quality of model outputs for tasks with reference answers or welldefined correctness criteria."
+        }
+      ]
+    },
+    {
+      "id": "s-14-5-1",
+      "number": "14.5.1",
+      "level": 2,
+      "enTitle": "BLEU",
+      "zhTitle": "溴化铀",
+      "pages": "294-295",
+      "blocks": [
+        {
+          "id": "s-14-5-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.1",
+            "pages": "294-295"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.5.1「溴化铀」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-14-5-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.1",
+            "pages": "294"
+          },
+          "text": "BLEU(双语评估副研究) [283] 测量假设h与一个或多个参考R之间的n-g精度:N!！ X BLEU = BP = exp wn log pn (14.17) n=1",
+          "originalExcerpt": "BLEU (Bilingual Evaluation Understudy) [283] measures n-gram precision between a hypothesis h and one or more references R: N ! X BLEU = BP · exp wn log pn (14.17) n=1"
+        },
+        {
+          "id": "s-14-5-1-b2",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.1",
+            "pages": "294"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "where pn is the modified n-gram precision, wn = 1/N are uniform weights, and BP is the brevity penalty: ( 1 if |h| > |r| BP = 1−|r|/|h| (14.18) e if |h| ≤ |r| with |r| being the length of the closest reference. Modified n-gram precision clips each n-gram count to its maximum count in any reference: P ngram∈h min(count(ngram, h), maxr∈R count(ngram, r)) pn = ..."
+        },
+        {
+          "id": "s-14-5-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.1",
+            "pages": "294"
+          },
+          "text": "BLEU限制 BLEU是用于机器翻译，有多种参考文献，对于一个单一参考文献的开放式一代，即使高质量产出， BLEU的得分也往往接近零。 BLEU 不捕捉语义相似性，惩罚有效的解释，并且对表示性很敏感。使用",
+          "originalExcerpt": "BLEU Limitations BLEU was designed for machine translation with multiple references. For open-ended generation with a single reference, BLEU scores are often near zero even for high-quality outputs. BLEU does not capture semantic similarity, penalises valid paraphrases, and is sensitive to tokenisation. Use"
+        },
+        {
+          "id": "s-14-5-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.1",
+            "pages": "295"
+          },
+          "text": "只有当有多种不同的参考文献可用，且任务输出多样性低时， BLEU才会如此。",
+          "originalExcerpt": "BLEU only when multiple diverse references are available and the task has low output diversity."
+        }
+      ]
+    },
+    {
+      "id": "s-14-5-2",
+      "number": "14.5.2",
+      "level": 2,
+      "enTitle": "ROUGE",
+      "zhTitle": "鲁日",
+      "pages": "295",
+      "blocks": [
+        {
+          "id": "s-14-5-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.2",
+            "pages": "295"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.5.2「鲁日」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-14-5-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.2",
+            "pages": "295"
+          },
+          "text": "ROUGE(为Gisting Experience而作的回顾型副研究)[216]是一个为汇总设计而设计的面向召回的计量学家族:P P r∈R ngram∈r men(计数(ngram， h)，计数(ngram， r)) ROUGE-N=P (14.20) r∈R ngram∈r count(ngram， r)",
+          "originalExcerpt": "ROUGE (Recall-Oriented Understudy for Gisting Evaluation) [216] is a family of recall-oriented metrics designed for summarisation: P P r∈R ngram∈r min(count(ngram, h), count(ngram, r)) ROUGE-N = P P (14.20) r∈R ngram∈r count(ngram, r)"
+        },
+        {
+          "id": "s-14-5-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.2",
+            "pages": "295"
+          },
+          "text": "LCS(h， r) ROUGE-L = (14.21) |r| |",
+          "originalExcerpt": "LCS(h, r) ROUGE-L = (14.21) |r|"
+        },
+        {
+          "id": "s-14-5-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.2",
+            "pages": "295"
+          },
+          "text": "表示最长的普通子序列。 ROUGE-1和ROUGE-2测量单格和比格拉姆召回;ROUGE-L捕捉句子级结构。 F计量变体平衡精度和回转:1+β 2) → P → RROUGE-NF = (14.22) β2P + R， β + 1 用于等重。",
+          "originalExcerpt": "where LCS denotes the longest common subsequence. ROUGE-1 and ROUGE-2 measure unigram and bigram recall; ROUGE-L captures sentence-level structure. The F-measure variant balances precision and recall: (1 + β 2 ) · P · R ROUGE-NF = (14.22) β2P + R with β = 1 for equal weighting."
+        }
+      ]
+    },
+    {
+      "id": "s-14-5-3",
+      "number": "14.5.3",
+      "level": 2,
+      "enTitle": "BERTScore",
+      "zhTitle": "比尔特斯丘",
+      "pages": "295",
+      "blocks": [
+        {
+          "id": "s-14-5-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.3",
+            "pages": "295"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.5.3「比尔特斯丘」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-14-5-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.3",
+            "pages": "295"
+          },
+          "text": "BERTScore [426] 使用预选的BERT模型的上下文嵌入计算符号级相似性。基于假说符号 x̂= x̂1， x̂m⟩和参考符号 x⟨x1， xn⟩ 与嵌入 êi 和 ej :",
+          "originalExcerpt": "BERTScore [426] computes token-level similarity using contextual embeddings from a pre-trained BERT model. Given hypothesis tokens x̂ = ⟨x̂1 , . . . , x̂m ⟩ and reference tokens x = ⟨x1 , . . . , xn ⟩ with embeddings êi and ej :"
+        },
+        {
+          "id": "s-14-5-3-b2",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.3",
+            "pages": "295"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "1 X ê⊤i ej RBERT = max (14.23) |x| xj ∈x x̂i ∈x̂ ∥êi ∥∥ej ∥"
+        },
+        {
+          "id": "s-14-5-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.3",
+            "pages": "295"
+          },
+          "text": "i e i i i i i i i i i i i i i = 最大值 (14.24) i x ̂ ∈ ∈ i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i",
+          "originalExcerpt": "1 X ê⊤i ej PBERT = max (14.24) |x̂| x̂ ∈x̂ xj ∈x ∥êi ∥∥ej ∥ i"
+        },
+        {
+          "id": "s-14-5-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.3",
+            "pages": "295"
+          },
+          "text": "· 贝特·弗贝特=2人(14.25人) 贝特+ 贝特",
+          "originalExcerpt": "PBERT · RBERT FBERT = 2 · (14.25) PBERT + RBERT"
+        },
+        {
+          "id": "s-14-5-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.3",
+            "pages": "295"
+          },
+          "text": "与BLEU和ROUGE相比， BERTSCore更能与人类判断联系起来，特别是对于比喻和在表象上相当但从逻辑上不同的产出而言。使用反向文档频率的重要性加权 (IDF) 进一步改善了相关性: P idf xj ∈ id id id id id ma ma ma ma s ê ê ê ê ê ê ê ê ê ê ê ê ê ê ê ê ê ê ê ê ê ê ê ê ê ê ê ê ê ê ê ê ê ê ê ê ê ê ê ê ê ê ê ê = = = = = = = = = ∈ = = ∈ ∈ ∈ = ∈ = ∈ ∈ = ∈ = = ∈ ∈ ∈ ∈ ∈ = = ∈ = = ∈ ∈ ∈ ∈ ∈ ∈ ∈ ∈ ∈ ∈ ∈ ∈ ∈ ∈ ∈ ∈ ∈ ∈ ∈ ∈",
+          "originalExcerpt": "BERTScore correlates better with human judgments than BLEU and ROUGE, particularly for paraphrases and semantically equivalent but lexically different outputs. Importance weighting using inverse document frequency (IDF) further improves correlation: P idf xj ∈x idf(xj ) maxx̂i cos(êi , ej ) RBERT = P (14.26) xj ∈x idf(xj )"
+        }
+      ]
+    },
+    {
+      "id": "s-14-5-4",
+      "number": "14.5.4",
+      "level": 2,
+      "enTitle": "METEOR",
+      "zhTitle": "气象",
+      "pages": "295",
+      "blocks": [
+        {
+          "id": "s-14-5-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.4",
+            "pages": "295"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.5.4「气象」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-14-5-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.4",
+            "pages": "295"
+          },
+          "text": "METEOR [19] 处理BLEU的记忆失明问题，方法是计算一个F分数大于单格匹配，并增加用于终止和同义匹配的模块:",
+          "originalExcerpt": "METEOR [19] addresses BLEU’s recall blindness by computing an F-score over unigram matches, with additional modules for stemming and synonym matching:"
+        },
+        {
+          "id": "s-14-5-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.4",
+            "pages": "295"
+          },
+          "text": "METEOR=FMEAN(1−笔)(14.27)",
+          "originalExcerpt": "METEOR = Fmean · (1 − Pen) (14.27)"
+        },
+        {
+          "id": "s-14-5-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.4",
+            "pages": "295"
+          },
+          "text": "10P R，其中Fmean=R+9P(召回加权口琴平均值)和碎裂处罚笔=0.5 = (c/um) 惩罚非相近的火柴(c=块数， um=匹配单格数)。",
+          "originalExcerpt": "10P R where Fmean = R+9P (recall-weighted harmonic mean) and the fragmentation penalty Pen = 0.5 · (c/um ) penalises non-contiguous matches (c = number of chunks, um = number of matched unigrams)."
+        }
+      ]
+    },
+    {
+      "id": "s-14-5-5",
+      "number": "14.5.5",
+      "level": 2,
+      "enTitle": "Perplexity",
+      "zhTitle": "复杂",
+      "pages": "296",
+      "blocks": [
+        {
+          "id": "s-14-5-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.5",
+            "pages": "296"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.5.5「复杂」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-14-5-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.5",
+            "pages": "296"
+          },
+          "text": "复杂度衡量语言模型对被搁置文本序列w1， w2，.， wT的预测程度: T！1X PPL(w1:T)=exp - log Pθ(wt | W1:t−1) (14.28) T =1",
+          "originalExcerpt": "Perplexity measures how well a language model predicts a held-out text sequence w1 , w2 , . . . , wT : T ! 1X PPL(w1:T ) = exp − log Pθ (wt | w1:t−1 ) (14.28) T t=1"
+        },
+        {
+          "id": "s-14-5-5-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.5",
+            "pages": "296"
+          },
+          "text": "低迷表示更好的预测性能。 复杂性对于比较同一标语和测试集的模型很有用， 但对于不同词汇或符号的模型来说并不直接可比。为了评估目的，迷惑性最有助于进行理智检查和检测分布变化。",
+          "originalExcerpt": "Lower perplexity indicates better predictive performance. Perplexity is useful for comparing models on the same tokenisation and test set, but is not directly comparable across models with different vocabularies or tokenisers. For evaluation purposes, perplexity is most useful as a sanity check and for detecting distribution shift."
+        }
+      ]
+    },
+    {
+      "id": "s-14-5-6",
+      "number": "14.5.6",
+      "level": 2,
+      "enTitle": "Pass@k for Code",
+      "zhTitle": "密码的通过@ k",
+      "pages": "296",
+      "blocks": [
+        {
+          "id": "s-14-5-6-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.6",
+            "pages": "296"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.5.6「密码的通过@ k」 的实现时，不只看 happy path。请同时标出 state schema、外部依赖、权限边界、重试与终止条件、可观测字段和可能产生副作用的 action；代码能运行，并不等于系统已经具备可恢复性。"
+        },
+        {
+          "id": "s-14-5-6-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.6",
+            "pages": "296"
+          },
+          "text": "对于代码生成，功能正确性通过执行生成的代码对照测试案例来测量。 Pass@k rim [47] 估计至少有一个生成的k样本通过所有测试的概率:n-c → \" k pass@k = 问题 1 - n → (14.29) k，其中n 表示每个问题生成的样本总数， c表示通过的数目。这个无偏见的估算器可以避免天真的估算器(它精确地采样 k 解决方案，如果有通过的话进行检查)的高度差异。实际上， n = 200 个样本生成并传递@ 1，通过@10，通过@100。 pass@k计算",
+          "originalExcerpt": "For code generation, functional correctness is measured by executing generated code against test cases. The pass@k metric [47] estimates the probability that at least one of k generated samples passes all tests: n−c \u0001# \" k pass@k = Eproblems 1 − n\u0001 (14.29) k where n is the total number of samples generated per problem and c is the number that pass. This unbi..."
+        },
+        {
+          "id": "s-14-5-6-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.6",
+            "pages": "296"
+          },
+          "text": "从 scipy 导入 np 数字为。 特殊导入梳",
+          "originalExcerpt": "import numpy as np from scipy . special import comb"
+        },
+        {
+          "id": "s-14-5-6-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.6",
+            "pages": "296"
+          },
+          "text": "df pass at k(n:int， c:int， k:int) - > 浮点数: \" 传球的无偏见估计器@k。",
+          "originalExcerpt": "def pass_at_k ( n : int , c : int , k : int ) -> float : \" \" \" Unbiased estimator for pass@k ."
+        },
+        {
+          "id": "s-14-5-6-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.6",
+            "pages": "296"
+          },
+          "text": "参数:n:每个问题生成的样本总数 c:通过所有测试的样本数量 k:如果n - c < k:返回1.0返回1.0 - 梳(n - c， k， 准确 = True) /梳(n， k， 准确 = True)，则考虑样本数量 k: 样本数量 – 考虑\"\"。",
+          "originalExcerpt": "Args : n : total samples generated per problem c : number of samples that pass all tests k : number of samples to consider \"\"\" if n - c < k : return 1.0 return 1.0 - comb ( n - c , k , exact = True ) / comb (n , k , exact = True )"
+        },
+        {
+          "id": "s-14-5-6-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.6",
+            "pages": "296"
+          },
+          "text": "#例:200个样本，15个通过，计算通过@1，通过@10，通过#100 以K表示[1，10，100]:分数=通过 at k(n=200， c=15， k=k)打印(f \"通过##k]: {通过#4 f}#1: 0.0750#通过#10: 0.5391#通过#100:0.9999 维基百科中的相关条目: 维基语录链接:名人名言 - 文学作品 - 谚语 - 谚语 - 谚语 - 谚语 - 谚语 - 谚语 - 谚语 - 谚语 - 谚语 - 谚语 - 谚语 - 谚语 - 谚语 - 谚语 - 谚语 - 谚语 - 谚语 - 谚语 - 谚语 - 谚语 - 谚语 - 谚语 - 谚语",
+          "originalExcerpt": "# Example : 200 samples , 15 pass , compute pass@1 , pass@10 , pass@100 for k in [1 , 10 , 100]: score = pass_at_k ( n =200 , c =15 , k = k ) print ( f \" pass@ { k }: { score :.4 f } \" ) # pass@1 : 0.0750 # pass@10 : 0.5391 # pass@100 : 0.9999"
+        }
+      ]
+    },
+    {
+      "id": "s-14-5-7",
+      "number": "14.5.7",
+      "level": 2,
+      "enTitle": "Exact Match and F1",
+      "zhTitle": "精确匹配和 F1",
+      "pages": "296-297",
+      "blocks": [
+        {
+          "id": "s-14-5-7-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.7",
+            "pages": "296-297"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.5.7「精确匹配和 F1」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-14-5-7-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.7",
+            "pages": "296"
+          },
+          "text": "对于采掘问题回答(例如SQuAD)，两个标准度量标准是:",
+          "originalExcerpt": "For extractive question answering (e.g., SQuAD), two standard metrics are:"
+        },
+        {
+          "id": "s-14-5-7-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.7",
+            "pages": "296"
+          },
+          "text": "• 精确匹配(EM):预测的答案字符串是否完全匹配的二进制指标",
+          "originalExcerpt": "• Exact Match (EM): Binary indicator of whether the predicted answer string exactly matches"
+        },
+        {
+          "id": "s-14-5-7-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.7",
+            "pages": "296"
+          },
+          "text": "任何金子解答在正常化后(低调、删除物品和标点)。",
+          "originalExcerpt": "any gold answer after normalisation (lowercasing, removing articles and punctuation)."
+        },
+        {
+          "id": "s-14-5-7-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.7",
+            "pages": "296"
+          },
+          "text": "• 托肯级F1:将预测和金色答案视为信使袋，并计算F1",
+          "originalExcerpt": "• Token-level F1: Treats prediction and gold answer as bags of tokens and computes the F1"
+        },
+        {
+          "id": "s-14-5-7-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.7",
+            "pages": "296"
+          },
+          "text": "得分: 2 ^ + = = = = = = (14.30) = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =",
+          "originalExcerpt": "score: 2 · |pred ∩ gold| F1 = (14.30) |pred| + |gold|"
+        },
+        {
+          "id": "s-14-5-7-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.7",
+            "pages": "297"
+          },
+          "text": "对于多解答设置，报告所有金子答案的最大F1. 表14.3:生成度量衡的汇总:适用性和关键属性。",
+          "originalExcerpt": "For multi-answer settings, the maximum F1 over all gold answers is reported. Table 14.3: Summary of generation metrics: applicability and key properties."
+        },
+        {
+          "id": "s-14-5-7-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.5.7",
+            "pages": "297"
+          },
+          "text": "免量任务参考?人际关系 BLEU 翻译 无低-中度 ROUGE 汇总 无中度 BERTSCore 通用 NLG 高METEOR 翻译 无中度- 高度复杂 LM 质量 是 低传承@k 代码生成 号(测试) 甚高精密匹配 QA 提取 号无甚高Token F1 提取 QA 高",
+          "originalExcerpt": "Metric Task Reference-free? Human correlation BLEU Translation No Low–Medium ROUGE Summarisation No Medium BERTScore General NLG No High METEOR Translation No Medium–High Perplexity LM quality Yes Low Pass@k Code generation No (tests) Very high Exact Match Extractive QA No Very high Token F1 Extractive QA No High"
+        }
+      ]
+    },
+    {
+      "id": "s-14-6",
+      "number": "14.6",
+      "level": 1,
+      "enTitle": "Metrics for Agentic Tasks",
+      "zhTitle": "Agent任务量表",
+      "pages": "297",
+      "blocks": [
+        {
+          "id": "s-14-6-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.6",
+            "pages": "297"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.6「Agent任务量表」 时，明确被评估的对象是单次输出、完整 trajectory 还是系统行为；随后分别记录数据来源、metric、judge、聚合方式和置信边界。一个分数只有在测量对象与失败类型对应时才有解释力。"
+        },
+        {
+          "id": "s-14-6-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.6",
+            "pages": "297"
+          },
+          "text": "AgentLLMS在环境中运行，采取动作顺序，必须完成多步任务。标准生成度量标准不足;Agent评估需要衡量任务完成、效率和中间步骤的质量。",
+          "originalExcerpt": "Agentic LLMs operate in environments, take sequences of actions, and must complete multi-step tasks. Standard generation metrics are insufficient; agentic evaluation requires metrics that capture task completion, efficiency, and the quality of intermediate steps."
+        }
+      ]
+    },
+    {
+      "id": "s-14-6-1",
+      "number": "14.6.1",
+      "level": 2,
+      "enTitle": "Task Success Rate",
+      "zhTitle": "任务成功率",
+      "pages": "297",
+      "blocks": [
+        {
+          "id": "s-14-6-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.6.1",
+            "pages": "297"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.6.1「任务成功率」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-14-6-1-b1",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 14,
+            "section": "14.6.1",
+            "pages": "297"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "The primary metric for agentic tasks is the task success rate (TSR): the fraction of tasks for which the agent achieves the specified goal state: 1 X TSR = 1[goal(τ ) achieved] (14.31) |T | τ ∈T"
+        },
+        {
+          "id": "s-14-6-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.6.1",
+            "pages": "297"
+          },
+          "text": "目标实现情况通常通过确定性甲骨文(例如检查数据库状态，文件系统状态，或测试案例执行)进行核查。对于有部分功劳的任务，可以定义分级成功度量表:1X TSR分级=分数(\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\",
+          "originalExcerpt": "Goal achievement is typically verified by a deterministic oracle (e.g., checking database state, file system state, or test case execution). For tasks with partial credit, a graded success metric can be defined: 1 X TSRgraded = score(τ ) ∈ [0, 1] (14.32) |T | τ ∈T"
+        }
+      ]
+    },
+    {
+      "id": "s-14-6-2",
+      "number": "14.6.2",
+      "level": 2,
+      "enTitle": "Trajectory Efficiency",
+      "zhTitle": "轨迹效率",
+      "pages": "297",
+      "blocks": [
+        {
+          "id": "s-14-6-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.6.2",
+            "pages": "297"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.6.2「轨迹效率」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-14-6-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.6.2",
+            "pages": "297"
+          },
+          "text": "一个成功的Agent应该以最小的不必要的动作来完成任务。轨迹效率测量了最佳轨迹长度与Agent实际轨迹长度的比例:L* + 14.33 浅色是最短成功轨迹的长度(由甲骨文或人类专家计算)，浅色是Agent采取的行动数量。 + = = 1 表示最佳效率。对于故障轨迹， +=0。辅助的衡量标准是冗余率: 任何最佳轨迹中不存在的Agent动作的一小部分。",
+          "originalExcerpt": "A successful agent should complete tasks with minimal unnecessary actions. Trajectory efficiency measures the ratio of the optimal trajectory length to the agent’s actual trajectory length: L∗ η= (14.33) Lagent where L∗ is the length of the shortest successful trajectory (computed by an oracle or human expert) and Lagent is the number of actions taken by the..."
+        }
+      ]
+    },
+    {
+      "id": "s-14-6-3",
+      "number": "14.6.3",
+      "level": 2,
+      "enTitle": "Tool-Use Accuracy",
+      "zhTitle": "工具使用精确度",
+      "pages": "297",
+      "blocks": [
+        {
+          "id": "s-14-6-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.6.3",
+            "pages": "297"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.6.3「工具使用精确度」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-14-6-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.6.3",
+            "pages": "297"
+          },
+          "text": "对于引用外部工具的Agent(API，代码解释器，搜索引擎)，工具使用精度测量tool calling是否正确:#正确的tool callingTUA = (14.34)#总tool calling Atool calling如果(a) 选择正确的工具，(b) 参数有效，(c) 调用在轨迹的适当点，则正确。部分信用可以被指定用于正确选择工具，并带有不正确的参数。",
+          "originalExcerpt": "For agents that invoke external tools (APIs, code interpreters, search engines), tool-use accuracy measures the correctness of tool calls: # correct tool calls TUA = (14.34) # total tool calls A tool call is correct if (a) the correct tool is selected, (b) the arguments are valid, and (c) the call is made at the appropriate point in the trajectory. Partial c..."
+        }
+      ]
+    },
+    {
+      "id": "s-14-6-4",
+      "number": "14.6.4",
+      "level": 2,
+      "enTitle": "Multi-Step Reasoning Accuracy",
+      "zhTitle": "多步骤原因精确度",
+      "pages": "298",
+      "blocks": [
+        {
+          "id": "s-14-6-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.6.4",
+            "pages": "298"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.6.4「多步骤原因精确度」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-14-6-4-b1",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 14,
+            "section": "14.6.4",
+            "pages": "298"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "For tasks requiring chains of reasoning (e.g., multi-hop QA, mathematical problem solving), step-level accuracy measures the fraction of reasoning steps that are correct: 1 X 1 X SRA = 1[s is correct] (14.35) |T | τ ∈T |Sτ | s∈S τ"
+        },
+        {
+          "id": "s-14-6-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.6.4",
+            "pages": "298"
+          },
+          "text": "步骤正确性可以通过过程Reward Model(PRM)或人的说明来验证。",
+          "originalExcerpt": "where Sτ is the set of reasoning steps in trajectory τ . Step correctness can be verified by a process reward model (PRM) or by human annotation."
+        }
+      ]
+    },
+    {
+      "id": "s-14-6-5",
+      "number": "14.6.5",
+      "level": 2,
+      "enTitle": "SWE-bench Methodology",
+      "zhTitle": "方法",
+      "pages": "298",
+      "blocks": [
+        {
+          "id": "s-14-6-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.6.5",
+            "pages": "298"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.6.5「方法」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-14-6-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.6.5",
+            "pages": "298"
+          },
+          "text": "SWE-bench [169] 评估LLMs关于现实世界软件工程任务:鉴于GitHub问题描述和寄存器代码库，模型必须生成一个补丁来解决问题。评估结果如下:",
+          "originalExcerpt": "SWE-bench [169] evaluates LLMs on real-world software engineering tasks: given a GitHub issue description and the repository codebase, the model must generate a patch that resolves the issue. Evaluation proceeds as follows:"
+        },
+        {
+          "id": "s-14-6-5-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.6.5",
+            "pages": "298"
+          },
+          "text": "1. 模型有问题说明和相关编码背景。",
+          "originalExcerpt": "1. The model is given the issue description and relevant code context."
+        },
+        {
+          "id": "s-14-6-5-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.6.5",
+            "pages": "298"
+          },
+          "text": "2. 该模型生成一个补丁(统一diff格式)。",
+          "originalExcerpt": "2. The model generates a patch (unified diff format)."
+        },
+        {
+          "id": "s-14-6-5-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.6.5",
+            "pages": "298"
+          },
+          "text": "3. 补丁适用于存储处。",
+          "originalExcerpt": "3. The patch is applied to the repository."
+        },
+        {
+          "id": "s-14-6-5-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.6.5",
+            "pages": "298"
+          },
+          "text": "4. 执行存放处的测试套件;如果所有测试都通过，任务就成功。",
+          "originalExcerpt": "4. The repository’s test suite is executed; the task is successful if all tests pass."
+        },
+        {
+          "id": "s-14-6-5-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.6.5",
+            "pages": "298"
+          },
+          "text": "主要的衡量标准是 % 解决: 生成的补丁通过所有测试的问题的一小部分。 SWE-bench 验证是经人类注释者核实的500个问题的一个可解析的子集。 SWE-bench Lite是300个问题子集，设计用于更快的评估。 SWE-bench Key Statistics (截至2024年)",
+          "originalExcerpt": "The primary metric is % Resolved: the fraction of issues for which the generated patch passes all tests. SWE-bench Verified is a curated subset of 500 problems verified by human annotators to be solvable and unambiguous. SWE-bench Lite is a 300-problem subset designed for faster evaluation. SWE-bench Key Statistics (as of 2024)"
+        },
+        {
+          "id": "s-14-6-5-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.6.5",
+            "pages": "298"
+          },
+          "text": "• 全面基准:12个流行的Python寄存器的2 294项任务。",
+          "originalExcerpt": "• Full benchmark: 2,294 tasks from 12 popular Python repositories."
+        },
+        {
+          "id": "s-14-6-5-b8",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 14,
+            "section": "14.6.5",
+            "pages": "298"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "• Best open-source agent: ∼43% resolved (SWE-bench Verified)."
+        },
+        {
+          "id": "s-14-6-5-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.6.5",
+            "pages": "298"
+          },
+          "text": "• 人类表现:87%已解决(每任务15分钟)。",
+          "originalExcerpt": "• Human performance: ∼87% resolved (with 15 minutes per task)."
+        },
+        {
+          "id": "s-14-6-5-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.6.5",
+            "pages": "298"
+          },
+          "text": "• 评估费用:基于API的模型，每任务0.25美元。",
+          "originalExcerpt": "• Evaluation cost: ∼$0.25 per task for API-based models."
+        }
+      ]
+    },
+    {
+      "id": "s-14-6-6",
+      "number": "14.6.6",
+      "level": 2,
+      "enTitle": "WebArena Methodology",
+      "zhTitle": "网络阿雷纳方法",
+      "pages": "298",
+      "blocks": [
+        {
+          "id": "s-14-6-6-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.6.6",
+            "pages": "298"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.6.6「网络阿雷纳方法」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-14-6-6-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.6.6",
+            "pages": "298"
+          },
+          "text": "WebArena [440] 在沙箱浏览器环境中评估现实的网页导航任务Agent。基准包括涵盖五个网络应用(电子商务、社会论坛、协作开发、内容管理和地图)的812项任务。",
+          "originalExcerpt": "WebArena [440] evaluates agents on realistic web navigation tasks in a sandboxed browser environment. The benchmark includes 812 tasks across five web applications (e-commerce, social forum, collaborative development, content management, and maps). Evaluation:"
+        },
+        {
+          "id": "s-14-6-6-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.6.6",
+            "pages": "298"
+          },
+          "text": "• 功能评估:通过检查应用程序状态(例如，",
+          "originalExcerpt": "• Functional evaluation: The task outcome is verified by checking the application state (e.g.,"
+        },
+        {
+          "id": "s-14-6-6-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.6.6",
+            "pages": "298"
+          },
+          "text": "“是否在推车上添加了项目?”，“该员额是否创建?”",
+          "originalExcerpt": "“Was the item added to the cart?”, “Was the post created?”)."
+        },
+        {
+          "id": "s-14-6-6-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.6.6",
+            "pages": "298"
+          },
+          "text": "• 基于URL的评估:对于导航任务，最后URL与预期的比较",
+          "originalExcerpt": "• URL-based evaluation: For navigation tasks, the final URL is compared to the expected"
+        },
+        {
+          "id": "s-14-6-6-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.6.6",
+            "pages": "298"
+          },
+          "text": "• 基于方案的评估:一个定制评估员脚本检查复杂的条件(例如，“是否............”",
+          "originalExcerpt": "• Program-based evaluation: A custom evaluator script checks complex conditions (e.g., “Is"
+        },
+        {
+          "id": "s-14-6-6-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.6.6",
+            "pages": "298"
+          },
+          "text": "价格低于50美元?”",
+          "originalExcerpt": "the price less than $50?”)."
+        },
+        {
+          "id": "s-14-6-6-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.6.6",
+            "pages": "298"
+          },
+          "text": "首要的衡量标准是任务成功率。 人类的性能约为78%;最先进的Agent达到35-45%左右。",
+          "originalExcerpt": "The primary metric is task success rate. Human performance is approximately 78%; state-of-the-art agents achieve approximately 35–45%."
+        }
+      ]
+    },
+    {
+      "id": "s-14-7",
+      "number": "14.7",
+      "level": 1,
+      "enTitle": "LLM-as-Judge",
+      "zhTitle": "LLM 现职法官",
+      "pages": "298-299",
+      "blocks": [
+        {
+          "id": "s-14-7-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7",
+            "pages": "298-299"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.7「LLM 现职法官」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-14-7-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7",
+            "pages": "298"
+          },
+          "text": "LLM-as-judge [433] 使用一个有能力的LLM来评估其他(或相同的)LLMs的产出。这种方法在没有人名注释的情况下，将大型评估集进行比例化，并且可以为判断提供详细的理由。",
+          "originalExcerpt": "LLM-as-judge [433] uses a capable LLM to evaluate the outputs of other (or the same) LLMs. This approach scales to large evaluation sets without human annotation and can provide detailed rationales for its judgments."
+        },
+        {
+          "id": "s-14-7-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7",
+            "pages": "299"
+          },
+          "text": "表14.4:Agent评估基准比较。",
+          "originalExcerpt": "Table 14.4: Comparison of agentic evaluation benchmarks."
+        },
+        {
+          "id": "s-14-7-b3",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 14,
+            "section": "14.7",
+            "pages": "299"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "Benchmark Domain # Tasks Eval Method SOTA (%) SWE-bench Software engineer- 2,294 Test execution ∼43 ing SWE-bench Lite Software engineer- 300 Test execution ∼50 ing WebArena Web navigation 812 State/URL/program ∼40 ALFWorld [329] Household tasks 3,553 Simulator state ∼90 AgentBench [229] Multi-domain 1,091 Task-specific ∼45"
+        }
+      ]
+    },
+    {
+      "id": "s-14-7-1",
+      "number": "14.7.1",
+      "level": 2,
+      "enTitle": "Setup and Prompt Templates",
+      "zhTitle": "设置和提示模板",
+      "pages": "299-300",
+      "blocks": [
+        {
+          "id": "s-14-7-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.1",
+            "pages": "299-300"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.7.1「设置和提示模板」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-14-7-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.1",
+            "pages": "299"
+          },
+          "text": "法官得到迅速、一个或多个模式答复和评估标题。",
+          "originalExcerpt": "The judge is presented with a prompt, one or more model responses, and an evaluation rubric. Three common formats:"
+        },
+        {
+          "id": "s-14-7-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.1",
+            "pages": "299"
+          },
+          "text": "点评分 法官给一个回答分配绝对分数: 点评法官 Power",
+          "originalExcerpt": "Pointwise scoring. The judge assigns an absolute score to a single response: Pointwise Judge Prompt"
+        },
+        {
+          "id": "s-14-7-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.1",
+            "pages": "299"
+          },
+          "text": "POINTWISE PROMPT = \" \" 你是一名专家评估员。按1-10的尺度对以下答复进行评分，以求得帮助、准确和清晰。",
+          "originalExcerpt": "POINTWISE_PROMPT = \" \" \" You are an expert evaluator . Rate the following response on a scale of 1 -10 for helpfulness , accuracy , and clarity ."
+        },
+        {
+          "id": "s-14-7-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.1",
+            "pages": "299"
+          },
+          "text": "[问]{问}",
+          "originalExcerpt": "[ Question ] { question }"
+        },
+        {
+          "id": "s-14-7-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.1",
+            "pages": "299"
+          },
+          "text": "[应 {应}",
+          "originalExcerpt": "[ Response ] { response }"
+        },
+        {
+          "id": "s-14-7-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.1",
+            "pages": "299"
+          },
+          "text": "提供如下格式的评估: 理由: < step - by - step analysis > 得分: < 整数从 1 到 10 > \"\"",
+          "originalExcerpt": "Provide your evaluation in the following format : Reasoning : < step - by - step analysis > Score : < integer from 1 to 10 > \"\"\""
+        },
+        {
+          "id": "s-14-7-1-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.1",
+            "pages": "299"
+          },
+          "text": "比较对等。法官比较两个答复，选择更好的答复:Pir对等法官Poon",
+          "originalExcerpt": "Pairwise comparison. The judge compares two responses and selects the better one: Pairwise Judge Prompt"
+        },
+        {
+          "id": "s-14-7-1-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.1",
+            "pages": "299"
+          },
+          "text": "PAIRWISE PROMPT= \" 你是专家评估员。比较以下两个答复并确定哪个答复更好。考虑帮助、准确性和解释深度。",
+          "originalExcerpt": "PAIRWISE_PROMPT = \" \" \" You are an expert evaluator . Compare the two responses below and determine which is better . Consider helpfulness , accuracy , and depth of explanation ."
+        },
+        {
+          "id": "s-14-7-1-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.1",
+            "pages": "299"
+          },
+          "text": "[问]{问}",
+          "originalExcerpt": "[ Question ] { question }"
+        },
+        {
+          "id": "s-14-7-1-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.1",
+            "pages": "299"
+          },
+          "text": "[答复A]{答复 a}",
+          "originalExcerpt": "[ Response A ] { response_a }"
+        },
+        {
+          "id": "s-14-7-1-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.1",
+            "pages": "299"
+          },
+          "text": "[答复B]{答复 b}",
+          "originalExcerpt": "[ Response B ] { response_b }"
+        },
+        {
+          "id": "s-14-7-1-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.1",
+            "pages": "299"
+          },
+          "text": "输出完全如下:[[A]]、[[B]]或[[C]](带)。",
+          "originalExcerpt": "Output exactly one of : [[ A ]] , [[ B ]] , or [[ C ]] ( tie ) . Reasoning : < your analysis > Verdict : <[[ A ]] , [[ B ]] , or [[ C ]] > \"\"\""
+        },
+        {
+          "id": "s-14-7-1-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.1",
+            "pages": "299"
+          },
+          "text": "参考指导评分:向法官提供参考答案，并评定相关答复的等级，这对于法官可能不可靠的事实任务特别有用。",
+          "originalExcerpt": "Reference-guided scoring. The judge is provided with a reference answer and rates the response relative to it. This is particularly useful for factual tasks where the judge may not have reliable"
+        }
+      ]
+    },
+    {
+      "id": "s-14-7-2",
+      "number": "14.7.2",
+      "level": 2,
+      "enTitle": "Position Bias Mitigation",
+      "zhTitle": "减少偏见",
+      "pages": "300",
+      "blocks": [
+        {
+          "id": "s-14-7-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.2",
+            "pages": "300"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.7.2「减少偏见」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-14-7-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.2",
+            "pages": "300"
+          },
+          "text": "长期法学硕士的评委表现出立场偏差:系统偏好某个特定位置(第一或最后一个位置)的反应。这种偏差可能高达10-15个百分点。缓解战略:",
+          "originalExcerpt": "LLM judges exhibit position bias: a systematic preference for the response appearing in a particular position (first or last). This bias can be as large as 10–15 percentage points. Mitigation strategies:"
+        },
+        {
+          "id": "s-14-7-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.2",
+            "pages": "300"
+          },
+          "text": "1. 交换增强:在两种订单中评估每对订单(A对B和B对A)。",
+          "originalExcerpt": "1. Swap augmentation: Evaluate each pair in both orders (A vs. B and B vs. A). A consistent"
+        },
+        {
+          "id": "s-14-7-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.2",
+            "pages": "300"
+          },
+          "text": "判决被接受;不一致的判决被记录为是等同的。",
+          "originalExcerpt": "judgment is accepted; an inconsistent judgment is recorded as a tie."
+        },
+        {
+          "id": "s-14-7-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.2",
+            "pages": "300"
+          },
+          "text": "2. 校准提示:明确指示法官: \" 您的评估不应是",
+          "originalExcerpt": "2. Calibration prompting: Explicitly instruct the judge: “Your evaluation should not be"
+        },
+        {
+          "id": "s-14-7-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.2",
+            "pages": "300"
+          },
+          "text": "受答复的顺序影响。”",
+          "originalExcerpt": "influenced by the order in which the responses are presented.”"
+        },
+        {
+          "id": "s-14-7-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.2",
+            "pages": "300"
+          },
+          "text": "3. 判断:使用多个职位不同的法官，并汇总其命令和命令。",
+          "originalExcerpt": "3. Ensemble judging: Use multiple judges with different position orderings and aggregate their"
+        },
+        {
+          "id": "s-14-7-2-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.2",
+            "pages": "300"
+          },
+          "text": "4. 思维的强迫:要求法官在审判前提出详细的理由。",
+          "originalExcerpt": "4. Chain-of-thought forcing: Require the judge to produce a detailed rationale before the"
+        },
+        {
+          "id": "s-14-7-2-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.2",
+            "pages": "300"
+          },
+          "text": "判决，减少对表面位置提示的依赖。",
+          "originalExcerpt": "verdict, which reduces reliance on superficial positional cues."
+        },
+        {
+          "id": "s-14-7-2-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.2",
+            "pages": "300"
+          },
+          "text": "Verbosity Bias LLM评委也表现出动词偏差:更长时间的反应被系统偏好，即使附加内容无关紧要或重复。为了减轻这种压力，指示法官惩罚不必要的时间长度，并注重信息质量而不是数量。 或者，在判断前缩短固定时间。",
+          "originalExcerpt": "Verbosity Bias LLM judges also exhibit verbosity bias: longer responses are systematically preferred, even when the additional content is irrelevant or repetitive. To mitigate this, instruct the judge to penalise unnecessary length and to focus on the quality of information rather than quantity. Alternatively, truncate responses to a fixed length before judg..."
+        }
+      ]
+    },
+    {
+      "id": "s-14-7-3",
+      "number": "14.7.3",
+      "level": 2,
+      "enTitle": "Multi-Judge Panels",
+      "zhTitle": "多名法官小组",
+      "pages": "300",
+      "blocks": [
+        {
+          "id": "s-14-7-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.3",
+            "pages": "300"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.7.3「多名法官小组」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-14-7-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.3",
+            "pages": "300"
+          },
+          "text": "单一法官可能存在系统性偏见。来自不同模范家庭的法官小组提供更强有力的评估。鉴于法官有v1、vJ {A、B、time}的判决，陪审团的判决由多数人投票决定。面板协议费率为:",
+          "originalExcerpt": "A single judge may have systematic biases. A panel of judges from different model families provides more robust evaluations. Given J judges with verdicts v1 , . . . , vJ ∈ {A, B, tie}, the panel verdict is determined by majority vote. The panel agreement rate is:"
+        },
+        {
+          "id": "s-14-7-3-b2",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.3",
+            "pages": "300"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "1 X Agreement = J\u0001 1[vi = vj ] (14.36) 2 i<j"
+        },
+        {
+          "id": "s-14-7-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.3",
+            "pages": "300"
+          },
+          "text": "对于三位法官组成的合议庭，一致判决(三人都同意)被视为高度自信;2–1分为中等自信;三条路的平局则被视为低信心。",
+          "originalExcerpt": "For a three-judge panel, a unanimous verdict (all three agree) is treated as high-confidence; a 2–1 split as medium-confidence; and a three-way tie as low-confidence."
+        }
+      ]
+    },
+    {
+      "id": "s-14-7-4",
+      "number": "14.7.4",
+      "level": 2,
+      "enTitle": "Agreement Metrics for LLM Judges",
+      "zhTitle": "法学硕士法官的计量协议",
+      "pages": "300",
+      "blocks": [
+        {
+          "id": "s-14-7-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.4",
+            "pages": "300"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.7.4「法学硕士法官的计量协议」 时，明确被评估的对象是单次输出、完整 trajectory 还是系统行为；随后分别记录数据来源、metric、judge、聚合方式和置信边界。一个分数只有在测量对象与失败类型对应时才有解释力。"
+        },
+        {
+          "id": "s-14-7-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.4",
+            "pages": "300"
+          },
+          "text": "为了验证一名LLM法官，将判决与人对搁置的一套判决相比较。",
+          "originalExcerpt": "To validate an LLM judge, its verdicts are compared to human annotations on a held-out set. Key metrics:"
+        },
+        {
+          "id": "s-14-7-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.4",
+            "pages": "300"
+          },
+          "text": "• 协议费率:法官与人类同意的项目分数。",
+          "originalExcerpt": "• Agreement rate: Fraction of items where judge and human agree."
+        },
+        {
+          "id": "s-14-7-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.4",
+            "pages": "300"
+          },
+          "text": "科恩的“共同:机会修正协议”(公式？)",
+          "originalExcerpt": "• Cohen’s κ: Chance-corrected agreement (Equation ??)."
+        },
+        {
+          "id": "s-14-7-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.4",
+            "pages": "300"
+          },
+          "text": "· Spearman的 ^: 法官得分与人得分之间的排名关联，适合",
+          "originalExcerpt": "• Spearman’s ρ: Rank correlation between judge scores and human scores, appropriate for"
+        },
+        {
+          "id": "s-14-7-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.4",
+            "pages": "300"
+          },
+          "text": "正常收视率。",
+          "originalExcerpt": "ordinal ratings."
+        },
+        {
+          "id": "s-14-7-4-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.4",
+            "pages": "300"
+          },
+          "text": "· Kendall的《》:与联系关系更紧密的替代等级关系。",
+          "originalExcerpt": "• Kendall’s τ : Alternative rank correlation that is more robust to ties."
+        },
+        {
+          "id": "s-14-7-4-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.4",
+            "pages": "300"
+          },
+          "text": "如果法官在代表性样本上与人类注释员达成 > 0.6和80%的协议率，则法官被视为可靠。",
+          "originalExcerpt": "A judge is considered reliable if it achieves κ > 0.6 and agreement rate > 80% with human annotators on a representative sample."
+        }
+      ]
+    },
+    {
+      "id": "s-14-7-5",
+      "number": "14.7.5",
+      "level": 2,
+      "enTitle": "G-Eval Framework",
+      "zhTitle": "G-Eval框架",
+      "pages": "301",
+      "blocks": [
+        {
+          "id": "s-14-7-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.5",
+            "pages": "301"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.7.5「G-Eval框架」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-14-7-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.5",
+            "pages": "301"
+          },
+          "text": "G-Eval [231]是LLM评估的结构化框架，采用思维链的激发和符号概率加权来产生更可靠的分数。框架:",
+          "originalExcerpt": "G-Eval [231] is a structured framework for LLM-based evaluation that uses chain-of-thought prompting and token probability weighting to produce more reliable scores. The framework:"
+        },
+        {
+          "id": "s-14-7-5-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.5",
+            "pages": "301"
+          },
+          "text": "1. 产生评估步骤:促使 LLM产生评估的详细标题",
+          "originalExcerpt": "1. Generate evaluation steps: Prompt the LLM to generate a detailed rubric for the evaluation"
+        },
+        {
+          "id": "s-14-7-5-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.5",
+            "pages": "301"
+          },
+          "text": "任务(例如，“列出你将采取的步骤，以评估摘要的一致性”)。",
+          "originalExcerpt": "task (e.g., “List the steps you would take to evaluate the coherence of a summary”)."
+        },
+        {
+          "id": "s-14-7-5-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.5",
+            "pages": "301"
+          },
+          "text": "2. 概率加权分数:每分值为 {1、2、3、4、5}，获得",
+          "originalExcerpt": "2. Score with probability weighting: For each score value s ∈ {1, 2, 3, 4, 5}, obtain the"
+        },
+        {
+          "id": "s-14-7-5-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.5",
+            "pages": "301"
+          },
+          "text": "逻辑概率日志 Pθ(s | 迅速，步骤，反应)来自评委模型。最终得分是概率加权平均值: X elog Pθ(s) G-Eval 得分= s ^ P5 log Pθ(s′)(14.37) s=1 s′ 1 e",
+          "originalExcerpt": "log-probability log Pθ (s | prompt, steps, response) from the judge model. The final score is the probability-weighted average: X elog Pθ (s) G-Eval score = s · P5 log Pθ (s′ ) (14.37) s=1 s′ =1 e"
+        },
+        {
+          "id": "s-14-7-5-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.5",
+            "pages": "301"
+          },
+          "text": "3. 正常:通过除以最高分数将得分图示为[0，1]。",
+          "originalExcerpt": "3. Normalise: Map the score to [0, 1] by dividing by the maximum score."
+        },
+        {
+          "id": "s-14-7-5-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.7.5",
+            "pages": "301"
+          },
+          "text": "G-Eval与人类判断的关联性比直接的激励更高，特别是在一致性和一致性等细微的维度方面，因为权重概率捕捉到法官的不确定性，而不是强迫作出离散的选择。 G-Eval Works Standarding为何要求法官输出一个单一的符号(例如“4.”)，以放弃模型的不确定性。 G-Eval读取了所有记分符的概率分布，有效地计算了法官认为的预期分数。 这类似于使用后期分布的平均值而不是模式。",
+          "originalExcerpt": "G-Eval achieves higher correlation with human judgments than direct prompting, particularly for nuanced dimensions like coherence and consistency, because the probability weighting captures the judge’s uncertainty rather than forcing a discrete choice. Why G-Eval Works Standard prompting asks the judge to output a single token (e.g., “4”), which discards the..."
+        }
+      ]
+    },
+    {
+      "id": "s-14-8",
+      "number": "14.8",
+      "level": 1,
+      "enTitle": "Evaluation Pitfalls",
+      "zhTitle": "评估",
+      "pages": "301",
+      "blocks": [
+        {
+          "id": "s-14-8-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8",
+            "pages": "301"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.8「评估」 时，明确被评估的对象是单次输出、完整 trajectory 还是系统行为；随后分别记录数据来源、metric、judge、聚合方式和置信边界。一个分数只有在测量对象与失败类型对应时才有解释力。"
+        },
+        {
+          "id": "s-14-8-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8",
+            "pages": "301"
+          },
+          "text": "即使精心设计的评估管道也会产生误导的结果，本节将最常见的故障模式归为一目了然。",
+          "originalExcerpt": "Even carefully designed evaluation pipelines can produce misleading results. This section catalogues the most common failure modes."
+        }
+      ]
+    },
+    {
+      "id": "s-14-8-1",
+      "number": "14.8.1",
+      "level": 2,
+      "enTitle": "Benchmark Contamination",
+      "zhTitle": "基准污染",
+      "pages": "301",
+      "blocks": [
+        {
+          "id": "s-14-8-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.1",
+            "pages": "301"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.8.1「基准污染」 时，明确被评估的对象是单次输出、完整 trajectory 还是系统行为；随后分别记录数据来源、metric、judge、聚合方式和置信边界。一个分数只有在测量对象与失败类型对应时才有解释力。"
+        },
+        {
+          "id": "s-14-8-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.1",
+            "pages": "301"
+          },
+          "text": "当评估数据直接(包含文字内容)或间接(用参数表述或内容相似)出现在模型的培训中时，就会发生基准污染。被污染的模型得到的分数过高，不能反映真正的通用能力。",
+          "originalExcerpt": "Benchmark contamination occurs when evaluation data appears in the model’s training set, either directly (verbatim inclusion) or indirectly (paraphrased or semantically similar content). Contaminated models achieve inflated scores that do not reflect true generalisation ability."
+        },
+        {
+          "id": "s-14-8-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.1",
+            "pages": "301"
+          },
+          "text": "检测方法:",
+          "originalExcerpt": "Detection methods:"
+        },
+        {
+          "id": "s-14-8-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.1",
+            "pages": "301"
+          },
+          "text": "• n-g重叠:计算有高 n-g重叠的评估实例的一小部分(例如，",
+          "originalExcerpt": "• n-gram overlap: Compute the fraction of evaluation examples with high n-gram overlap (e.g.,"
+        },
+        {
+          "id": "s-14-8-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.1",
+            "pages": "301"
+          },
+          "text": "培训大纲中载有Rouge-L > 0.8)",
+          "originalExcerpt": "ROUGE-L > 0.8) with the training corpus."
+        },
+        {
+          "id": "s-14-8-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.1",
+            "pages": "301"
+          },
+          "text": "• 成员推断:利用成员推断攻击来估计概率",
+          "originalExcerpt": "• Membership inference: Use a membership inference attack to estimate the probability that"
+        },
+        {
+          "id": "s-14-8-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.1",
+            "pages": "301"
+          },
+          "text": "每个评估实例都出现在培训中。",
+          "originalExcerpt": "each evaluation example was in the training set."
+        },
+        {
+          "id": "s-14-8-1-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.1",
+            "pages": "301"
+          },
+          "text": "• 加那利字符串:在评估示例中嵌入独特的随机生成的字符串并检查",
+          "originalExcerpt": "• Canary strings: Embed unique, randomly generated strings in evaluation examples and check"
+        },
+        {
+          "id": "s-14-8-1-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.1",
+            "pages": "301"
+          },
+          "text": "如果模型能完成的话",
+          "originalExcerpt": "if the model can complete them."
+        },
+        {
+          "id": "s-14-8-1-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.1",
+            "pages": "301"
+          },
+          "text": "· 暂时搁置:使用模型培训截止日期后产生的评估数据。",
+          "originalExcerpt": "• Temporal holdout: Use evaluation data created after the model’s training cutoff date."
+        },
+        {
+          "id": "s-14-8-1-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.1",
+            "pages": "301"
+          },
+          "text": "• 维持从未公开发布的私人测试集。",
+          "originalExcerpt": "• Maintain a private test set that is never released publicly."
+        },
+        {
+          "id": "s-14-8-1-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.1",
+            "pages": "301"
+          },
+          "text": "• 定期更新基准，并增加新的例子。",
+          "originalExcerpt": "• Regularly refresh benchmarks with new examples."
+        },
+        {
+          "id": "s-14-8-1-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.1",
+            "pages": "301"
+          },
+          "text": "• 报告培训数据截止日期和清除污染程序。",
+          "originalExcerpt": "• Report training data cutoff dates and decontamination procedures."
+        }
+      ]
+    },
+    {
+      "id": "s-14-8-2",
+      "number": "14.8.2",
+      "level": 2,
+      "enTitle": "Overfitting to Benchmarks",
+      "zhTitle": "过度适应基准",
+      "pages": "302",
+      "blocks": [
+        {
+          "id": "s-14-8-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.2",
+            "pages": "302"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.8.2「过度适应基准」 时，明确被评估的对象是单次输出、完整 trajectory 还是系统行为；随后分别记录数据来源、metric、judge、聚合方式和置信边界。一个分数只有在测量对象与失败类型对应时才有解释力。"
+        },
+        {
+          "id": "s-14-8-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.2",
+            "pages": "302"
+          },
+          "text": "即使没有直接污染，也可以通过反复评估和超参数调试，暗含地优化模型，以达到具体基准。这是一种适应性过度适应的形式:基准将信息泄露到模型开发决策中。 基准生命周期A的效用随着研究界的选择而逐渐下降。 MMLU [137]，曾经是对世界知识的一次挑战性测试，现在有模型实现近人性能，然而这些模型仍然在新知识任务上失败。新的基准应作为临时信号源，而不是永久的地面真相。",
+          "originalExcerpt": "Even without direct contamination, models can be implicitly optimised for specific benchmarks through repeated evaluation and hyperparameter tuning. This is a form of adaptive overfitting: the benchmark leaks information into model development decisions. The Benchmark Lifecycle A benchmark’s utility degrades over time as the research community optimises for ..."
+        }
+      ]
+    },
+    {
+      "id": "s-14-8-3",
+      "number": "14.8.3",
+      "level": 2,
+      "enTitle": "Goodhart’s Law in Evaluation",
+      "zhTitle": "Goodhart 的评估法",
+      "pages": "302",
+      "blocks": [
+        {
+          "id": "s-14-8-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.3",
+            "pages": "302"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.8.3「Goodhart 的评估法」 时，明确被评估的对象是单次输出、完整 trajectory 还是系统行为；随后分别记录数据来源、metric、judge、聚合方式和置信边界。一个分数只有在测量对象与失败类型对应时才有解释力。"
+        },
+        {
+          "id": "s-14-8-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.3",
+            "pages": "302"
+          },
+          "text": "Goodhart的《法律》指出: \" 当某项措施成为目标时，它就不再是一项好措施。 \" [112] 在LLM评估中，这表现在几个方面:",
+          "originalExcerpt": "Goodhart’s Law states: “When a measure becomes a target, it ceases to be a good measure.” [112] In LLM evaluation, this manifests in several ways:"
+        },
+        {
+          "id": "s-14-8-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.3",
+            "pages": "302"
+          },
+          "text": "• reward hacking:接受RLHF培训的模特学习利用奖励模式，而不是",
+          "originalExcerpt": "• Reward hacking: Models trained with RLHF learn to exploit the reward model rather than"
+        },
+        {
+          "id": "s-14-8-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.3",
+            "pages": "302"
+          },
+          "text": "模型可能会产生动词性、自信性的反应，在Reward Model中得分很高，但事实上是不正确的。",
+          "originalExcerpt": "genuinely improving. A model may learn to produce verbose, confident-sounding responses that score highly on the reward model but are factually incorrect."
+        },
+        {
+          "id": "s-14-8-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.3",
+            "pages": "302"
+          },
+          "text": "• 计量游戏:对模型进行微调，以最大限度地提高BLEU或ROUGE的产量",
+          "originalExcerpt": "• Metric gaming: Models fine-tuned to maximise BLEU or ROUGE may produce outputs that"
+        },
+        {
+          "id": "s-14-8-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.3",
+            "pages": "302"
+          },
+          "text": "对这些测量标准得分不错，但对人来说却不太有用。",
+          "originalExcerpt": "score well on these metrics but are less useful to humans."
+        },
+        {
+          "id": "s-14-8-3-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.3",
+            "pages": "302"
+          },
+          "text": "• 法官游戏:接受LLM-as-法官反馈培训的模型可能了解法官的偏见",
+          "originalExcerpt": "• Judge gaming: Models trained with LLM-as-judge feedback may learn the judge’s biases"
+        },
+        {
+          "id": "s-14-8-3-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.3",
+            "pages": "302"
+          },
+          "text": "反古德哈特法律的辩护",
+          "originalExcerpt": "(e.g., verbosity bias) rather than genuinely improving quality. Defences Against Goodhart’s Law"
+        },
+        {
+          "id": "s-14-8-3-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.3",
+            "pages": "302"
+          },
+          "text": "1. 计量多样性:使用不同家庭的多种计量标准;一种游戏模式",
+          "originalExcerpt": "1. Metric diversity: Use multiple metrics from different families; a model that games one"
+        },
+        {
+          "id": "s-14-8-3-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.3",
+            "pages": "302"
+          },
+          "text": "度量衡不可能同时游戏。",
+          "originalExcerpt": "metric will likely not game all simultaneously."
+        },
+        {
+          "id": "s-14-8-3-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.3",
+            "pages": "302"
+          },
+          "text": "2. 搁置评估:维持未用于培训或模式的评估衡量标准",
+          "originalExcerpt": "2. Held-out evaluation: Maintain evaluation metrics that are not used in training or model"
+        },
+        {
+          "id": "s-14-8-3-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.3",
+            "pages": "302"
+          },
+          "text": "3. 人检查:定期抽样模式产出供人审查，不考虑",
+          "originalExcerpt": "3. Human spot-checks: Regularly sample model outputs for human review, independent of"
+        },
+        {
+          "id": "s-14-8-3-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.3",
+            "pages": "302"
+          },
+          "text": "自动测量。",
+          "originalExcerpt": "automated metrics."
+        },
+        {
+          "id": "s-14-8-3-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.3",
+            "pages": "302"
+          },
+          "text": "4. 横向评估:积极探索自动计量误差的故障模式。",
+          "originalExcerpt": "4. Adversarial evaluation: Actively probe for failure modes that automated metrics miss."
+        },
+        {
+          "id": "s-14-8-3-b15",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.3",
+            "pages": "302"
+          },
+          "text": "5. 外消减法:定期对照外消减结果验证内在的衡量标准。",
+          "originalExcerpt": "5. Extrinsic validation: Periodically validate intrinsic metrics against extrinsic outcomes."
+        }
+      ]
+    },
+    {
+      "id": "s-14-8-4",
+      "number": "14.8.4",
+      "level": 2,
+      "enTitle": "Additional Pitfalls",
+      "zhTitle": "额外陷阱",
+      "pages": "302-304",
+      "blocks": [
+        {
+          "id": "s-14-8-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.4",
+            "pages": "302-304"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §14.8.4「额外陷阱」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-14-8-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.4",
+            "pages": "302"
+          },
+          "text": "即时灵敏度。 LLM性能会随着评估即时的微小变化而大不相同(例如，添加\"一步步思考\"或改变答案格式)。总是报告准确使用的提示，并考虑对多个提示变量进行评估。",
+          "originalExcerpt": "Prompt sensitivity. LLM performance can vary dramatically with small changes to the evaluation prompt (e.g., adding “Think step by step” or changing the answer format). Always report the exact prompt used and consider evaluating across multiple prompt variants."
+        },
+        {
+          "id": "s-14-8-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.4",
+            "pages": "302"
+          },
+          "text": "聚合工艺品。跨任务分数难度不同，分数分布可产生误导性聚合度量。一个在简单任务上表现优异但艰苦任务上失败的模型，可能与具有统一性能的模型具有相同的平均分。",
+          "originalExcerpt": "Aggregation artefacts. Averaging scores across tasks with different difficulty levels and score distributions can produce misleading aggregate metrics. A model that excels at easy tasks but fails at hard tasks may have the same average score as a model with uniform performance."
+        },
+        {
+          "id": "s-14-8-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.4",
+            "pages": "302"
+          },
+          "text": "人的评估中选择偏颇。 人的评估员并不是最终用户的随机抽样。 众包平台上的注释员可能与目标用户群体有不同的偏好、文化背景和域知识。",
+          "originalExcerpt": "Selection bias in human evaluation. Human evaluators are not a random sample of end users. Annotators on crowdsourcing platforms may have different preferences, cultural backgrounds, and domain knowledge than the target user population."
+        },
+        {
+          "id": "s-14-8-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.4",
+            "pages": "302"
+          },
+          "text": "评估 — — 部署不匹配。 评估提示往往比真正的用户查询更短、更干净、更完善。一种在基准提示上表现良好的模式，在制作过程中发生的吵闹、模棱两可、多轮对话中，可能会显著下降。",
+          "originalExcerpt": "Evaluation–deployment mismatch. Evaluation prompts are often shorter, cleaner, and more well-formed than real user queries. A model that performs well on benchmark prompts may degrade significantly on the noisy, ambiguous, multi-turn conversations that occur in production."
+        },
+        {
+          "id": "s-14-8-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.4",
+            "pages": "303"
+          },
+          "text": "在部署评估管道之前，评估设计的主要问题是:",
+          "originalExcerpt": "Key Questions for Evaluation Design Before deploying an evaluation pipeline, ask:"
+        },
+        {
+          "id": "s-14-8-4-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.4",
+            "pages": "303"
+          },
+          "text": "1. 评估指标是否与部署目标一致?",
+          "originalExcerpt": "1. Does the evaluation metric align with the deployment objective?"
+        },
+        {
+          "id": "s-14-8-4-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.4",
+            "pages": "303"
+          },
+          "text": "2. 评估数据是否代表目标分布?",
+          "originalExcerpt": "2. Is the evaluation data representative of the target distribution?"
+        },
+        {
+          "id": "s-14-8-4-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.4",
+            "pages": "303"
+          },
+          "text": "3. 是否评估了污染和过度调整的风险?",
+          "originalExcerpt": "3. Have contamination and overfitting risks been assessed?"
+        },
+        {
+          "id": "s-14-8-4-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.4",
+            "pages": "303"
+          },
+          "text": "4. 所有衡量标准是否都报告了信任间隔?",
+          "originalExcerpt": "4. Are confidence intervals reported for all metrics?"
+        },
+        {
+          "id": "s-14-8-4-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.4",
+            "pages": "303"
+          },
+          "text": "5. 评估是否可以复制(固定种子、版本提示、公共测试套)?",
+          "originalExcerpt": "5. Is the evaluation reproducible (fixed seeds, versioned prompts, public test sets)?"
+        },
+        {
+          "id": "s-14-8-4-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 14,
+            "section": "14.8.4",
+            "pages": "303"
+          },
+          "text": "6。是否根据人类的判断或外在结果对评估进行了验证?",
+          "originalExcerpt": "6. Has the evaluation been validated against human judgments or extrinsic outcomes?"
+        }
+      ]
+    }
+  ],
+  "glossary": [
+    {
+      "term": "Agent",
+      "zh": "智能体",
+      "meaning": "由模型、状态、工具和运行循环共同构成的目标导向系统。"
+    },
+    {
+      "term": "reward model",
+      "zh": "Reward Model",
+      "meaning": "把人类或规则偏好映射为可优化标量信号的模型。"
+    },
+    {
+      "term": "token",
+      "zh": "词元",
+      "meaning": "模型处理和生成文本时使用的离散单位。"
+    }
+  ],
+  "summary": [
+    "评估是任何严格的机器学习程序的基础，然而，在开发LLM方面，评估也许是最不受到重视的部分。与古典监督学习不同，在这种学习中，带有地面真实标签的搁置测试提供了干净的信号，评估有限责任公司需要努力进行开放式的一代、主观的质量判断、多步骤推理链以及长期存在的基准污染风险。本节系统地处理评估情况:从评估类型分类学和人类注释力学，通过排名测量的数学和LLM-as-judge的实用性，到沉默地破坏评估管道的陷阱。三个基本挑战将LLM评估与传统ML评估区分开来:",
+    "1. 输出空间没有限制。语言模型可以产生任意字符串;很少出现",
+    "单正确答案。"
+  ],
+  "metrics": {
+    "chineseCharacters": 12873,
+    "sourceCoverage": 99,
+    "sectionCount": 48,
+    "blockCount": 290
+  }
+}

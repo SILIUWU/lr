@@ -1,0 +1,1861 @@
+{
+  "chapter": 10,
+  "title": "SFT Best Practices and Techniques",
+  "zhTitle": "SFT 最佳实践与技术",
+  "pages": "196-204",
+  "minutes": 24,
+  "overview": "监督的Fine-Tuning(SFT)是RLHF输油管的基础。 SFT模型的质量决定了RL能够实现的上限:RL可以完善和改进一种行为，但它不能可靠地引入一种完全没有在SFT模型中的行为。本节涵盖有效SFT的关键技术。",
+  "status": "in_progress",
+  "sections": [
+    {
+      "id": "s-10-introduction",
+      "number": null,
+      "level": 1,
+      "enTitle": "Chapter introduction",
+      "zhTitle": "章节导入",
+      "pages": "196",
+      "blocks": [
+        {
+          "id": "s-10-introduction-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 10,
+            "section": null,
+            "pages": "196"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 本章导入「章节导入」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-10-introduction-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": null,
+            "pages": "196"
+          },
+          "text": "监督的Fine-Tuning(SFT)是RLHF输油管的基础。 SFT模型的质量决定了RL能够实现的上限:RL可以完善和改进一种行为，但它不能可靠地引入一种完全没有在SFT模型中的行为。本节涵盖有效SFT的关键技术。",
+          "originalExcerpt": "Supervised Fine-Tuning (SFT) is the foundation of the RLHF pipeline. The quality of the SFT model determines the ceiling of what RL can achieve: RL can refine and improve a behaviour, but it cannot reliably introduce a behaviour that is entirely absent from the SFT model. This section covers the key techniques for effective SFT."
+        }
+      ]
+    },
+    {
+      "id": "s-10-1",
+      "number": "10.1",
+      "level": 1,
+      "enTitle": "Sequence Packing for Efficiency",
+      "zhTitle": "提高效率的包装顺序",
+      "pages": "196-197",
+      "blocks": [
+        {
+          "id": "s-10-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 10,
+            "section": "10.1",
+            "pages": "196-197"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §10.1「提高效率的包装顺序」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-10-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.1",
+            "pages": "196"
+          },
+          "text": "铺垫问题标准SFT批次将所有序列都铺到批次中最长序列的长度。对于长度差异很大的数据集(例如，短指令和长文档的混合)，这种在垫币上浪费了50-80%的计算。 顺序包装消除了这种浪费。序列包装将多个短例组合成一个长度的单序列 max seq 长度，由 EOS 符牌分隔。注意面罩确保不同实例的符牌不互相关注 :",
+          "originalExcerpt": "The Padding Problem Standard SFT batches pad all sequences to the length of the longest sequence in the batch. For datasets with high length variance (e.g., a mix of short instructions and long documents), this wastes 50–80% of compute on padding tokens. Sequence packing eliminates this waste. Sequence packing concatenates multiple short examples into a sing..."
+        },
+        {
+          "id": "s-10-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.1",
+            "pages": "196"
+          },
+          "text": "1. 按长度排序实例(可选，可提高包装效率)。",
+          "originalExcerpt": "1. Sort examples by length (optional, improves packing efficiency)."
+        },
+        {
+          "id": "s-10-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.1",
+            "pages": "196"
+          },
+          "text": "2. 贪婪地将实例装入最大长度的桶中。",
+          "originalExcerpt": "2. Greedily pack examples into bins of size max_seq_length."
+        },
+        {
+          "id": "s-10-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.1",
+            "pages": "196"
+          },
+          "text": "3.使用块状对角注意罩防止交叉注意。",
+          "originalExcerpt": "3. Use a block-diagonal attention mask to prevent cross-example attention."
+        },
+        {
+          "id": "s-10-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.1",
+            "pages": "196"
+          },
+          "text": "4. 仅计算非打字证的损失。",
+          "originalExcerpt": "4. Compute loss only on non-padding tokens."
+        },
+        {
+          "id": "s-10-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.1",
+            "pages": "196"
+          },
+          "text": "包装效率",
+          "originalExcerpt": "Packing Efficiency"
+        },
+        {
+          "id": "s-10-1-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.1",
+            "pages": "196"
+          },
+          "text": "典型包装效率:85-95%(20-50%带有垫)。",
+          "originalExcerpt": "• Typical packing efficiency: 85–95% (vs 20–50% with padding)."
+        },
+        {
+          "id": "s-10-1-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.1",
+            "pages": "196"
+          },
+          "text": "• 速度:2-4×用于长度差异大的数据组。",
+          "originalExcerpt": "• Speedup: 2–4× for datasets with high length variance."
+        },
+        {
+          "id": "s-10-1-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.1",
+            "pages": "196"
+          },
+          "text": "• 记忆:类似于贴纸(每批的纪念品总数相同)。",
+          "originalExcerpt": "• Memory: similar to padding (same total tokens per batch)."
+        },
+        {
+          "id": "s-10-1-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.1",
+            "pages": "196"
+          },
+          "text": "• 洞穴:需要小心地注意遮掩，以避免交叉污染。",
+          "originalExcerpt": "• Caveat: requires careful attention masking to avoid cross-contamination."
+        },
+        {
+          "id": "s-10-1-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.1",
+            "pages": "196"
+          },
+          "text": "TRL 中的序列包装",
+          "originalExcerpt": "Sequence Packing in TRL"
+        },
+        {
+          "id": "s-10-1-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.1",
+            "pages": "196"
+          },
+          "text": "从 trl 导入 SFTConfig， SFTtrainer",
+          "originalExcerpt": "from trl import SFTConfig , SFTTrainer"
+        },
+        {
+          "id": "s-10-1-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.1",
+            "pages": "196"
+          },
+          "text": "配置=SFTConfig(最大 seq 长=4096，包装=真，#允许序列包装输出 dir= \" sft model \"， p r d e v i c t r a i n b a t c h s i z e = 4， g a i e e = 4， c u mi i i i i i i i i i i i i i i i i i i = = 4， learning rat = 2 e - 5， num train epochs = 3，",
+          "originalExcerpt": "config = SFTConfig ( max_seq_length =4096 , packing = True , # enable sequence packing output_dir = \" sft_model \" , p e r _ d e v i c e _ t r a i n _ b a t c h _ s i z e =4 , g r a d i e n t _ a c c u m u l a t i o n _ s t e p s =4 , learning_rate =2 e -5 , num_train_epochs =3 ,"
+        },
+        {
+          "id": "s-10-1-b15",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.1",
+            "pages": "197"
+          },
+          "text": "教练员=SFTtrainer(型号=型号， args=配置， train dataset=数据集，#da taset text field=\"文本\"，#或使用格式化 func) 教练员 列车()。",
+          "originalExcerpt": "trainer = SFTTrainer ( model = model , args = config , train_dataset = dataset , # da taset_text_field =\" text \" , # or use formatting_func ) trainer . train ()"
+        }
+      ]
+    },
+    {
+      "id": "s-10-2",
+      "number": "10.2",
+      "level": 1,
+      "enTitle": "Chat Templates and Formatting",
+      "zhTitle": "聊天模板和格式",
+      "pages": "197-198",
+      "blocks": [
+        {
+          "id": "s-10-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 10,
+            "section": "10.2",
+            "pages": "197-198"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §10.2「聊天模板和格式」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-10-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.2",
+            "pages": "197"
+          },
+          "text": "为什么Chat Templates Matter Language 模型都接受了原始文本的培训，但遵循指令的模型需要区分系统提示，用户消息，以及助理响应。聊天模板将这个结构编码为符号序列。在推断时间使用错误的模板(或没有模板)会导致显著的性能退化。",
+          "originalExcerpt": "Why Chat Templates Matter Language models are trained on raw text, but instruction-following models need to distinguish between system prompts, user messages, and assistant responses. Chat templates encode this structure into the token sequence. Using the wrong template (or no template) at inference time causes significant performance degradation."
+        },
+        {
+          "id": "s-10-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.2",
+            "pages": "197"
+          },
+          "text": "ChatML 格式 ChatML 是最广泛使用的聊天模板 :# ChatML 格式模板 = \" \" ` ' `````` '系统{``````````````````````````````````````````````````````````````````````````````````````````````````````'' '`````''' '```'''''```'''''`''`''''`'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''",
+          "originalExcerpt": "ChatML Format ChatML is the most widely used chat template: # ChatML format template = \" \" \" <| im_start | > system { system_message } <| im_end | > <| im_start | > user { user_message } <| im_end | > <| im_start | > assistant { assist ant_message } <| im_end | > \" \" \""
+        },
+        {
+          "id": "s-10-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.2",
+            "pages": "197"
+          },
+          "text": "Llama格式 Llama 3 使用不同的模板，并带有特殊符号:#Llama 3格式模板= \" \" <| begin begin begin <| <| <| | | | <| <| <| <| <| { { { { { { { { <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| <| } } } } } } } } }",
+          "originalExcerpt": "Llama Format Llama 3 uses a different template with special tokens: # Llama 3 format template = \" \" \" <| begin_of_text | > <| start_header_id | > system <| end_header_id | > { system_message } <| eot_id | > <| start_header_id | > user <| end_header_id | > { user_message } <| eot_id | > <| start_header_id | > assistant <| end_header_id | > { assist ant_messag..."
+        },
+        {
+          "id": "s-10-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.2",
+            "pages": "197"
+          },
+          "text": "在TRL 中应用聊天模板",
+          "originalExcerpt": "Applying Chat Templates in TRL"
+        },
+        {
+          "id": "s-10-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.2",
+            "pages": "197"
+          },
+          "text": "从Transformer导入自动调试器， 从 trl 导入 SFTConfig， SFTtrainer",
+          "originalExcerpt": "from transformers import AutoTokenizer from trl import SFTConfig , SFTTrainer"
+        },
+        {
+          "id": "s-10-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.2",
+            "pages": "197"
+          },
+          "text": "标致器 = 自动调试器。 from pretrained( \" meta - lama / Llama - 3.1 - 8 B - 教程 \" )",
+          "originalExcerpt": "tokenizer = AutoTokenizer . from_pretrained ( \" meta - llama / Llama -3.1 -8 B - Instruct \" )"
+        },
+        {
+          "id": "s-10-2-b7",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.2",
+            "pages": "197"
+          },
+          "language": "python",
+          "code": "def formatting_func ( example ) : \" \" \" Apply chat template to a dataset example . \" \" \" messages = [ { \" role \" : \" system \" , \" content \" : \" You are a helpful assistant . \" } , { \" role \" : \" user \" , \" content \" : example [ \" instruction \" ]} , { \" role \" : \" assistant \" , \" content \" : example [ \" response \" ]} , ] return tokenizer . apply_chat_template ( messages , tokenize = False , a dd _gen erat ion_p romp t = False , )",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-10-2-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.2",
+            "pages": "198"
+          },
+          "text": "配置 = SFTConfig(最大 seq 长度 = 2048，输出 dir = \" sft model \"，)，",
+          "originalExcerpt": "config = SFTConfig ( max_seq_length =2048 , output_dir = \" sft_model \" , )"
+        },
+        {
+          "id": "s-10-2-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.2",
+            "pages": "198"
+          },
+          "text": "教练员=SFTtrainer(型号=型号，标注符=标注符， rg格=配置，列车 数据集=数据集，格式化 func=格式化 funcing，) = ) ) ) ) trainer trainer ) trainer ) trainer trainer trainer trainer trainer trainer trainer trainer trainer trainer trainer trainer trainer trainer trainer trainer trainer trainer trainer trainer trainer trainer trainer trainer trainer trainer trainer trainer trainer trainer",
+          "originalExcerpt": "trainer = SFTTrainer ( model = model , tokenizer = tokenizer , args = config , train_dataset = dataset , formatting_func = formatting_func , )"
+        }
+      ]
+    },
+    {
+      "id": "s-10-3",
+      "number": "10.3",
+      "level": 1,
+      "enTitle": "Completion-Only Masking",
+      "zhTitle": "仅装入",
+      "pages": "198",
+      "blocks": [
+        {
+          "id": "s-10-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 10,
+            "section": "10.3",
+            "pages": "198"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §10.3「仅装入」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-10-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.3",
+            "pages": "198"
+          },
+          "text": "为什么将“提示”遮住?在指示微调中，模型应该学会生成助手的响应，而不是预测用户的问题或系统是否及时。快速信号的计算损失会引发废物梯度信号，并导致模型“记忆”引发而不是学会应对。 仅用完成的掩码会将所有非辅助信号的损失定为零。",
+          "originalExcerpt": "Why Mask the Prompt? In instruction fine-tuning, the model should learn to generate the assistant’s response, not to predict the user’s question or the system prompt. Computing loss on the prompt tokens wastes gradient signal and can cause the model to “memorise” prompts rather than learning to respond to them. Completion-only masking sets the loss to zero f..."
+        },
+        {
+          "id": "s-10-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.3",
+            "pages": "198"
+          },
+          "text": "TRL中仅装入完成",
+          "originalExcerpt": "Completion-Only Masking in TRL"
+        },
+        {
+          "id": "s-10-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.3",
+            "pages": "198"
+          },
+          "text": "从 trl 导入 SFTConfig， SFTrainer， D a t a C o l o o o o o o o o o o o o o o o o o o o o o i i i i i i i L M 导入自动调制器的Transformer中导入",
+          "originalExcerpt": "from trl import SFTConfig , SFTTrainer , D a t a C o l l a t o r F o r C o m p l e t i o n O n l y L M from transformers import AutoTokenizer"
+        },
+        {
+          "id": "s-10-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.3",
+            "pages": "198"
+          },
+          "text": "标致器 = 自动调试器。 from pretrained( \" meta - lama / Llama - 3.1 - 8 B - 教程 \" )",
+          "originalExcerpt": "tokenizer = AutoTokenizer . from_pretrained ( \" meta - llama / Llama -3.1 -8 B - Instruct \" )"
+        },
+        {
+          "id": "s-10-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.3",
+            "pages": "198"
+          },
+          "text": "# 定义响应模板( 之后计算损失的标志) resp on 模板 = \" \\\\ start header id \\\\ > 助手 \\\\ end header id \\ > \" 合作器 = D a t a C o l a t r F o r r o o o m p e i i n n l y M( reponse template = reswer template， 标语符 = 标语符，)",
+          "originalExcerpt": "# Define the response template ( tokens after which loss is computed ) resp onse_ template = \" <| start_header_id | > assistant <| end_header_id | > \" collator = D a t a C o l l a t o r F o r C o m p l e t i o n O n l y L M ( res ponse_template = response_template , tokenizer = tokenizer , )"
+        },
+        {
+          "id": "s-10-3-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.3",
+            "pages": "198"
+          },
+          "text": "配置 = SFTConfig(最大 seq 长度 = 2048，输出 dir = \" sft model \"，)，",
+          "originalExcerpt": "config = SFTConfig ( max_seq_length =2048 , output_dir = \" sft_model \" , )"
+        },
+        {
+          "id": "s-10-3-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.3",
+            "pages": "198"
+          },
+          "text": "教练员=SFTtrainer(型号=型号，标注符=标注符， rg格=配置，列车 数据集=数据集，数据 编组=拼音)，#完成-仅遮盖格式 func=格式 funcing，)。",
+          "originalExcerpt": "trainer = SFTTrainer ( model = model , tokenizer = tokenizer , args = config , train_dataset = dataset , data_collator = collator , # completion - only masking formatting_func = formatting_func , )"
+        },
+        {
+          "id": "s-10-3-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.3",
+            "pages": "198"
+          },
+          "text": "完成 蒙面跳伞",
+          "originalExcerpt": "Completion Masking Pitfalls"
+        },
+        {
+          "id": "s-10-3-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.3",
+            "pages": "198"
+          },
+          "text": "反应模板必须完全与象征性的表格相符。",
+          "originalExcerpt": "• The response template must exactly match the tokenised form. Off-by-one errors in tokeni-"
+        },
+        {
+          "id": "s-10-3-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.3",
+            "pages": "198"
+          },
+          "text": "sation可能导致面具被错误应用。",
+          "originalExcerpt": "sation can cause the mask to be applied incorrectly."
+        },
+        {
+          "id": "s-10-3-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.3",
+            "pages": "198"
+          },
+          "text": "• 对于非常短的答复，掩盖迅速性可能留下太多有意义的迹象",
+          "originalExcerpt": "• For very short responses, masking the prompt may leave too few tokens for meaningful"
+        },
+        {
+          "id": "s-10-3-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.3",
+            "pages": "198"
+          },
+          "text": "梯度信号。考虑最小响应长度阈值。",
+          "originalExcerpt": "gradient signal. Consider a minimum response length threshold."
+        },
+        {
+          "id": "s-10-3-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.3",
+            "pages": "198"
+          },
+          "text": "· 多回合对话需要掩盖所有非协助性的回合，而不仅仅是第一个回合。",
+          "originalExcerpt": "• Multi-turn conversations require masking all non-assistant turns, not just the first."
+        }
+      ]
+    },
+    {
+      "id": "s-10-4",
+      "number": "10.4",
+      "level": 1,
+      "enTitle": "Data Mixing Strategies for Multi-Task SFT",
+      "zhTitle": "多任务 SFT 的数据混合策略",
+      "pages": "199",
+      "blocks": [
+        {
+          "id": "s-10-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 10,
+            "section": "10.4",
+            "pages": "199"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §10.4「多任务 SFT 的数据混合策略」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-10-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.4",
+            "pages": "199"
+          },
+          "text": "关于多个任务的多任务挑战培训可以同时改进概括性，但也会造成任务干扰:不同任务产生的梯度冲突，降低单个任务的表现。数据混合策略控制了每项任务对训练信号的相对贡献。",
+          "originalExcerpt": "The Multi-Task Challenge Training on multiple tasks simultaneously can improve generalisation but also causes task interference: gradients from different tasks conflict, degrading performance on individual tasks. Data mixing strategies control the relative contribution of each task to the training signal."
+        },
+        {
+          "id": "s-10-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.4",
+            "pages": "199"
+          },
+          "text": "按比例从每个数据集按比例混合样本，以与其大小相称:",
+          "originalExcerpt": "Proportional Mixing Sample from each dataset proportionally to its size:"
+        },
+        {
+          "id": "s-10-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.4",
+            "pages": "199"
+          },
+          "text": "Nk pk = PK， j=1 Nj = = = = = = = = k = k = = = = = = = = k = =",
+          "originalExcerpt": "Nk pk = PK , j=1 Nj"
+        },
+        {
+          "id": "s-10-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.4",
+            "pages": "199"
+          },
+          "text": "Nk 是数据集 k 中实例的数量。 这是大多数框架的默认值， 当数据集具有类似质量时， 效果良好。",
+          "originalExcerpt": "where Nk is the number of examples in dataset k. This is the default in most frameworks and works well when datasets are of similar quality."
+        },
+        {
+          "id": "s-10-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.4",
+            "pages": "199"
+          },
+          "text": "温和混合 应用温度 T 来平滑比例 :",
+          "originalExcerpt": "Temperature Mixing Apply a temperature T to smooth the proportions:"
+        },
+        {
+          "id": "s-10-4-b6",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 10,
+            "section": "10.4",
+            "pages": "199"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "1/T pk ∝ Nk . T = 1: proportional mixing. T → ∞: uniform mixing. T < 1: over-samples large datasets. T > 1: over-samples small datasets."
+        },
+        {
+          "id": "s-10-4-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.4",
+            "pages": "199"
+          },
+          "text": "质量-加权混合重数据组按估计质量(如参考模型下的复杂度，人的质量评级)进行:",
+          "originalExcerpt": "Quality-Weighted Mixing Weight datasets by estimated quality (e.g., perplexity under a reference model, human quality ratings):"
+        },
+        {
+          "id": "s-10-4-b8",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 10,
+            "section": "10.4",
+            "pages": "199"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "pk ∝ Nk · qk , where qk is the quality score for dataset k. Data Mixing in TRL"
+        },
+        {
+          "id": "s-10-4-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.4",
+            "pages": "199"
+          },
+          "text": "从数据集导入 concatenate datasets， 互页 datasets",
+          "originalExcerpt": "from datasets import concatenate_datasets , interleave_datasets"
+        },
+        {
+          "id": "s-10-4-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.4",
+            "pages": "199"
+          },
+          "text": "# 比例混合( 默认) 混合 数据集 = concatenate 数据集 ([ dataset math， dataset code， dataset general，])。 shuffle (种子=42)。",
+          "originalExcerpt": "# Proportional mixing ( default ) mixed_dataset = concatenate_datasets ([ dataset_math , dataset_code , dataset_general , ]) . shuffle ( seed =42)"
+        },
+        {
+          "id": "s-10-4-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.4",
+            "pages": "199"
+          },
+          "text": "#温和混合(T=2:超-样本小数据集) 混合 数据集=interleave 数据集([数据集 math，数据集 代码，数据集 普通]，概率=[0.4，0.4，0.2]，温度缩放种子后手动设置=42，) 互联网档案馆的存檔，存档日期2013-09-02.",
+          "originalExcerpt": "# Temperature mixing ( T =2: over - sample small datasets ) mixed_dataset = interleave_datasets ( [ dataset_math , dataset_code , dataset_general ] , probabilities =[0.4 , 0.4 , 0.2] , # manually set after temperature scaling seed =42 , )"
+        },
+        {
+          "id": "s-10-4-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.4",
+            "pages": "199"
+          },
+          "text": "config = SFTConfig (输出 dir = \"sft model \" ) 教练员 = SFTTRAINER (模型=模型， args = 配置，列车 dataset = 混合 dataset，)， = = = = = = = = = train train train train train train train train train train train train train train train train train train train train train train train train train = train train = train train train train train train train train train train train train train train train train train train train train train train train train train = train train train = = = =",
+          "originalExcerpt": "config = SFTConfig ( output_dir = \" sft_model \" ) trainer = SFTTrainer ( model = model , args = config , train_dataset = mixed_dataset , )"
+        }
+      ]
+    },
+    {
+      "id": "s-10-5",
+      "number": "10.5",
+      "level": 1,
+      "enTitle": "When SFT Hurts – Catastrophic Forgetting and Alignment",
+      "zhTitle": "当SFT伤害时 — 灾难性遗忘和对齐",
+      "pages": "200",
+      "blocks": [
+        {
+          "id": "s-10-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5",
+            "pages": "200"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §10.5「当SFT伤害时 — 灾难性遗忘和对齐」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-10-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5",
+            "pages": "200"
+          },
+          "text": "法学硕士通过连续培训阶段——培训前阶段——继续培训前阶段——过渡时，学习成绩下降往往表现在标准基准上。有两个根本不同的现象驱动这些倒退，混淆它们导致错误的缓解战略。",
+          "originalExcerpt": "Tax As LLMs transition through sequential training phases — pre-training → continued pre-training → SFT → RLHF/DPO — performance degradation frequently manifests on standard benchmarks. Two fundamentally distinct phenomena drive these regressions, and confusing them leads to wrong mitigation strategies."
+        }
+      ]
+    },
+    {
+      "id": "s-10-5-1",
+      "number": "10.5.1",
+      "level": 2,
+      "enTitle": "Catastrophic Forgetting (Structural Erasure)",
+      "zhTitle": "灾难性遗忘(结构化 Erasure)",
+      "pages": "200",
+      "blocks": [
+        {
+          "id": "s-10-5-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.1",
+            "pages": "200"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §10.5.1「灾难性遗忘(结构化 Erasure)」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-10-5-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.1",
+            "pages": "200"
+          },
+          "text": "灾难性遗忘灾难性遗忘是无意的优化失败:当一个在分布式DA上优化的网络随后在脱联分布式DB上训练时， DB需要的重量更新会物理上覆盖参数结构编码DA:",
+          "originalExcerpt": "Catastrophic Forgetting Catastrophic forgetting is an unintentional optimization failure: when a network optimized on distribution DA is subsequently trained on a disjoint distribution DB , the weight updates required for DB physically overwrite the parameter structures encoding DA :"
+        },
+        {
+          "id": "s-10-5-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.1",
+            "pages": "200"
+          },
+          "text": "+1=+1=+1=+1=+1=+1=+1=+1=+1=+1=+1=+1=+1=+1=+1=+1=========================================================================================================== (======== (============= (========== (== (====== (= == == (= ========================== (= (= = = = == === =",
+          "originalExcerpt": "θt+1 = θt − η∇θ LB (θt ) =⇒ LA (θt+1 ) ≫ LA (θt ) (10.1)"
+        },
+        {
+          "id": "s-10-5-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.1",
+            "pages": "200"
+          },
+          "text": "知识被摧毁了——重码任务A已不存在。 无法再培训， 情况是不可逆的。 症状 :",
+          "originalExcerpt": "The knowledge is destroyed — the weights encoding Task A no longer exist. This is irreversible without retraining. Symptoms:"
+        },
+        {
+          "id": "s-10-5-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.1",
+            "pages": "200"
+          },
+          "text": "• 完成未在微调数据中完成的任务的分类(例如模型在之后忘记了如何数学)",
+          "originalExcerpt": "• Complete breakdown on tasks not in fine-tuning data (e.g., model forgets how to do math after"
+        },
+        {
+          "id": "s-10-5-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.1",
+            "pages": "200"
+          },
+          "text": "聊天数据中的 SFT)",
+          "originalExcerpt": "SFT on chat data)"
+        },
+        {
+          "id": "s-10-5-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.1",
+            "pages": "200"
+          },
+          "text": "• 语言多样性的丧失——模型只产生微调分布的狭义风格",
+          "originalExcerpt": "• Loss of language diversity — model only generates in the narrow style of fine-tuning distribution"
+        },
+        {
+          "id": "s-10-5-1-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.1",
+            "pages": "200"
+          },
+          "text": "• 微调时未加强的知情事实准确性降低",
+          "originalExcerpt": "• Reduced factual accuracy on knowledge not reinforced during fine-tuning"
+        },
+        {
+          "id": "s-10-5-1-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.1",
+            "pages": "200"
+          },
+          "text": "• 仅使用英文的SFT后，多语种能力退化",
+          "originalExcerpt": "• Degraded multilingual ability after English-only SFT"
+        },
+        {
+          "id": "s-10-5-1-b9",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.1",
+            "pages": "200"
+          },
+          "expression": "Mechanistic cause — Fisher Information perspective: The Fisher Information Matrix F of Task A identifies which parameters are “important” for DA : h i F = Ex∼DA ∇θ log πθ (x) ∇θ log πθ (x)T (10.2)",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-10-5-1-b10",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.1",
+            "pages": "200"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "Parameters with high Fisher eigenvalues are critical for Task A. Unconstrained gradient descent on Task B ignores these eigenvalues entirely — ∆θ points along ∇LB regardless of whether it destroys high-Fisher directions for LA ."
+        }
+      ]
+    },
+    {
+      "id": "s-10-5-2",
+      "number": "10.5.2",
+      "level": 2,
+      "enTitle": "Alignment Tax (Behavioral Constraint)",
+      "zhTitle": "对齐税(行为约束)",
+      "pages": "200-201",
+      "blocks": [
+        {
+          "id": "s-10-5-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.2",
+            "pages": "200-201"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §10.5.2「对齐税(行为约束)」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-10-5-2-b1",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.2",
+            "pages": "200"
+          },
+          "expression": "The alignment tax is a deliberate, expected trade-off : the model’s raw capability (unconstrained generation, maximal reasoning bandwidth) decreases because the policy is constrained to produce safe, well-formatted, preference-aligned outputs. Mechanism: During DPO/PPO, the policy πθ is penalized for deviating from the reference πref via KL divergence: πθ (y|x) rimplicit (x, y) = β log (10.3) πref (y|x) This leash constrains the model’s output distribution — it cannot explore high-variance reasoning paths that deviate too far from the reference. The knowledge is not erased; it’s suppressed. The model still “knows” the answer but its distribution is flattened toward safe, generic responses. Symptoms:",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-10-5-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.2",
+            "pages": "200"
+          },
+          "text": "· 过度反驳( \" 我无法帮助 \" 提出良性询问)",
+          "originalExcerpt": "• Over-refusal (“I can’t help with that” for benign queries)"
+        },
+        {
+          "id": "s-10-5-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.2",
+            "pages": "200"
+          },
+          "text": "• 僵硬性——套头词、过多的警告、动词安全性免责词",
+          "originalExcerpt": "• Stylistic stiffness — hedge words, excessive caveats, verbose safety disclaimers"
+        },
+        {
+          "id": "s-10-5-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.2",
+            "pages": "201"
+          },
+          "text": "• 原能力基准(MMLU、HumanEval)分数较低，同时提高优惠",
+          "originalExcerpt": "• Lower scores on raw capability benchmarks (MMLU, HumanEval) while improving on preference"
+        },
+        {
+          "id": "s-10-5-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.2",
+            "pages": "201"
+          },
+          "text": "基准(MT-Bench，阿尔帕卡-埃瓦尔)",
+          "originalExcerpt": "benchmarks (MT-Bench, AlpacaEval)"
+        },
+        {
+          "id": "s-10-5-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.2",
+            "pages": "201"
+          },
+          "text": "• 制作复杂、高密度产出的能力降低(创造性写作、新颖算法)",
+          "originalExcerpt": "• Reduced ability to produce complex, high-entropy outputs (creative writing, novel algorithms)"
+        }
+      ]
+    },
+    {
+      "id": "s-10-5-3",
+      "number": "10.5.3",
+      "level": 2,
+      "enTitle": "Comparative Taxonomy",
+      "zhTitle": "比较分类学",
+      "pages": "201",
+      "blocks": [
+        {
+          "id": "s-10-5-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.3",
+            "pages": "201"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §10.5.3「比较分类学」 时，不要寻找脱离场景的“最佳方案”。应在质量、latency、计算与存储成本、数据要求、可控性和运维复杂度上逐项比较，并保留原书说明的适用前提与例外。"
+        },
+        {
+          "id": "s-10-5-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.3",
+            "pages": "201"
+          },
+          "text": "表10.1:灾难性遗忘与对齐税——完全比较。",
+          "originalExcerpt": "Table 10.1: Catastrophic Forgetting vs. Alignment Tax — complete comparison."
+        },
+        {
+          "id": "s-10-5-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.3",
+            "pages": "201"
+          },
+          "text": "维度灾难 忘记对齐税 无意(优化预期权衡(故意为安全艺术所害) ty/帮助) 参数状态 先前的知识 物理底稿分布 限制/超文本信息 破坏:不再被压制的重量 :知识存在，但更难编码能力触发 主导阶段 SEQSFT，域域共优优化(PPO， DPO， KTO， 锡式预训 RLHF) 主症状 完全分解 基础 超阻力 结构僵硬 低级原始长凳能力 标记分数 逆转性 不可逆性 不再培训 部分可逆性:调整β，系统即时，或从检查站微调 检测预训的迷惑性 eval 迷惑性稳定但能力设定的中和率 悬赏基准 降幅 模型大小 类似不同尺度的小型模型支付更大的校正税",
+          "originalExcerpt": "Dimension Catastrophic Forgetting Alignment Tax Intentionality Unintentional (optimization Expected trade-off (incurred deliberately for safeartifact) ty/helpfulness) Parameter state Prior knowledge physically Latent distributions constrained/truncated overwritten Information Destroyed: weights no longer Suppressed: knowledge exists but is harder to encode t..."
+        }
+      ]
+    },
+    {
+      "id": "s-10-5-4",
+      "number": "10.5.4",
+      "level": 2,
+      "enTitle": "Mitigation Strategies",
+      "zhTitle": "减缓战略",
+      "pages": "201-202",
+      "blocks": [
+        {
+          "id": "s-10-5-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.4",
+            "pages": "201-202"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §10.5.4「减缓战略」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-10-5-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.4",
+            "pages": "201"
+          },
+          "text": "灾难的忘却:",
+          "originalExcerpt": "For Catastrophic Forgetting:"
+        },
+        {
+          "id": "s-10-5-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.4",
+            "pages": "201"
+          },
+          "text": "1. 数据重播:将培训前数据的5-10%混合到SFT数据集。确保梯度更新",
+          "originalExcerpt": "1. Data replay: Mix 5–10% of pre-training data into SFT dataset. Ensures gradient updates"
+        },
+        {
+          "id": "s-10-5-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.4",
+            "pages": "201"
+          },
+          "text": "训练前的分发工作不会完全忽视。",
+          "originalExcerpt": "don’t completely neglect pre-training distribution."
+        },
+        {
+          "id": "s-10-5-4-b4",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.4",
+            "pages": "201"
+          },
+          "expression": "2. Elastic Weight Consolidation (EWC) [186]: Add regularization Ω(θ) = λ2 i Fi (θi − θi∗ )2",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-10-5-4-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.4",
+            "pages": "201"
+          },
+          "text": "以高水平的Fisher信息来惩罚参数的改变，以完成最初的任务。",
+          "originalExcerpt": "that penalizes changes to parameters with high Fisher information for the original task."
+        },
+        {
+          "id": "s-10-5-4-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.4",
+            "pages": "201"
+          },
+          "text": "3. LoRA/参数效率微调:列车仅限低等级适配器( < 1% pa-)",
+          "originalExcerpt": "3. LoRA / Parameter-efficient fine-tuning: Train only low-rank adapters (< 1% of pa-"
+        },
+        {
+          "id": "s-10-5-4-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.4",
+            "pages": "201"
+          },
+          "text": "， )， 使基重完全冻结。 这可以防止对训练前的知识的永久破坏 —— 你总是可以移除适配器， 并回收原来的模型。然而，在适配器活动的同时，组合系统(W0 + BA)仍然可以显示忘却:适配器可能会将模型的有效行为从旧技能中转移。 LoRA保护检查点，而不是主动推断行为。",
+          "originalExcerpt": "rameters), leaving base weights completely frozen. This prevents permanent destruction of pre-trained knowledge — you can always remove the adapter and recover the original model. However, while the adapter is active, the combined system (W0 + BA) can still exhibit forgetting: the adapter may shift the model’s effective behavior away from old skills. LoRA pr..."
+        },
+        {
+          "id": "s-10-5-4-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.4",
+            "pages": "201"
+          },
+          "text": "4. 保守学习率:使用1-5×10-6，少有时代(1-3)，较大的学习率加快",
+          "originalExcerpt": "4. Conservative learning rate: Use 1–5 × 10−6 with few epochs (1–3). Larger rates accelerate"
+        },
+        {
+          "id": "s-10-5-4-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.4",
+            "pages": "201"
+          },
+          "text": "5. 渐进培训:混合分布，逐步提高SFT数据比例",
+          "originalExcerpt": "5. Progressive training: Mix distributions gradually, increasing SFT data proportion over time"
+        },
+        {
+          "id": "s-10-5-4-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.4",
+            "pages": "201"
+          },
+          "text": "而不是突然换衣服",
+          "originalExcerpt": "rather than switching abruptly."
+        },
+        {
+          "id": "s-10-5-4-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.4",
+            "pages": "201"
+          },
+          "text": "对齐税 :",
+          "originalExcerpt": "For Alignment Tax:"
+        },
+        {
+          "id": "s-10-5-4-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.4",
+            "pages": "201"
+          },
+          "text": "1. Tune β小心:下β给予模式更多的自由(减税)，但可能牺牲",
+          "originalExcerpt": "1. Tune β carefully: Lower β gives the model more freedom (reduces the tax) but may sacrifice"
+        },
+        {
+          "id": "s-10-5-4-b15",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.4",
+            "pages": "201"
+          },
+          "text": "安全性。对于大多数设置来说，最佳β β [0.05，0.3]。",
+          "originalExcerpt": "safety. Optimal β ∈ [0.05, 0.3] for most settings."
+        },
+        {
+          "id": "s-10-5-4-b16",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.4",
+            "pages": "201"
+          },
+          "text": "2. 高质量、多样化的SFT数据:调整税的一部分来自SFT缩小",
+          "originalExcerpt": "2. High-quality, diverse SFT data: Part of the alignment tax comes from SFT narrowing the"
+        },
+        {
+          "id": "s-10-5-4-b17",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.4",
+            "pages": "201"
+          },
+          "text": "输出分布; 范围更广， 更加多样化的 SFT 数据会减少这个组件。 RL阶段通过 KL 正规化( 280) 增加了进一步的制约。",
+          "originalExcerpt": "output distribution; broader, more diverse SFT data reduces this component. The RL phase adds further constraint via KL regularization [280]."
+        },
+        {
+          "id": "s-10-5-4-b18",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.4",
+            "pages": "202"
+          },
+          "text": "3. 有条件的对齐:仅在安全旗活动时才对齐的模型进行训练。",
+          "originalExcerpt": "3. Conditional alignment: Train the model to be aligned only when a safety flag is active. At"
+        },
+        {
+          "id": "s-10-5-4-b19",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.4",
+            "pages": "202"
+          },
+          "text": "推论， 禁用基准限制( 仅研究技术)。",
+          "originalExcerpt": "inference, disable constraints for benchmarking (research-only technique)."
+        },
+        {
+          "id": "s-10-5-4-b20",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.4",
+            "pages": "202"
+          },
+          "text": "4. 宪法AI/RLAIF:利用模型产生的反馈，创造出更细致的偏好 --",
+          "originalExcerpt": "4. Constitutional AI / RLAIF: Use model-generated feedback to create more nuanced prefer-"
+        },
+        {
+          "id": "s-10-5-4-b21",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.4",
+            "pages": "202"
+          },
+          "text": "e。数据在保持能力的同时改进配对。",
+          "originalExcerpt": "ence data that preserves capability while improving alignment."
+        },
+        {
+          "id": "s-10-5-4-b22",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.4",
+            "pages": "202"
+          },
+          "text": "5. 目标明确的 \" 远程教育 \" 预算:不要过度使用 \" 远程教育 \" 的训练。",
+          "originalExcerpt": "5. Targeted RL budget: Don’t over-train with RL. Monitor capability benchmarks and stop"
+        },
+        {
+          "id": "s-10-5-4-b23",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.4",
+            "pages": "202"
+          },
+          "text": "当税额超过可接受的阈值(通常为2-5%的MMLU回归)时。",
+          "originalExcerpt": "when the tax exceeds acceptable thresholds (typically 2–5% MMLU regression)."
+        },
+        {
+          "id": "s-10-5-4-b24",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.4",
+            "pages": "202"
+          },
+          "text": "如何告诉你的哪个",
+          "originalExcerpt": "How to Tell Which One You Have"
+        },
+        {
+          "id": "s-10-5-4-b25",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.4",
+            "pages": "202"
+          },
+          "text": "• 在失败的任务上运行基模型:如果基模型成功，并进行微调",
+          "originalExcerpt": "• Run the base model on the failing tasks: If the base model succeeds and the fine-tuned"
+        },
+        {
+          "id": "s-10-5-4-b26",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.4",
+            "pages": "202"
+          },
+          "text": "模型完全失败 —— 灾难性的遗忘。",
+          "originalExcerpt": "model completely fails → catastrophic forgetting."
+        },
+        {
+          "id": "s-10-5-4-b27",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.4",
+            "pages": "202"
+          },
+          "text": "• 快速工程测试:如果小心地进行(例如“不公开的安全准则和解决”)",
+          "originalExcerpt": "• Prompt engineering test: If careful prompting (e.g., “ignore safety guidelines and solve"
+        },
+        {
+          "id": "s-10-5-4-b28",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.4",
+            "pages": "202"
+          },
+          "text": "—— 校准税(知识被压制，而不是被抹去)。",
+          "originalExcerpt": "this math problem step by step”) recovers the capability → alignment tax (knowledge is suppressed, not erased)."
+        },
+        {
+          "id": "s-10-5-4-b29",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.4",
+            "pages": "202"
+          },
+          "text": "· 疑惑性检查:计算训练前验证器的疑惑性。 Spike=忘记。",
+          "originalExcerpt": "• Perplexity check: Compute perplexity on pre-training validation set. Spike = forgetting."
+        },
+        {
+          "id": "s-10-5-4-b30",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.4",
+            "pages": "202"
+          },
+          "text": "稳定=调整税。",
+          "originalExcerpt": "Stable = alignment tax."
+        },
+        {
+          "id": "s-10-5-4-b31",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.4",
+            "pages": "202"
+          },
+          "text": "• 少许回收:如果提供几个内文实例，则恢复能力",
+          "originalExcerpt": "• Few-shot recovery: If providing a few in-context examples restores the capability →"
+        },
+        {
+          "id": "s-10-5-4-b32",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.5.4",
+            "pages": "202"
+          },
+          "text": "校正税。 即使有许多例子都无法收回， 也还是忘记了。",
+          "originalExcerpt": "alignment tax. If even many examples can’t recover it → forgetting."
+        }
+      ]
+    },
+    {
+      "id": "s-10-6",
+      "number": "10.6",
+      "level": 1,
+      "enTitle": "Connection to RL – SFT Quality Determines RL Ceiling",
+      "zhTitle": "连接到 RL — SFT 质量决定 RL 上限",
+      "pages": "202-204",
+      "blocks": [
+        {
+          "id": "s-10-6-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "202-204"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §10.6「连接到 RL — SFT 质量决定 RL 上限」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-10-6-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "202"
+          },
+          "text": "SFT-RL关系 STFT模式是RL训练的起点。 RL可以:",
+          "originalExcerpt": "The SFT-RL Relationship The SFT model is the starting point for RL training. RL can:"
+        },
+        {
+          "id": "s-10-6-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "202"
+          },
+          "text": "• 扩大在SFT模式中存在但软弱的行为。",
+          "originalExcerpt": "• Amplify behaviours that are present but weak in the SFT model."
+        },
+        {
+          "id": "s-10-6-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "202"
+          },
+          "text": "• 禁止存在但不受欢迎的行为。",
+          "originalExcerpt": "• Suppress behaviours that are present but undesirable."
+        },
+        {
+          "id": "s-10-6-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "202"
+          },
+          "text": "· 改进答复的风格和格式。",
+          "originalExcerpt": "• Refine the style and format of responses."
+        },
+        {
+          "id": "s-10-6-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "202"
+          },
+          "text": "• 引进SFT模式中完全没有的能力。",
+          "originalExcerpt": "• Introduce capabilities that are entirely absent from the SFT model."
+        },
+        {
+          "id": "s-10-6-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "202"
+          },
+          "text": "• 从SFT阶段的严重灾难性遗忘中恢复过来。",
+          "originalExcerpt": "• Recover from severe catastrophic forgetting in the SFT stage."
+        },
+        {
+          "id": "s-10-6-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "202"
+          },
+          "text": "• 对一贯带有偏见的奖励模式给予补偿。",
+          "originalExcerpt": "• Compensate for a reward model that is systematically biased."
+        },
+        {
+          "id": "s-10-6-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "202"
+          },
+          "text": "SFT中的探索-开发权衡(Exploration-Expective Tradeoff)为RL工作， SFT模式必须偶尔产生正确的响应(因此奖励信号为非零)。如果 SFT 模型从未对给定的提示产生正确的响应， RL 就无法学习产生正确的响应 — — 没有正信号可以放大。 这就是为什么 SFT 质量是 RL 性能的上限。具体来说:如果SFT模型正确解决了10%的数学问题， RL可以将这个比例推到80%。如果SFT模型解决了0%的数学问题， RL将不会取得任何进展(所有的奖励都是零，所有的优点都是零，没有梯度)。",
+          "originalExcerpt": "The Exploration-Exploitation Tradeoff in SFT For RL to work, the SFT model must occasionally produce correct responses (so the reward signal is non-zero). If the SFT model never produces a correct response to a given prompt, RL cannot learn to produce correct responses – there is no positive signal to amplify. This is why SFT quality is the ceiling for RL pe..."
+        },
+        {
+          "id": "s-10-6-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "202"
+          },
+          "text": "实际影响",
+          "originalExcerpt": "Practical Implications"
+        },
+        {
+          "id": "s-10-6-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "202"
+          },
+          "text": "1. SFT数据质量:使用高质量、多样化的数据。",
+          "originalExcerpt": "1. SFT data quality: use high-quality, diverse data. A small amount of high-quality data is"
+        },
+        {
+          "id": "s-10-6-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "202"
+          },
+          "text": "优于大量低质量数据。",
+          "originalExcerpt": "better than a large amount of low-quality data."
+        },
+        {
+          "id": "s-10-6-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "202"
+          },
+          "text": "2. SFT数据覆盖范围:确保SFT数据涵盖您想通过RL改进的任务。如果",
+          "originalExcerpt": "2. SFT data coverage: ensure the SFT data covers the tasks you want to improve with RL. If a"
+        },
+        {
+          "id": "s-10-6-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "202"
+          },
+          "text": "任务不在 SFT 数据中， RL 将挣扎。",
+          "originalExcerpt": "task is not in the SFT data, RL will struggle."
+        },
+        {
+          "id": "s-10-6-b15",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "203"
+          },
+          "text": "3. SFT培训期限:不要过度培训SFT模式，过度培训会减少多样性。",
+          "originalExcerpt": "3. SFT training duration: do not over-train the SFT model. Over-training reduces diversity"
+        },
+        {
+          "id": "s-10-6-b16",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "203"
+          },
+          "text": "更难探索RL",
+          "originalExcerpt": "and makes RL exploration harder."
+        },
+        {
+          "id": "s-10-6-b17",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "203"
+          },
+          "text": "4. 暖气:考虑在RL之前对任务特定数据进行简短的SFT热身，即使基数",
+          "originalExcerpt": "4. Warm-up: consider a short SFT warm-up on task-specific data before RL, even if the base"
+        },
+        {
+          "id": "s-10-6-b18",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "203"
+          },
+          "text": "模型已经调整了指令。在 RL 之前检查 SFT 质量",
+          "originalExcerpt": "model is already instruction-tuned. Checking SFT Quality Before RL"
+        },
+        {
+          "id": "s-10-6-b19",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "203"
+          },
+          "text": "从 tqdm 导入 tqdm 以 np 导入 np",
+          "originalExcerpt": "import numpy as np from tqdm import tqdm"
+        },
+        {
+          "id": "s-10-6-b20",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "203"
+          },
+          "text": "if es ti mate pass at k(型号，标注器，数据集， k=8， n samples=100) :\"'' SFT型号的估计通过@k。如果通过@1 < 5%， RL很可能失败。如果通过@k < 20%， RL 将会挣扎。\"\"通过 at 1 scores= []通过 at k scores=[]",
+          "originalExcerpt": "def es ti mate_pass_at_k ( model , tokenizer , dataset , k =8 , n_samples =100) : \"\"\" Estimate pass@k for the SFT model . If pass@1 < 5% , RL will likely fail . If pass@k < 20% , RL will struggle . \"\"\" pass_at_1_scores = [] pass_at_k_scores = []"
+        },
+        {
+          "id": "s-10-6-b21",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "203"
+          },
+          "text": "例如 tqdm (数据集。 select (roide (n samples))) 中: proo = example [ \" proo \" ] round truth = example [ \" 答案 \" ]",
+          "originalExcerpt": "for example in tqdm ( dataset . select ( range ( n_samples ) ) ) : prompt = example [ \" prompt \" ] ground_truth = example [ \" answer \" ]"
+        },
+        {
+          "id": "s-10-6-b22",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "203"
+          },
+          "text": "# 样本 k 完成 输入 = 标定器( 及时， return tensors = \" pt \" )。到 (模型。设备) 输出 = 模型。生成 (** 输入， 最大 new tokens = 512， do sample = true， 温度= 0.8， numm return 序列=k，)",
+          "originalExcerpt": "# Sample k completions inputs = tokenizer ( prompt , return_tensors = \" pt \" ) . to ( model . device ) outputs = model . generate ( ** inputs , max_new_tokens =512 , do_sample = True , temperature =0.8 , num_return_sequences =k , )"
+        },
+        {
+          "id": "s-10-6-b23",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "203"
+          },
+          "text": "正确=0 输出值: 响应= 标注符。解码(输出，跳过 special tokens = True) 如果地面 真实值: 正确=================================================================================================================================================================================================================",
+          "originalExcerpt": "correct = 0 for output in outputs : response = tokenizer . decode ( output , skip_special_tokens = True ) if ground_truth in response : correct += 1"
+        },
+        {
+          "id": "s-10-6-b24",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "203"
+          },
+          "text": "# pass@ 1 : 正确样本的一小部分( 估计成功率 ) pass at 1 scores。 appends (正确 / k) # pass@ k: 至少有一个 k 样本正确 pass at k scores。 appends (正确 \\\\ 1)",
+          "originalExcerpt": "# pass@1 : fraction of samples that are correct ( estimated success rate ) pass_at_1_scores . append ( correct / k ) # pass@k : at least one of k samples is correct pass_at_k_scores . append ( correct >= 1)"
+        },
+        {
+          "id": "s-10-6-b25",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "203"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "print ( f \" Pass@1 ( estimated ) : { np . mean ( pass_at_1_scores ) :.2%} \" ) print ( f \" Pass@ { k }: { np . mean ( pass_at_k_scores ) :.2%} \" ) print ( f \" RL viability : { ’ Good ’ if np . mean ( pass_at_1_scores ) > 0.05 else ’ Poor ’} \" )"
+        },
+        {
+          "id": "s-10-6-b26",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "203"
+          },
+          "text": "es ti ma te pass at k (sft model， 标致器， eval dataset) 中， 包含有: 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或 或",
+          "originalExcerpt": "es ti ma te _pass_at_k ( sft_model , tokenizer , eval_dataset )"
+        },
+        {
+          "id": "s-10-6-b27",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "203"
+          },
+          "text": "SFT 最佳做法摘要",
+          "originalExcerpt": "SFT Best Practices Summary"
+        },
+        {
+          "id": "s-10-6-b28",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "203"
+          },
+          "text": "1. 使用序列包装，最大限度地利用GPU。",
+          "originalExcerpt": "1. Use sequence packing to maximise GPU utilisation."
+        },
+        {
+          "id": "s-10-6-b29",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "203"
+          },
+          "text": "2. 采用只完成的遮盖，将梯度集中于助理响应。",
+          "originalExcerpt": "2. Apply completion-only masking to focus gradient on assistant responses."
+        },
+        {
+          "id": "s-10-6-b30",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "203"
+          },
+          "text": "3. 为您的模范家庭使用正确的聊天模板。",
+          "originalExcerpt": "3. Use the correct chat template for your model family."
+        },
+        {
+          "id": "s-10-6-b31",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "203"
+          },
+          "text": "4. 多任务SFT的温度缩放(T Q II)比例混合数据。",
+          "originalExcerpt": "4. Mix data proportionally with temperature scaling (T ≈ 2) for multi-task SFT."
+        },
+        {
+          "id": "s-10-6-b32",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "203"
+          },
+          "text": "5. 利用LORA防止灾难性的遗忘。",
+          "originalExcerpt": "5. Use LoRA to prevent catastrophic forgetting."
+        },
+        {
+          "id": "s-10-6-b33",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "203"
+          },
+          "text": "6。在启动RL前评估通过@k，以确保SFT模型是一个可行的起点。",
+          "originalExcerpt": "6. Evaluate pass@k before starting RL to ensure the SFT model is a viable starting point."
+        },
+        {
+          "id": "s-10-6-b34",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "204"
+          },
+          "text": "7。不要过量的训练:通常1-3个时代足以进行教学微调。",
+          "originalExcerpt": "7. Do not over-train: 1–3 epochs is usually sufficient for instruction fine-tuning."
+        },
+        {
+          "id": "s-10-6-b35",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 10,
+            "section": "10.6",
+            "pages": "204"
+          },
+          "text": "8。监测多样性的衡量标准(entropy， n-gm diversity)，以检测模式崩溃。",
+          "originalExcerpt": "8. Monitor diversity metrics (entropy, n-gram diversity) to detect mode collapse."
+        }
+      ]
+    }
+  ],
+  "glossary": [
+    {
+      "term": "reward model",
+      "zh": "Reward Model",
+      "meaning": "把人类或规则偏好映射为可优化标量信号的模型。"
+    },
+    {
+      "term": "token",
+      "zh": "词元",
+      "meaning": "模型处理和生成文本时使用的离散单位。"
+    }
+  ],
+  "summary": [
+    "监督的Fine-Tuning(SFT)是RLHF输油管的基础。 SFT模型的质量决定了RL能够实现的上限:RL可以完善和改进一种行为，但它不能可靠地引入一种完全没有在SFT模型中的行为。本节涵盖有效SFT的关键技术。",
+    "铺垫问题标准SFT批次将所有序列都铺到批次中最长序列的长度。对于长度差异很大的数据集(例如，短指令和长文档的混合)，这种在垫币上浪费了50-80%的计算。 顺序包装消除了这种浪费。序列包装将多个短例组合成一个长度的单序列 max seq 长度，由 EOS 符牌分隔。注意面罩确保不同实例的符牌不互相关注 :",
+    "1. 按长度排序实例(可选，可提高包装效率)。"
+  ],
+  "metrics": {
+    "chineseCharacters": 4764,
+    "sourceCoverage": 97,
+    "sectionCount": 11,
+    "blockCount": 143
+  }
+}

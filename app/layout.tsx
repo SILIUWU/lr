@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { CourseProvider } from "@/components/course-provider";
 import { SiteShell } from "@/components/site-shell";
+import "katex/dist/katex.min.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -9,9 +10,11 @@ export const metadata: Metadata = {
     template: "%s · Agentic AI 全栈指南",
   },
   description:
-    "基于 The Hitchhiker’s Guide to Agentic AI 的中英双语分层精读：12 个单元、六个交互实验与 60 道原创学习题。",
+    "Haggai Roitman《The Hitchhiker’s Guide to Agentic AI》的逐节中文网页译读：30 章原生正文、精确页码、交互实验与学习题。",
   applicationName: "Agentic AI 全栈指南",
-  authors: [{ name: "Based on Guo et al." }],
+  authors: [
+    { name: "Haggai Roitman", url: "https://arxiv.org/abs/2606.24937" },
+  ],
   keywords: [
     "Agentic AI",
     "LLM",

@@ -1,0 +1,1097 @@
+{
+  "chapter": 29,
+  "title": "Quick Reference",
+  "zhTitle": "快速参考",
+  "pages": "597-604",
+  "minutes": 22,
+  "overview": "本章整合了关键方程式，架构规格， API参考，以及故障模式诊断，用于开发与调试过程中的快速检索。",
+  "status": "in_progress",
+  "sections": [
+    {
+      "id": "s-29-introduction",
+      "number": null,
+      "level": 1,
+      "enTitle": "Chapter introduction",
+      "zhTitle": "章节导入",
+      "pages": "597",
+      "blocks": [
+        {
+          "id": "s-29-introduction-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 29,
+            "section": null,
+            "pages": "597"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 本章导入「章节导入」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-29-introduction-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": null,
+            "pages": "597"
+          },
+          "text": "本章整合了关键方程式，架构规格， API参考，以及故障模式诊断，用于开发与调试过程中的快速检索。",
+          "originalExcerpt": "This chapter consolidates key equations, architecture specifications, API references, and failure mode diagnostics for rapid lookup during development and debugging."
+        }
+      ]
+    },
+    {
+      "id": "s-29-1",
+      "number": "29.1",
+      "level": 1,
+      "enTitle": "Core RL & Alignment Equations",
+      "zhTitle": "核心 RL 和 对齐方程",
+      "pages": "597",
+      "blocks": [
+        {
+          "id": "s-29-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 29,
+            "section": "29.1",
+            "pages": "597"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §29.1「核心 RL 和 对齐方程」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-29-1-b1",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.1",
+            "pages": "597"
+          },
+          "expression": "PPO Clip: L = E[min(rt Ât , clip(rt , 1±ϵ)Ât )], rt = πθ (at |st )/πold (at |st ) (29.1) θ (yw |x) πθ (yl |x) DPO: L = −E[log σ(β log ππref (yw |x) − β log πref (yl |x) )] (29.2) GRPO: Âi = (ri − µG )/σG , then PPO clip update (no critic) (29.3) KTO: L = λw (1 − v(yw )) + λl · v(yl ), v = σ(β log(πθ /πref ) − z) (29.4) IPO: L = E[(log(πθ (yw )/πref (yw )) − log(πθ (yl )/πref (yl )) − 1/(2β))2 ] (29.5) ORPO: L = LSFT (yw ) − λ log σ(log(odds(yw )/odds(yl ))) (29.6) PT −t l GAE: Ât = l=0 (γλ) δt+l , δt = rt + γV (st+1 ) − V (st ) (29.7) KL Penalty: Rtotal = rϕ (x, y) − βDKL [πθ (y|x)∥πref (y|x)] (29.8) RM (Bradley-Terry): L = −E[log σ(rϕ (x, yw ) − rϕ (x, yl ))] (29.9) ∗ Best-of-N: y = arg max rϕ (x, yi ) (29.10) yi ∼πθ (·|x), i=1..N",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        }
+      ]
+    },
+    {
+      "id": "s-29-2",
+      "number": "29.2",
+      "level": 1,
+      "enTitle": "Transformer & Architecture Formulas",
+      "zhTitle": "变形器和结构公式",
+      "pages": "597",
+      "blocks": [
+        {
+          "id": "s-29-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 29,
+            "section": "29.2",
+            "pages": "597"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §29.2「变形器和结构公式」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-29-2-b1",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.2",
+            "pages": "597"
+          },
+          "expression": "Self-Attention: Attn(Q, K, V ) = softmax(QK ⊤ / dk ) · V p (29.11) Multi-Head: MHA(X) = Concat(head1 , . . . , headh )W , O headi = Attn(XWiQ , XWiK , XWiV ) (29.12) imθj −2j/d RoPE: f (xm , m) = xm e , θj = 10000 (29.13) LoRA: W ′ = W0 + (α/r) · BA, B ∈ Rd×r , A ∈ Rr×k (29.14) KD (soft targets): LKD = (1−α)LCE (y, ŷ) + α T · KL(pteacher T ∥pstudent T ) (29.15) FFN (SwiGLU): FFN(x) = (Swish(xW1 ) ⊙ xW3 )W2 (29.16)",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        }
+      ]
+    },
+    {
+      "id": "s-29-3",
+      "number": "29.3",
+      "level": 1,
+      "enTitle": "Decoding Methods",
+      "zhTitle": "解码方法",
+      "pages": "598",
+      "blocks": [
+        {
+          "id": "s-29-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 29,
+            "section": "29.3",
+            "pages": "598"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §29.3「解码方法」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-29-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.3",
+            "pages": "598"
+          },
+          "text": "方法公式/规则键 Param Greedy yt = arg maxv P(v|y <t) ——Beam 搜索 保持上B部分序列 B = 4–8 乘以 联合概率 温度 P = (v) = 软max(logitv / T) T = = 0.1， 1.5) 顶-k 0 出除顶-k 的对数， k = 40–100 重塑顶-p(核) 保持最小的设置 V ' p = 0.9–0.95 s。 v∈V = P P(v) = = = p P",
+          "originalExcerpt": "Method Formula / Rule Key Param Greedy yt = arg maxv P (v|y<t ) — Beam search Keep top-B partial sequences B = 4–8 by joint probability Temperature P ′ (v) = softmax(logitv /T ) T ∈ [0.1, 1.5] Top-k Zero out all but top-k logits, k = 40–100 renormalize Top-p (nucleus) Keep smallest set V′ p = 0.9–0.95 s.t. v∈V ′ P (v) ≥ p P"
+        },
+        {
+          "id": "s-29-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.3",
+            "pages": "598"
+          },
+          "text": "/ 保留标语，其中P(v) + pmin = 0.05-0.1 pmin + P(vmax) 重复处罚 + logitv / + = = = = 1.1-1.3 梨以前",
+          "originalExcerpt": "Min-p Keep tokens with P (v) ≥ pmin = 0.05–0.1 pmin · P (vmax ) Repetition penalty logitv ← logitv /θ if v ap- θ = 1.1–1.3 peared before"
+        }
+      ]
+    },
+    {
+      "id": "s-29-4",
+      "number": "29.4",
+      "level": 1,
+      "enTitle": "Systems & Parallelism",
+      "zhTitle": "系统平行主义( A)",
+      "pages": "598",
+      "blocks": [
+        {
+          "id": "s-29-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 29,
+            "section": "29.4",
+            "pages": "598"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §29.4「系统平行主义( A)」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-29-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.4",
+            "pages": "598"
+          },
+          "text": "公式值(70B， BF16) 描述模型内存 2P字节140 GB(仅重) Adam 优化 2P × 4字节(m + v) 280 GB 全面训练脚印 → 8P 字节 560 GB(重量+选择+格勒) FSDP 内存/GPU 8P/NGPU 70 GB 配 8 GPU Gen 算术强度 2P/2P = 1 FLOP/字节 重内存速率 (gen) HBM BW /(2P) → → 14 吨/s(A100，批=1) TP AllReduce / 层 2 → 2 → T− 1 → bs bytes → 1 → 1 → 1 + 8) + 帕泡分数(P− 1) /(P+ M− 1) P− 1 = 舞台， M= 微信标键 MFU → → → → 6P = => 40%峰值 FLOPS",
+          "originalExcerpt": "Formula Value (70B, BF16) Description Model memory 2P bytes 140 GB (weights only) Adam optimizer 2P × 4 bytes (m + v) 280 GB Full training footprint ∼ 8P bytes 560 GB (weights + opt + grad) FSDP memory/GPU 8P/NGPUs 70 GB with 8 GPUs Gen arithmetic intensity 2P/2P = 1 FLOP/byte Heavily memory-bound Token rate (gen) HBM_BW /(2P ) ∼14 tok/s (A100, batch=1) TP A..."
+        }
+      ]
+    },
+    {
+      "id": "s-29-5",
+      "number": "29.5",
+      "level": 1,
+      "enTitle": "GPU Hardware Specs",
+      "zhTitle": "GPU 硬件光谱",
+      "pages": "598",
+      "blocks": [
+        {
+          "id": "s-29-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 29,
+            "section": "29.5",
+            "pages": "598"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §29.5「GPU 硬件光谱」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-29-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.5",
+            "pages": "598"
+          },
+          "text": "GPU记忆 BW(HBM) BF16 TFLOPS NVLink Notes A100-80GB 80 GB HBM2e 2.0 TB/s 312 600 GB/s 工作马，广泛使用 H100-80GB 80 GB HBM3 3.35 TB/s 989 900 GB/s 时源， FP8支持 H200-141GB 141 GB HBM3e 4.8 TB/s 989 900 GB/s 大上下文/s 减少 GPU B200 192 GB HBM3e 8.0 TB/s 2250 1800 GB/s 下源(2025)",
+          "originalExcerpt": "GPU Memory BW (HBM) BF16 TFLOPS NVLink Notes A100-80GB 80 GB HBM2e 2.0 TB/s 312 600 GB/s Workhorse, widely available H100-80GB 80 GB HBM3 3.35 TB/s 989 900 GB/s Current gen, FP8 support H200-141GB 141 GB HBM3e 4.8 TB/s 989 900 GB/s Large context / fewer GPUs B200 192 GB HBM3e 8.0 TB/s 2250 1800 GB/s Next gen (2025)"
+        }
+      ]
+    },
+    {
+      "id": "s-29-6",
+      "number": "29.6",
+      "level": 1,
+      "enTitle": "Hyperparameter Ranges",
+      "zhTitle": "超参数范围",
+      "pages": "599",
+      "blocks": [
+        {
+          "id": "s-29-6-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 29,
+            "section": "29.6",
+            "pages": "599"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §29.6「超参数范围」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-29-6-b1",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.6",
+            "pages": "599"
+          },
+          "expression": "Parameter Typical Range Default Notes β (DPO/KTO) 0.05–0.5 0.1 Higher = more conservative ϵ (PPO clip) 0.1–0.3 0.2 Higher = more aggressive updates γ (GAE discount) 0.99–1.0 1.0 Use 1.0 for episodic tasks λ (GAE) 0.9–0.99 0.95 Lower = more biased, less variance KL coeff (βKL ) 0.01–0.2 0.05 Auto-adapt to target KL ≈ 5–8 LR (RLHF) 1e-7 – 5e-6 5e-7 Much lower than pre-training LR (SFT) 1e-5 – 5e-5 2e-5 Standard fine-tuning range LoRA rank r 8–128 16–64 Higher r = more capacity, more memory LoRA alpha α r – 2r 2r Scaling factor; α/r is the effective scale Temperature (gen) 0.6–1.0 0.7 Lower = less diverse candidates Num generations K 4–64 4–16 For GRPO/Online DPO/Best-of-N Grad clip norm 0.5–2.0 1.0 Prevents gradient explosion",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        }
+      ]
+    },
+    {
+      "id": "s-29-7",
+      "number": "29.7",
+      "level": 1,
+      "enTitle": "TRL API Quick Reference",
+      "zhTitle": "TRL API 快速引用",
+      "pages": "599",
+      "blocks": [
+        {
+          "id": "s-29-7-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 29,
+            "section": "29.7",
+            "pages": "599"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §29.7「TRL API 快速引用」 的实现时，不只看 happy path。请同时标出 state schema、外部依赖、权限边界、重试与终止条件、可观测字段和可能产生副作用的 action；代码能运行，并不等于系统已经具备可恢复性。"
+        },
+        {
+          "id": "s-29-7-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.7",
+            "pages": "599"
+          },
+          "text": "训练员方法 密钥配置格式 SFTrainer 监督 FT包装， 迅速+完成 最大 seq 长 奖励 训练员奖励模式中心 奖励 高效益 迅速+ 被选中+ 被拒绝 PPOTrainer PPO init kl coef， 提示(在线)目标 kl， 剪切图 DPOTrainer DPPO/IPO β， 迅速+ 被选中+ 被拒绝 丢失 类型=\"Sigmoid\"/\"ipo\" GRPOTrainer GRPO nuum 世代， 迅速+ 奖励 fn β， 使用 vllm OnlineDPOTrainer Online DPO nuums， print (在线源) 奖励 path KOTrainer KTO 可取 重量， 迅速+ 标签 重量 ORPOTrainer ORPO β 迅速+ 被选中 最佳-oof-ofofofof-of-of-of",
+          "originalExcerpt": "Trainer Method Key Config Data Format SFTTrainer Supervised FT packing, prompt + completion max_seq_length RewardTrainer Reward model center_rewards_coefficient prompt + chosen + rejected PPOTrainer PPO init_kl_coef, prompts (online gen) target_kl, cliprange DPOTrainer DPO/IPO beta, prompt + chosen + rejected loss_type=\"sigmoid\"/\"ipo\" GRPOTrainer GRPO num_ge..."
+        }
+      ]
+    },
+    {
+      "id": "s-29-8",
+      "number": "29.8",
+      "level": 1,
+      "enTitle": "RAG Pipeline Formulas",
+      "zhTitle": "RAG 管道公式",
+      "pages": "599",
+      "blocks": [
+        {
+          "id": "s-29-8-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 29,
+            "section": "29.8",
+            "pages": "599"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §29.8「RAG 管道公式」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-29-8-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.8",
+            "pages": "599"
+          },
+          "text": "RAG 的常用公式包括：Cosine similarity，sim(q,d)=(q·d)/(‖q‖·‖d‖)（Eq.29.17）；检索集合，Dk=top-k d∈C sim(embed(q),embed(d))（Eq.29.18）；生成概率，P(y|q)=PLLM(y|q,Dk)（Eq.29.19）；Chunking stride=chunk_size−overlap（Eq.29.20）；cross-encoder reranker 的 score(q,d)=MLP(BERT([q;d]))（Eq.29.21）。",
+          "originalExcerpt": "q·d Cosine similarity: sim(q, d) = (29.17) ∥q∥ · ∥d∥ Retrieval: Dk = top-kd∈C sim(embed(q), embed(d)) (29.18) RAG generation: P (y|q) = PLLM (y | q, Dk ) (29.19) Chunking overlap: stride = chunk_size − overlap (29.20) Reranker (cross-enc): score(q, d) = MLP(BERT([q; d])) (29.21)"
+        }
+      ]
+    },
+    {
+      "id": "s-29-9",
+      "number": "29.9",
+      "level": 1,
+      "enTitle": "Agentic Design Patterns",
+      "zhTitle": "Agent设计模式",
+      "pages": "600",
+      "blocks": [
+        {
+          "id": "s-29-9-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 29,
+            "section": "29.9",
+            "pages": "600"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §29.9「Agent设计模式」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-29-9-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.9",
+            "pages": "600"
+          },
+          "text": "模式结构 最佳再行动思维 行动 观察 通用工具Agent环路 计划 执行步骤 长距离 结构化任务 监督路由器 专家Agent 多领域 明确子任务边界 斯瓦姆(手动)Agent转移控制 + 客户服务 升级流 文本 授权Agent 复杂 解析 人类在落地Agent + 核准门 + 高调 不可逆行动 继续",
+          "originalExcerpt": "Pattern Structure Best For ReAct Think → Act → Observe → General tool-use agents loop Plan-and-Execute Plan → Execute steps → Re- Long-horizon, structured tasks vise Supervisor Router → specialist agents Multi-domain, clear subtask boundaries Swarm (handoffs) Agent transfers control + con- Customer service, escalation flows text Hierarchical Tree of delegati..."
+        }
+      ]
+    },
+    {
+      "id": "s-29-10",
+      "number": "29.10",
+      "level": 1,
+      "enTitle": "Agent Communication Protocols",
+      "zhTitle": "Agent通讯协议",
+      "pages": "600",
+      "blocks": [
+        {
+          "id": "s-29-10-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 29,
+            "section": "29.10",
+            "pages": "600"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §29.10「Agent通讯协议」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-29-10-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.10",
+            "pages": "600"
+          },
+          "text": "协议范围传输 概念 MCP 工具集成 stdio / HTTP+SSEServer 曝光工具;客户端发现并呼叫 A2A AgentAgent HTTP + JSON- RPC 任务， 任务生命周期( 提交 ) – working – done) OpenAI 函数调用工具在工具中使用 API 有效载荷 JSON schema [] 阵列",
+          "originalExcerpt": "Protocol Scope Transport Key Concept MCP Tool integration stdio / HTTP+SSEServer exposes tools; client discovers & calls A2A Agent-to-agent HTTP + JSON-RPC Tasks with lifecycle (submitted→working→done) OpenAI Function Calling Tool use API payload JSON schema in tools[] array"
+        }
+      ]
+    },
+    {
+      "id": "s-29-11",
+      "number": "29.11",
+      "level": 1,
+      "enTitle": "Context Window Budget",
+      "zhTitle": "背景窗口预算",
+      "pages": "600",
+      "blocks": [
+        {
+          "id": "s-29-11-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 29,
+            "section": "29.11",
+            "pages": "600"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §29.11「背景窗口预算」 时，沿信息生命周期追踪：内容何时写入、采用什么表示、怎样检索、如何进入 context、何时更新或删除。保存更多信息并不自动带来更好结果，选择机制和冲突处理同样重要。"
+        },
+        {
+          "id": "s-29-11-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.11",
+            "pages": "600"
+          },
+          "text": "C + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + +",
+          "originalExcerpt": "C ≥ |{z} S + M |{z} T + |{z} + |{z} H + R |{z} (29.22) system memory/RAG tool defs history reserved output"
+        },
+        {
+          "id": "s-29-11-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.11",
+            "pages": "600"
+          },
+          "text": "128K上下文的拇指规则 :",
+          "originalExcerpt": "Rule of thumb for 128K context:"
+        },
+        {
+          "id": "s-29-11-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.11",
+            "pages": "600"
+          },
+          "text": "• 系统提示:1-4K 令牌(固定)",
+          "originalExcerpt": "• System prompt: 1–4K tokens (fixed)"
+        },
+        {
+          "id": "s-29-11-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.11",
+            "pages": "600"
+          },
+          "text": "• 工具定义:2-8K(有#工具的尺度)",
+          "originalExcerpt": "• Tool definitions: 2–8K (scales with # tools)"
+        },
+        {
+          "id": "s-29-11-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.11",
+            "pages": "600"
+          },
+          "text": "• RAG:4-16K(顶板块)",
+          "originalExcerpt": "• RAG context: 4–16K (top-k chunks)"
+        },
+        {
+          "id": "s-29-11-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.11",
+            "pages": "600"
+          },
+          "text": "• 历史:无界限的生长 —— 总结/总结",
+          "originalExcerpt": "• History: grows unbounded → summarize/truncate"
+        },
+        {
+          "id": "s-29-11-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.11",
+            "pages": "600"
+          },
+          "text": "• 保留产出:2-8K",
+          "originalExcerpt": "• Reserved output: 2–8K"
+        }
+      ]
+    },
+    {
+      "id": "s-29-12",
+      "number": "29.12",
+      "level": 1,
+      "enTitle": "Common Failure Modes & Fixes",
+      "zhTitle": "常见失败模式( F)",
+      "pages": "600",
+      "blocks": [
+        {
+          "id": "s-29-12-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 29,
+            "section": "29.12",
+            "pages": "600"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §29.12「常见失败模式( F)」 时，把每个 failure mode 拆成触发条件、可观测信号、影响范围、缓解措施和剩余风险。原书给出的警告不是附录信息，而是决定系统是否能进入生产环境的设计约束。"
+        },
+        {
+          "id": "s-29-12-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.12",
+            "pages": "600"
+          },
+          "text": "症状 可能因修复 修复 补偿 质量 质量 降 补偿 黑 黑 REG 共 共 共 共 共 计 罚 增加 β KL 爆炸 超高 或 模式崩溃 减少 LR， 检查站回滚 提前 合并 增加 entropy 聚合 增加 entropy coeff 增加 温度 训练 损失 NaN 渐变 爆炸 减少 LR 增加 增加 分级 检查 数据 5K步骤后没有改进 坏 迅速分发 Goldilocks 过滤器 (20–80%通过率) 基准回归 调整税 减少 RL 预算 使用 LoRA 混合 混合 SFT 数据 延长 利用 长 增加 长 使用 长 重排 重排 长 生成 KV 缓存 中 延长 控制 OOM 减少 分批量 增加 TP 页面 页面 页面存档Agent 永久不限 输入 最大 输入 输入 输入 输入 输入 最大 输入 输入 输入",
+          "originalExcerpt": "Symptom Likely Cause Fix Reward up, quality down Reward hacking RM ensemble, length penalty, increase β KL exploding (>15) LR too high or mode collapse Reduce LR, checkpoint rollback Entropy collapse Premature convergence Increase entropy coeff, raise temperature Training loss NaN Gradient explosion Reduce LR, increase grad clip, check data No improvement af..."
+        }
+      ]
+    },
+    {
+      "id": "s-29-13",
+      "number": "29.13",
+      "level": 1,
+      "enTitle": "Method Selection Decision Tree",
+      "zhTitle": "方法选择决定树",
+      "pages": "601",
+      "blocks": [
+        {
+          "id": "s-29-13-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 29,
+            "section": "29.13",
+            "pages": "601"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §29.13「方法选择决定树」 时，不要寻找脱离场景的“最佳方案”。应在质量、latency、计算与存储成本、数据要求、可控性和运维复杂度上逐项比较，并保留原书说明的适用前提与例外。"
+        },
+        {
+          "id": "s-29-13-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.13",
+            "pages": "601"
+          },
+          "text": "1. 是否对等偏好(选择+拒绝)?",
+          "originalExcerpt": "1. Have paired preferences (chosen + rejected)?"
+        },
+        {
+          "id": "s-29-13-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.13",
+            "pages": "601"
+          },
+          "text": "• 噪音标签 IPO",
+          "originalExcerpt": "• Noisy labels → IPO"
+        },
+        {
+          "id": "s-29-13-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.13",
+            "pages": "601"
+          },
+          "text": "• 记忆受限制，尚未完成SFT ——ORPO",
+          "originalExcerpt": "• Memory-constrained, no SFT done yet → ORPO"
+        },
+        {
+          "id": "s-29-13-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.13",
+            "pages": "601"
+          },
+          "text": "• 数据干净，计算有限 ——DPO",
+          "originalExcerpt": "• Clean data, limited compute → DPO"
+        },
+        {
+          "id": "s-29-13-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.13",
+            "pages": "601"
+          },
+          "text": "• DPO高原，想要勘探 – 在线DPO",
+          "originalExcerpt": "• DPO plateaus, want exploration → Online DPO"
+        },
+        {
+          "id": "s-29-13-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.13",
+            "pages": "601"
+          },
+          "text": "2. 只收到二进制反馈( 上下调)？+ KTO",
+          "originalExcerpt": "2. Have only binary feedback (thumbs up/down)? → KTO"
+        },
+        {
+          "id": "s-29-13-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.13",
+            "pages": "601"
+          },
+          "text": "3. 是否有可核查的奖励(质量/代码)？+ GRPO",
+          "originalExcerpt": "3. Have verifiable rewards (math/code)? → GRPO"
+        },
+        {
+          "id": "s-29-13-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.13",
+            "pages": "601"
+          },
+          "text": "4. 需要最高质量，任何费用？+ PPO",
+          "originalExcerpt": "4. Need maximum quality, any cost? → PPO"
+        },
+        {
+          "id": "s-29-13-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.13",
+            "pages": "601"
+          },
+          "text": "5. 想要免费培训的改进？+ 最佳N",
+          "originalExcerpt": "5. Want training-free improvement? → Best-of-N"
+        }
+      ]
+    },
+    {
+      "id": "s-29-14",
+      "number": "29.14",
+      "level": 1,
+      "enTitle": "Evaluation Metrics",
+      "zhTitle": "评估计量",
+      "pages": "601",
+      "blocks": [
+        {
+          "id": "s-29-14-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 29,
+            "section": "29.14",
+            "pages": "601"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §29.14「评估计量」 时，明确被评估的对象是单次输出、完整 trajectory 还是系统行为；随后分别记录数据来源、metric、judge、聚合方式和置信边界。一个分数只有在测量对象与失败类型对应时才有解释力。"
+        },
+        {
+          "id": "s-29-14-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.14",
+            "pages": "601"
+          },
+          "text": "衡量复杂程度的尺度[1] 模型的惊喜;下=更好语言模型 Win 比率(vs basin)[0， 1] 法官/人BLEU偏爱的产出小数 与参考(精度重点)ROUGE-L[0， 1] 最长常见次序列与参考Pass@k [0， 1] k代码样本的概率% 1通过测试 MMLU / GPQA [0， 1] 知识/解释基准上的多选择精度 人类价值 [0， 1] 生成的代码的功能正确性 [RAG] [0， 1] 由检索上下文关联性支持的债权小数 与查询解答相关性有关的检索内容分数 [0， 1] 度 回答问题的答案 [0， 1] 度",
+          "originalExcerpt": "Metric Range What It Measures Perplexity [1, ∞) Model’s surprise; lower = better language modeling Win Rate (vs. baseline) [0, 1] Fraction of outputs preferred by judge/human BLEU [0, 1] n-gram overlap with reference (precision-focused) ROUGE-L [0, 1] Longest common subsequence with reference Pass@k [0, 1] Probability ≥1 of k code samples passes tests MMLU /..."
+        }
+      ]
+    },
+    {
+      "id": "s-29-15",
+      "number": "29.15",
+      "level": 1,
+      "enTitle": "Reasoning & Test-Time Scaling",
+      "zhTitle": "测试时间缩放( T)",
+      "pages": "601",
+      "blocks": [
+        {
+          "id": "s-29-15-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 29,
+            "section": "29.15",
+            "pages": "601"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §29.15「测试时间缩放( T)」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-29-15-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.15",
+            "pages": "601"
+          },
+          "text": "方法计算成本机制 思维链(COT) 1.5–3× 符号 \" 一步步思考 \"，即时自持 N×生成 样本 N CoT路径，最终答案 树(TOT) B× D×生成 BFS/DFS 相对于推理树的多数投票; 3. 评估分支 最佳N × 生成样本 N， 得分与 RM， 选择最高的 Beam 搜索( 推理) B× 生成 维护上B 部分推理链 预算 强制变量分配更多符号 以更难的问题 动态验证(ORM/PRM) N × gen + 积分 生成 N 解决方案， 按结果/进程 RM 排序",
+          "originalExcerpt": "Method Compute Cost Mechanism Chain-of-Thought (CoT) 1.5–3× tokens “Think step by step” in prompt Self-Consistency N × generation Sample N CoT paths, majority vote on final answer Tree-of-Thought (ToT) B × D× generation BFS/DFS over reasoning tree; evaluate branches Best-of-N N × generation Sample N , score with RM, pick highest Beam search (on reasoning) B×..."
+        }
+      ]
+    },
+    {
+      "id": "s-29-16",
+      "number": "29.16",
+      "level": 1,
+      "enTitle": "Memory System Types",
+      "zhTitle": "内存系统类型",
+      "pages": "602",
+      "blocks": [
+        {
+          "id": "s-29-16-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 29,
+            "section": "29.16",
+            "pages": "602"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §29.16「内存系统类型」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-29-16-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.16",
+            "pages": "602"
+          },
+          "text": "类型 存储 使用 案例 内存 上下文 窗口 当前对话 即时工具结果 Episodic内存 矢量存储 以往的交互，用户偏好，会话历史 语义内存 知识图/嵌入-事实，概念，域知识 丁 程序内存 技能库/代码 如何到程序，学习的工作流程",
+          "originalExcerpt": "Type Storage Use Case Working memory Context window Current conversation, immediate tool results Episodic memory Vector store Past interactions, user preferences, session history Semantic memory Knowledge graph / embed- Facts, concepts, domain knowledge dings Procedural memory Skill library / code How-to procedures, learned workflows"
+        }
+      ]
+    },
+    {
+      "id": "s-29-17",
+      "number": "29.17",
+      "level": 1,
+      "enTitle": "MCP Quick Reference",
+      "zhTitle": "MCP 快速引用",
+      "pages": "602",
+      "blocks": [
+        {
+          "id": "s-29-17-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 29,
+            "section": "29.17",
+            "pages": "602"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §29.17「MCP 快速引用」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-29-17-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.17",
+            "pages": "602"
+          },
+          "text": "初定向侧面效果?目的工具客户端 – 服务器是执行动作(创建，修改，删除) 资源客户端 – 服务器号(只读) 读取数据(文件， DB记录，配置) 提示客户端 – 服务器没有用于常见任务的可重复模板 – 客户端没有服务器请求客户端生成 LLM 传输 :stdio(本地子进程)或HTTP+SSE(远，可流)。",
+          "originalExcerpt": "Primitive Direction Side Effects? Purpose Tools Client → Server Yes Execute actions (create, modify, delete) Resources Client → Server No (read-only) Read data (files, DB records, configs) Prompts Client → Server No Reusable templates for common tasks Sampling Server → Client No Server requests LLM generation from client Transport: stdio (local subprocess) o..."
+        },
+        {
+          "id": "s-29-17-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.17",
+            "pages": "602"
+          },
+          "text": "发现:客户端调用工具/列表，资源/列表，连接内置的提示/列表。",
+          "originalExcerpt": "Discovery: Client calls tools/list, resources/list, prompts/list at connection init."
+        },
+        {
+          "id": "s-29-17-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.17",
+            "pages": "602"
+          },
+          "text": "工具说明:只读\"唯心\"，破坏性\"唯心\"，\"唯心\"，\"唯心\"，\"开通世界\"。",
+          "originalExcerpt": "Tool annotations: readOnlyHint, destructiveHint, idempotentHint, openWorldHint."
+        }
+      ]
+    },
+    {
+      "id": "s-29-18",
+      "number": "29.18",
+      "level": 1,
+      "enTitle": "A2A Protocol Quick Reference",
+      "zhTitle": "A2A 协议快速引用",
+      "pages": "602",
+      "blocks": [
+        {
+          "id": "s-29-18-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 29,
+            "section": "29.18",
+            "pages": "602"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §29.18「A2A 协议快速引用」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-29-18-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.18",
+            "pages": "602"
+          },
+          "text": "概念描述Agent卡JSON at /。 well-chnown/Agent.json——名称，技能，支持的内容类型 工作任务单位:id，状态，文物。生命周期:任务内已完成/失效的信件通信单位(作用:用户/Agent，部件:文本/文件/数据) Agent器生成的Artiffact Out(结构化数据，文件，生成的内容) Push Notes 基于 Webhook 的更新，用于长期运行的任务(通过任务/push Notification/set) 关键端点:任务/发送(创建/更新)、任务/获取(投球状态)、任务/发送子集(SSE流)。",
+          "originalExcerpt": "Concept Description Agent Card JSON at /.well-known/agent.json — name, skills, supported content types Task Unit of work: id, status, artifacts. Lifecycle: submitted → working → completed/failed Message Communication unit within a task (role: user/agent, parts: text/file/data) Artifact Output produced by the agent (structured data, files, generated content) ..."
+        }
+      ]
+    },
+    {
+      "id": "s-29-19",
+      "number": "29.19",
+      "level": 1,
+      "enTitle": "Agent Framework Comparison",
+      "zhTitle": "Agent框架比较",
+      "pages": "603",
+      "blocks": [
+        {
+          "id": "s-29-19-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 29,
+            "section": "29.19",
+            "pages": "603"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §29.19「Agent框架比较」 时，不要寻找脱离场景的“最佳方案”。应在质量、latency、计算与存储成本、数据要求、可控性和运维复杂度上逐项比较，并保留原书说明的适用前提与例外。"
+        },
+        {
+          "id": "s-29-19-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.19",
+            "pages": "603"
+          },
+          "text": "框架管弦乐 朗格勒的多Agent最佳状态图 条件路线 生产:持久性， HITL，精细控制 OpenAI Agents SDK 声明式交接 手势式交接 简写:守护铁道 追踪 快速启动 AutoGen(AG2) 对话驱动 GroupChat 原型:代码执行，研究 CrewAI 角色基团 序列/平行低码:快速演示，简单的管道 Google ADK Session + 事件 A2A 本土企业: 工艺品 mgmt， 多式联运",
+          "originalExcerpt": "Framework Orchestration Multi-Agent Best For LangGraph Explicit state graph Conditional routing Production: persistence, HITL, fine control OpenAI Agents SDK Declarative handoffs Handoff-based Simplicity: guardrails, tracing, fast start AutoGen (AG2) Conversation-driven GroupChat Prototyping: code execution, research CrewAI Role-based teams Sequential/parall..."
+        }
+      ]
+    },
+    {
+      "id": "s-29-20",
+      "number": "29.20",
+      "level": 1,
+      "enTitle": "Agentic RL Formulas",
+      "zhTitle": "Agent RL 公式",
+      "pages": "603",
+      "blocks": [
+        {
+          "id": "s-29-20-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 29,
+            "section": "29.20",
+            "pages": "603"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §29.20「Agent RL 公式」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-29-20-b1",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.20",
+            "pages": "603",
+            "equation": "29.23–29.26"
+          },
+          "title": "Agentic RL 公式速查",
+          "text": "该公式的 PDF 文本层无法可靠恢复数学符号。为避免展示错误公式，本区块暂只保留原书页码；完成逐符号核对后再以 KaTeX/MathML 发布。",
+          "expression": "Âᵢ=(R(τᵢ)−μG)/σG；R=w₁Rtask+w₂Refficiency+w₃Rsafety；L=Σ min(rtÂt, clip(rt)Ât)",
+          "latex": "\\hat A_i=\\frac{R(\\tau_i)-\\mu_G}{\\sigma_G},\\quad R=w_1R_{task}+w_2R_{efficiency}+w_3R_{safety},\\quad L=\\sum_{t\\in agent\\ tokens}\\min(r_t\\hat A_t,\\operatorname{clip}(r_t)\\hat A_t)",
+          "reading": "Eq.29.23–29.26 依次汇总 trajectory-level GRPO advantage、由任务完成度/效率/安全组成的 Agent reward、只在 Agent token 上计算的 clipped loss，以及 Pass@k。",
+          "symbols": [
+            [
+              "τᵢ",
+              "第 i 条 Agent trajectory"
+            ],
+            [
+              "μG / σG",
+              "同组 trajectory reward 的均值与标准差"
+            ],
+            [
+              "Refficiency",
+              "按实际 step 数相对预算 Nmax 计算的效率项"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s-29-21",
+      "number": "29.21",
+      "level": 1,
+      "enTitle": "Agent Security Checklist",
+      "zhTitle": "Agent安全检查清单",
+      "pages": "603",
+      "blocks": [
+        {
+          "id": "s-29-21-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 29,
+            "section": "29.21",
+            "pages": "603"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §29.21「Agent安全检查清单」 时，把每个 failure mode 拆成触发条件、可观测信号、影响范围、缓解措施和剩余风险。原书给出的警告不是附录信息，而是决定系统是否能进入生产环境的设计约束。"
+        },
+        {
+          "id": "s-29-21-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.21",
+            "pages": "603"
+          },
+          "text": "威胁层 缓解 快速注入(直接) 输入 验证 指令层级 划界 快速注入(间接)工具 输出 将工具输出视为不可信;使用最小权限; 破坏性的Hint门; 沙盒数据过滤输出过滤; 无法使用限制允许使用的工具访问域 超自主 结构 最大迭代 成本预算 人力审批门 使用副多Agent验证任务源; 基于能力的访问控制",
+          "originalExcerpt": "Threat Layer Mitigation Prompt injection (direct) Input Input validation, instruction hierarchy, delimiters Prompt injection (indirect) Tool output Treat tool output as untrusted; don’t follow instructions in retrieved docs Tool misuse Execution Least-privilege permissions; destructiveHint gates; sandboxing Data exfiltration Output Output filtering; restrict..."
+        }
+      ]
+    },
+    {
+      "id": "s-29-22",
+      "number": "29.22",
+      "level": 1,
+      "enTitle": "Agent Evaluation Metrics",
+      "zhTitle": "Agent评估计量",
+      "pages": "604",
+      "blocks": [
+        {
+          "id": "s-29-22-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 29,
+            "section": "29.22",
+            "pages": "604"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §29.22「Agent评估计量」 时，明确被评估的对象是单次输出、完整 trajectory 还是系统行为；随后分别记录数据来源、metric、judge、聚合方式和置信边界。一个分数只有在测量对象与失败类型对应时才有解释力。"
+        },
+        {
+          "id": "s-29-22-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.22",
+            "pages": "604"
+          },
+          "text": "计量公式/定义目标任务成功率(TSR) 正确完成率/总完成率(生产) > 85% 完成率(生产) 成功率(生产) 成功率(生产) 成功率(生产) 成功率(生产) 成功率(生产) 成功率(生产) 成功率(生产) 成功率(生产) 成功率(生产) 成功率(生产) 成功率(生产) 成功率(生产) 成功率(生产) 成功率(生产) 成功率(生产) 成功率(生产) 成功率(生产) 成功率(生产) 成功率(生产) 成功率(生产) 成功率(生产) 成功率(生产) 成功率(生产) 成功率(生产) 成功率(生产) 成功率(生产) 成功率(生产) 成功率(生产) 成功率) 成功率(生产) 成功率(生产) 成功率(生产) 成功率(生产) 成功率(生产) 成功率(生产) 成功率(生产) 成功率(生产) 成功率",
+          "originalExcerpt": "Metric Formula / Definition Target Task Success Rate (TSR) Correct completions / total > 85% (production) tasks Steps to completion Avg agent actions per success- Lower = more efficient ful task Cost per task Total tokens × price/token Budget-dependent Latency (TTFC) Time from request to first use- < 5s for interactive ful output Tool call accuracy Correct t..."
+        }
+      ]
+    },
+    {
+      "id": "s-29-23",
+      "number": "29.23",
+      "level": 1,
+      "enTitle": "Key Agentic Benchmarks",
+      "zhTitle": "关键Agent基准",
+      "pages": "604",
+      "blocks": [
+        {
+          "id": "s-29-23-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 29,
+            "section": "29.23",
+            "pages": "604"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §29.23「关键Agent基准」 时，明确被评估的对象是单次输出、完整 trajectory 还是系统行为；随后分别记录数据来源、metric、judge、聚合方式和置信边界。一个分数只有在测量对象与失败类型对应时才有解释力。"
+        },
+        {
+          "id": "s-29-23-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 29,
+            "section": "29.23",
+            "pages": "604"
+          },
+          "text": "基准域表SOTA(2025) SWE-bench 验证软件工程 % 解决了问题 +=70% WebArena Web浏览任务成功率 OSWorld 桌面计算机任务成功率 →==40% OSWorld 桌面计算机任务成功率 →==25% 使用 GAIA General AI Applic Exact match ACU-==============================================================================================================================================================",
+          "originalExcerpt": "Benchmark Domain Metric SOTA (2025) SWE-bench Verified Software engineering % resolved issues ∼70% WebArena Web browsing Task success rate ∼40% OSWorld Desktop computer Task success rate ∼25% use GAIA General AI assistant Exact match accu- ∼75% (L1) racy Tau-bench Tool-use reliability Pass rate (5 trials) ∼65% HumanEval / MBPP Code generation Pass@1 > 95%"
+        }
+      ]
+    }
+  ],
+  "glossary": [
+    {
+      "term": "Agent",
+      "zh": "智能体",
+      "meaning": "由模型、状态、工具和运行循环共同构成的目标导向系统。"
+    },
+    {
+      "term": "RAG",
+      "zh": "RAG",
+      "meaning": "在生成前检索外部证据，并把相关上下文交给模型。"
+    },
+    {
+      "term": "MCP",
+      "zh": "MCP",
+      "meaning": "连接 AI application 与外部 tools、resources、prompts 的标准协议。"
+    },
+    {
+      "term": "A2A",
+      "zh": "Agent 间协议",
+      "meaning": "用于异构 Agent 发现能力、委派任务和交换 artifact 的协议。"
+    },
+    {
+      "term": "reward model",
+      "zh": "Reward Model",
+      "meaning": "把人类或规则偏好映射为可优化标量信号的模型。"
+    },
+    {
+      "term": "context window",
+      "zh": "context window",
+      "meaning": "单次模型调用可直接读取的 token 范围。"
+    },
+    {
+      "term": "token",
+      "zh": "词元",
+      "meaning": "模型处理和生成文本时使用的离散单位。"
+    }
+  ],
+  "summary": [
+    "本章整合了关键方程式，架构规格， API参考，以及故障模式诊断，用于开发与调试过程中的快速检索。",
+    "方法公式/规则键 Param Greedy yt = arg maxv P(v|y <t) ——Beam 搜索 保持上B部分序列 B = 4–8 乘以 联合概率 温度 P = (v) = 软max(logitv / T) T = = 0.1， 1.5) 顶-k 0 出除顶-k 的对数， k = 40–100 重塑顶-p(核) 保持最小的设置 V ' p = 0.9–0.95 s。 v∈V = P P(v) = = = p P",
+    "/ 保留标语，其中P(v) + pmin = 0.05-0.1 pmin + P(vmax) 重复处罚 + logitv / + = = = = 1.1-1.3 梨以前"
+  ],
+  "metrics": {
+    "chineseCharacters": 4105,
+    "sourceCoverage": 90,
+    "sectionCount": 24,
+    "blockCount": 65
+  }
+}

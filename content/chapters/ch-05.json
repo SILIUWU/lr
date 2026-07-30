@@ -1,0 +1,2162 @@
+{
+  "chapter": 5,
+  "title": "PPO - Proximal Policy Optimization",
+  "zhTitle": "PPO：近端策略优化",
+  "pages": "142-150",
+  "minutes": 24,
+  "overview": "问题:香草政策梯度更新对步长没有限制。单次不幸运的批次可以将政策推向产生垃圾的区 – 垃圾得到低回报 – 下一个梯度让事情更糟糕 – 无法恢复的崩溃。 解决方案历史 :",
+  "status": "in_progress",
+  "sections": [
+    {
+      "id": "s-5-1",
+      "number": "5.1",
+      "level": 1,
+      "enTitle": "Motivation and History",
+      "zhTitle": "动机和历史",
+      "pages": "142",
+      "blocks": [
+        {
+          "id": "s-5-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 5,
+            "section": "5.1",
+            "pages": "142"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §5.1「动机和历史」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-5-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.1",
+            "pages": "142"
+          },
+          "text": "问题:香草政策梯度更新对步长没有限制。单次不幸运的批次可以将政策推向产生垃圾的区 – 垃圾得到低回报 – 下一个梯度让事情更糟糕 – 无法恢复的崩溃。 解决方案历史 :",
+          "originalExcerpt": "Problem: Vanilla policy gradient updates have no constraint on step size. A single unlucky batch can push the policy into a region where it generates garbage → garbage gets low rewards → next gradient makes things worse → unrecoverable collapse. Solution history:"
+        },
+        {
+          "id": "s-5-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.1",
+            "pages": "142"
+          },
+          "text": "1. TRPO [317] (2015):限制KL在新旧政策之间的差别。",
+          "originalExcerpt": "1. TRPO [317] (2015): Constrain KL divergence between old and new policy. Works perfectly but"
+        },
+        {
+          "id": "s-5-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.1",
+            "pages": "142"
+          },
+          "text": "需要昂贵的二阶优化(Fisher信息矩阵，交错梯度)。",
+          "originalExcerpt": "requires expensive second-order optimization (Fisher information matrix, conjugate gradients)."
+        },
+        {
+          "id": "s-5-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.1",
+            "pages": "142"
+          },
+          "text": "2. PPO(2017)[319]:以简单的一阶剪切目标实现类似的稳定性。",
+          "originalExcerpt": "2. PPO (2017) [319]: Achieve similar stability with a simple first-order clipped objective. 10×"
+        },
+        {
+          "id": "s-5-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.1",
+            "pages": "142"
+          },
+          "text": "更简单，几乎同样，可以进行小规模的培训。",
+          "originalExcerpt": "simpler to implement, works almost as well, scales to distributed training trivially."
+        }
+      ]
+    },
+    {
+      "id": "s-5-2",
+      "number": "5.2",
+      "level": 1,
+      "enTitle": "The Clipped Objective",
+      "zhTitle": "切片目标",
+      "pages": "142",
+      "blocks": [
+        {
+          "id": "s-5-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 5,
+            "section": "5.2",
+            "pages": "142"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §5.2「切片目标」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-5-2-b1",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 5,
+            "section": "5.2",
+            "pages": "142"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "The core innovation of PPO is a clipped surrogate objective that prevents destructively large policy updates while remaining simple to implement. h \u0010 \u0011i LCLIP (θ) = Et min rt (θ)Ât , clip(rt (θ), 1−ϵ, 1+ϵ)Ât (5.1)"
+        },
+        {
+          "id": "s-5-2-b2",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.2",
+            "pages": "142"
+          },
+          "expression": "where rt (θ) = πθπθ (a(at |st |st )t ) is the probability ratio. old",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-5-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.2",
+            "pages": "142"
+          },
+          "text": "剪切内向——密钥透视 min 操作员创建悲观的绑定 :",
+          "originalExcerpt": "Clipping Intuition — The Key Insight The min operator creates a pessimistic bound:"
+        },
+        {
+          "id": "s-5-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.2",
+            "pages": "142"
+          },
+          "text": "● 良好行动(++0):我们希望增加其概率。",
+          "originalExcerpt": "• Good action (Â > 0): We want to increase its probability. The surrogate rÂ grows as r"
+        },
+        {
+          "id": "s-5-2-b5",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 5,
+            "section": "5.2",
+            "pages": "142"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "increases. But clip caps benefit at r = 1 + ϵ. “Don’t get greedy on one good example.”"
+        },
+        {
+          "id": "s-5-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.2",
+            "pages": "142"
+          },
+          "text": "• 不良行动(",
+          "originalExcerpt": "• Bad action (Â < 0): We want to decrease its probability. rÂ improves as r decreases. But"
+        },
+        {
+          "id": "s-5-2-b7",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 5,
+            "section": "5.2",
+            "pages": "142"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "clip caps benefit at r = 1 − ϵ. “Don’t forget too aggressively based on one bad example.”"
+        },
+        {
+          "id": "s-5-2-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.2",
+            "pages": "142"
+          },
+          "text": "净效果: 政策变化最多为每更新一步 ± 20%。 既防止灾难性崩溃， 也防止过度自信的专业化。",
+          "originalExcerpt": "Net effect: policy changes by at most ±20% per update step. Prevents both catastrophic collapse and overconfident specialization."
+        }
+      ]
+    },
+    {
+      "id": "s-5-3",
+      "number": "5.3",
+      "level": 1,
+      "enTitle": "Full PPO Loss",
+      "zhTitle": "PPO 损失总额",
+      "pages": "142-143",
+      "blocks": [
+        {
+          "id": "s-5-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 5,
+            "section": "5.3",
+            "pages": "142-143"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §5.3「PPO 损失总额」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-5-3-b1",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.3",
+            "pages": "142"
+          },
+          "expression": "L = LCLIP − c1 (Vθ (st ) − Vttarget )2 +c2 H[πθ (·|st )] (5.2) | {z } | {z } value loss entropy bonus",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-5-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.3",
+            "pages": "142"
+          },
+          "text": "· 值损失(c1=0.1):训练评论家预测回报，也为稳定性剪辑。",
+          "originalExcerpt": "• Value loss (c1 = 0.1): Trains the critic to predict returns. Also clipped for stability."
+        },
+        {
+          "id": "s-5-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.3",
+            "pages": "143"
+          },
+          "text": "• 环球奖金(c2=0.01):防止过早地与决定性政策趋同。",
+          "originalExcerpt": "• Entropy bonus (c2 = 0.01): Prevents premature convergence to deterministic policy. Critical"
+        },
+        {
+          "id": "s-5-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.3",
+            "pages": "143"
+          },
+          "text": "用于勘探。",
+          "originalExcerpt": "for exploration."
+        }
+      ]
+    },
+    {
+      "id": "s-5-4",
+      "number": "5.4",
+      "level": 1,
+      "enTitle": "Derivation of the PPO Gradient and Update Rule",
+      "zhTitle": "PPO 渐进和更新规则的衍生",
+      "pages": "143",
+      "blocks": [
+        {
+          "id": "s-5-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4",
+            "pages": "143"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §5.4「PPO 渐进和更新规则的衍生」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-5-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4",
+            "pages": "143"
+          },
+          "text": "本节将数学路径从RL目标追溯到PPO更新规则，显示了剪辑代词为何起作用。",
+          "originalExcerpt": "This section traces the mathematical path from the RL objective to the PPO update rule, showing why the clipped surrogate works."
+        }
+      ]
+    },
+    {
+      "id": "s-5-4-1",
+      "number": "5.4.1",
+      "level": 2,
+      "enTitle": "Step 1: The RL Objective",
+      "zhTitle": "步骤1:RL目标",
+      "pages": "143",
+      "blocks": [
+        {
+          "id": "s-5-4-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.1",
+            "pages": "143"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §5.4.1「步骤1:RL目标」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-5-4-1-b1",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.1",
+            "pages": "143"
+          },
+          "expression": "The goal is to maximize expected cumulative reward under the policy: \" T # X J(θ) = Eτ ∼πθ rt (5.3) t=0",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        }
+      ]
+    },
+    {
+      "id": "s-5-4-2",
+      "number": "5.4.2",
+      "level": 2,
+      "enTitle": "Step 2: Policy Gradient Theorem",
+      "zhTitle": "步骤2:政策梯度定理",
+      "pages": "143",
+      "blocks": [
+        {
+          "id": "s-5-4-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.2",
+            "pages": "143"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §5.4.2「步骤2:政策梯度定理」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-5-4-2-b1",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.2",
+            "pages": "143"
+          },
+          "expression": "The gradient of J(θ) with respect to policy parameters: \" T # X ∇θ J(θ) = Eπθ ∇θ log πθ (at |st ) · Ât (5.4) t=0",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-5-4-2-b2",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.2",
+            "pages": "143"
+          },
+          "language": "text",
+          "code": "where Ât is the advantage function (how much better action at was compared to the average action in state st ). This replaces the full return with the advantage to reduce variance.",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        }
+      ]
+    },
+    {
+      "id": "s-5-4-3",
+      "number": "5.4.3",
+      "level": 2,
+      "enTitle": "Step 3: Importance Sampling for Off-Policy Data",
+      "zhTitle": "步骤3:对政策外数据进行重要抽样",
+      "pages": "143",
+      "blocks": [
+        {
+          "id": "s-5-4-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.3",
+            "pages": "143"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §5.4.3「步骤3:对政策外数据进行重要抽样」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-5-4-3-b1",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.3",
+            "pages": "143"
+          },
+          "expression": "PPO collects data using πθold but updates πθ . To correct for this distribution mismatch, apply importance sampling: \" # πθ (at |st ) ∇θ J(θ) = Eπθold ∇θ log πθ (at |st ) · Ât (5.5) πθold (at |st )",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-5-4-3-b2",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.3",
+            "pages": "143"
+          },
+          "expression": "Define the probability ratio rt (θ) = πθπθ (a(at |st |st )t ) . Using the identity ∇θ log f = ∇fθ f , we get: old",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-5-4-3-b3",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.3",
+            "pages": "143"
+          },
+          "expression": "h i ∇θ J(θ) = Eπθold ∇θ rt (θ) · Ât (5.6)",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-5-4-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.3",
+            "pages": "143"
+          },
+          "text": "这意味着最大限度地实现替代目标:h i LCPI(θ) = Et rt(θ) ·t(5.7)",
+          "originalExcerpt": "This means maximizing the surrogate objective: h i LCPI (θ) = Et rt (θ) · Ât (5.7)"
+        }
+      ]
+    },
+    {
+      "id": "s-5-4-4",
+      "number": "5.4.4",
+      "level": 2,
+      "enTitle": "Step 4: The Problem with Unconstrained Surrogates",
+      "zhTitle": "步骤4:无限制的替代人的问题",
+      "pages": "143",
+      "blocks": [
+        {
+          "id": "s-5-4-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.4",
+            "pages": "143"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §5.4.4「步骤4:无限制的替代人的问题」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-5-4-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.4",
+            "pages": "143"
+          },
+          "text": "LCPI是一个有效的目标，但是没有限制，一个单一的梯度步骤可以将rt(θ)推得远远没有1.0，导致:",
+          "originalExcerpt": "LCPI is a valid objective, but without constraints, a single gradient step can push rt (θ) far from 1.0, causing:"
+        },
+        {
+          "id": "s-5-4-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.4",
+            "pages": "143"
+          },
+          "text": "• 重要性加权变得极小 —— 差异很大",
+          "originalExcerpt": "• Importance weights become extreme → high variance"
+        },
+        {
+          "id": "s-5-4-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.4",
+            "pages": "143"
+          },
+          "text": "• 政策进入未经测试的地区 ——奖励模式分数不可靠",
+          "originalExcerpt": "• Policy enters untested regions → reward model gives unreliable scores"
+        },
+        {
+          "id": "s-5-4-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.4",
+            "pages": "143"
+          },
+          "text": "灾难性崩溃:政策造成垃圾，无法恢复",
+          "originalExcerpt": "• Catastrophic collapse: policy generates garbage, can’t recover"
+        },
+        {
+          "id": "s-5-4-4-b5",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.4",
+            "pages": "143"
+          },
+          "expression": "TRPO solution: Constrain DKL (πθold ∥πθ ) ≤ δ. Requires second-order methods (expensive).",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        }
+      ]
+    },
+    {
+      "id": "s-5-4-5",
+      "number": "5.4.5",
+      "level": 2,
+      "enTitle": "Step 5: PPO’s Clipped Surrogate (First-Order Approximation)",
+      "zhTitle": "步骤5:PPO的剪切代孕(第一顺序近似)",
+      "pages": "144",
+      "blocks": [
+        {
+          "id": "s-5-4-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.5",
+            "pages": "144"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §5.4.5「步骤5:PPO的剪切代孕(第一顺序近似)」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-5-4-5-b1",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.5",
+            "pages": "144"
+          },
+          "expression": "PPO replaces the hard KL constraint with a clipped objective that achieves similar behavior using only first-order gradients: h \u0010 \u0011i LCLIP (θ) = Et min rt (θ)Ât , clip(rt (θ), 1−ϵ, 1+ϵ)Ât (5.8)",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-5-4-5-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.5",
+            "pages": "144"
+          },
+          "text": "梯度的衍生:将“lt” = min(rt Ât， r't Ât)，其中“rt = 夹子”(rt， 1−ε， 1+εt) (如果“rt rt ” ) = r't (未连入的词更小) = (5.9) 0 = “rt ” ( clip ter ) = o( cliple ter 更小， 梯度= 0) 扩展条件:",
+          "originalExcerpt": "Derivation of the gradient: Let Lt = min(rt Ât , r̄t Ât ) where r̄t = clip(rt , 1−ϵ, 1+ϵ). ( ∇θ rt (θ) · Ât if rt Ât < r̄t Ât (unclipped term is smaller) ∇θ Lt = (5.9) 0 if rt Ât ≥ r̄t Ât (clipped term is smaller, gradient = 0) Expanding the conditions:"
+        },
+        {
+          "id": "s-5-4-5-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.5",
+            "pages": "144"
+          },
+          "text": "• 当 + > 0和rt < 1+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++",
+          "originalExcerpt": "• When Ât > 0 and rt < 1 + ϵ: Gradient flows normally — policy is encouraged to increase"
+        },
+        {
+          "id": "s-5-4-5-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.5",
+            "pages": "144"
+          },
+          "text": "• 当",
+          "originalExcerpt": "• When Ât > 0 and rt ≥ 1 + ϵ: Gradient is zero — policy has already increased enough, stop"
+        },
+        {
+          "id": "s-5-4-5-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.5",
+            "pages": "144"
+          },
+          "text": "• 当 < 0和rt > 1 - +: 逐步流动通常——鼓励减少政策",
+          "originalExcerpt": "• When Ât < 0 and rt > 1 − ϵ: Gradient flows normally — policy is encouraged to decrease"
+        },
+        {
+          "id": "s-5-4-5-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.5",
+            "pages": "144"
+          },
+          "text": "• 当",
+          "originalExcerpt": "• When Ât < 0 and rt ≤ 1 − ϵ: Gradient is zero — policy has already decreased enough, stop"
+        }
+      ]
+    },
+    {
+      "id": "s-5-4-6",
+      "number": "5.4.6",
+      "level": 2,
+      "enTitle": "Step 6: The Complete PPO Update Rule",
+      "zhTitle": "步骤6:PPO更新规则",
+      "pages": "144",
+      "blocks": [
+        {
+          "id": "s-5-4-6-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.6",
+            "pages": "144"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §5.4.6「步骤6:PPO更新规则」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-5-4-6-b1",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.6",
+            "pages": "144"
+          },
+          "expression": "Combining the clipped policy loss, value loss, and entropy bonus: h i θk+1 = θk + α · ∇θ LCLIP (θ) − c1 LVF (θ) + c2 H[πθ ] (5.10)",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-5-4-6-b2",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.6",
+            "pages": "144"
+          },
+          "expression": "where: \u0010 \u00112 LVF (θ) = Vθ (st ) − Vttarget (value function regression loss) (5.11) X H[πθ ] = − πθ (a|st ) log πθ (a|st ) (entropy of the policy) (5.12) a",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-5-4-6-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.6",
+            "pages": "144"
+          },
+          "text": "摘要:为什么这样做",
+          "originalExcerpt": "Summary: Why This Works"
+        },
+        {
+          "id": "s-5-4-6-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.6",
+            "pages": "144"
+          },
+          "text": "1. 政策梯度定理为我们提供了改进政策的方向。",
+          "originalExcerpt": "1. Policy gradient theorem gives us the direction to improve the policy."
+        },
+        {
+          "id": "s-5-4-6-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.6",
+            "pages": "144"
+          },
+          "text": "2. 重要取样让我们能够重新利用来自多个时代的“老化”数据。",
+          "originalExcerpt": "2. Importance sampling lets us reuse data from πθold across multiple epochs."
+        },
+        {
+          "id": "s-5-4-6-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.6",
+            "pages": "144"
+          },
+          "text": "3. 剪切可以防止重力变得极端，保证更新的安全。",
+          "originalExcerpt": "3. Clipping prevents the importance weights from becoming extreme, keeping updates safe."
+        },
+        {
+          "id": "s-5-4-6-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.6",
+            "pages": "144"
+          },
+          "text": "4. 分钟操作员确保我们始终采取更保守的(粘合、未粘合) -- --",
+          "originalExcerpt": "4. The min operator ensures we always take the more conservative of (clipped, unclipped) —"
+        },
+        {
+          "id": "s-5-4-6-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.6",
+            "pages": "144"
+          },
+          "text": "悲观的低调限制在改善。",
+          "originalExcerpt": "a pessimistic lower bound on improvement."
+        },
+        {
+          "id": "s-5-4-6-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.6",
+            "pages": "144"
+          },
+          "text": "5. 结果:概率1的莫诺尼式改进，只使用一阶梯度。",
+          "originalExcerpt": "5. Result: Monotonic improvement with probability 1, using only first-order gradients. No"
+        },
+        {
+          "id": "s-5-4-6-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.4.6",
+            "pages": "144"
+          },
+          "text": "黑森州，没有交错梯度，没有行搜索。",
+          "originalExcerpt": "Hessians, no conjugate gradients, no line searches."
+        }
+      ]
+    },
+    {
+      "id": "s-5-5",
+      "number": "5.5",
+      "level": 1,
+      "enTitle": "Rollout Buffer and Rollouts",
+      "zhTitle": "推出缓冲和推出",
+      "pages": "144",
+      "blocks": [
+        {
+          "id": "s-5-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 5,
+            "section": "5.5",
+            "pages": "144"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §5.5「推出缓冲和推出」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-5-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.5",
+            "pages": "144"
+          },
+          "text": "在PPO中，数据管理依赖于一个被称为\"推出缓冲器\"(Rlout Buffer)的专业化短期存储系统。与将体验无限期存储在重播缓冲器中的非政策算法(DQN)不同， PPO需要一种电平结构来满足其政策数学限制。",
+          "originalExcerpt": "In PPO, data management relies on a specialized, short-term storage system known as a Rollout Buffer. Unlike off-policy algorithms (DQN) that store experiences indefinitely in a replay buffer, PPO requires an ephemeral structure to satisfy its on-policy mathematical constraints."
+        }
+      ]
+    },
+    {
+      "id": "s-5-5-1",
+      "number": "5.5.1",
+      "level": 2,
+      "enTitle": "What is a Rollout?",
+      "zhTitle": "什么是\"推出\"？?",
+      "pages": "145",
+      "blocks": [
+        {
+          "id": "s-5-5-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 5,
+            "section": "5.5.1",
+            "pages": "145"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §5.5.1「什么是\"推出\"？?」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-5-5-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.5.1",
+            "pages": "145"
+          },
+          "text": "推出(trajectory)是执行当前环境政策的机构产生的一系列相互作用:",
+          "originalExcerpt": "A rollout (trajectory) is a sequence of interactions generated by the agent running its current policy in the environment:"
+        },
+        {
+          "id": "s-5-5-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.5.1",
+            "pages": "145"
+          },
+          "text": "• 过程:Agent观察状态，选择行动，获得奖励，并移动到",
+          "originalExcerpt": "• The process: The agent observes a state, selects an action, receives a reward, and moves to"
+        },
+        {
+          "id": "s-5-5-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.5.1",
+            "pages": "145"
+          },
+          "text": "重复到固定的几个步骤，或者直到剧集结束。",
+          "originalExcerpt": "the next state. It repeats for a fixed number of steps or until the episode ends."
+        },
+        {
+          "id": "s-5-5-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.5.1",
+            "pages": "145"
+          },
+          "text": "• 在LLM/RLHF中:推出包括从数据集中迅速使用语言",
+          "originalExcerpt": "• In LLMs/RLHF: A rollout consists of taking a prompt from a dataset and letting the language"
+        },
+        {
+          "id": "s-5-5-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.5.1",
+            "pages": "145"
+          },
+          "text": "模型生成一个完整的符号序列，逐个按键直到文字结尾标记被击中。每个符号都是“步骤 ”。",
+          "originalExcerpt": "model generate a complete sequence of tokens token-by-token until an end-of-text marker is hit. Each token is one “step.”"
+        }
+      ]
+    },
+    {
+      "id": "s-5-5-2",
+      "number": "5.5.2",
+      "level": 2,
+      "enTitle": "The Rollout Buffer",
+      "zhTitle": "推出缓冲器",
+      "pages": "145",
+      "blocks": [
+        {
+          "id": "s-5-5-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 5,
+            "section": "5.5.2",
+            "pages": "145"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §5.5.2「推出缓冲器」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-5-5-2-b1",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.5.2",
+            "pages": "145"
+          },
+          "expression": "The rollout buffer temporarily stores all data collected during the rollout phase. For every generated token/step, it records: B = {(st , at , log πθold (at |st ), rt , V (st ))}Tt=1 (5.13)",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-5-5-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.5.2",
+            "pages": "145"
+          },
+          "text": "• ST， at， rt: 国家、采取的行动和逐步的奖励。",
+          "originalExcerpt": "• st , at , rt : State, action taken, and reward at step t."
+        },
+        {
+          "id": "s-5-5-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.5.2",
+            "pages": "145"
+          },
+          "text": "• 记录(第 )，根据产生这一行动的确切政策采取这一行动的记录可能性",
+          "originalExcerpt": "• log πθold (at |st ): Log-probability of taking that action under the exact policy that generated it"
+        },
+        {
+          "id": "s-5-5-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.5.2",
+            "pages": "145"
+          },
+          "text": "(计算比率所需)。",
+          "originalExcerpt": "(needed for ratio computation)."
+        },
+        {
+          "id": "s-5-5-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.5.2",
+            "pages": "145"
+          },
+          "text": "· V(st):价值函数基线预测(GAE优势计算所需)。",
+          "originalExcerpt": "• V (st ): Value function’s baseline prediction (needed for GAE advantage computation)."
+        }
+      ]
+    },
+    {
+      "id": "s-5-5-3",
+      "number": "5.5.3",
+      "level": 2,
+      "enTitle": "The Rollout Buffer Lifecycle",
+      "zhTitle": "推出缓冲周期",
+      "pages": "145-146",
+      "blocks": [
+        {
+          "id": "s-5-5-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 5,
+            "section": "5.5.3",
+            "pages": "145-146"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §5.5.3「推出缓冲周期」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-5-5-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.5.3",
+            "pages": "145"
+          },
+          "text": "缓冲器在严格的三相时钟工作周期中运行:",
+          "originalExcerpt": "The buffer operates in a strict three-phase clockwork cycle:"
+        },
+        {
+          "id": "s-5-5-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.5.3",
+            "pages": "145"
+          },
+          "text": "1. 收集:积极的政策与环境相互作用，以新的轨迹填充缓冲",
+          "originalExcerpt": "1. Collect: The active policy interacts with the environment to fill the buffer with fresh trajectories"
+        },
+        {
+          "id": "s-5-5-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.5.3",
+            "pages": "145"
+          },
+          "text": "(对于一个70B型，批量=128，最大 托肯斯=512:每次推出最多65K个令牌级的过渡)。",
+          "originalExcerpt": "(for a 70B model with batch=128, max_tokens=512: up to 65K token-level transitions per rollout)."
+        },
+        {
+          "id": "s-5-5-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.5.3",
+            "pages": "145"
+          },
+          "text": "2. 列车:计算GAE在轨迹上的优势。运行 K 时段(通常为 3-10)。",
+          "originalExcerpt": "2. Train: Compute GAE advantages across trajectories. Run K epochs (typically 3–10) of"
+        },
+        {
+          "id": "s-5-5-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.5.3",
+            "pages": "145"
+          },
+          "text": "使用剪切目标更新政策权重。",
+          "originalExcerpt": "mini-batch gradient descent to update policy weights using the clipped objective."
+        },
+        {
+          "id": "s-5-5-3-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.5.3",
+            "pages": "145"
+          },
+          "text": "3. 清洗:整个缓冲器被彻底擦除。因为PPO是政策性的，数据",
+          "originalExcerpt": "3. Purge: The entire buffer is completely wiped clean. Because PPO is on-policy, data"
+        },
+        {
+          "id": "s-5-5-3-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.5.3",
+            "pages": "145"
+          },
+          "text": "旧政策产生的这种比率不能在下一个更新周期安全地再利用——比率(θ)将变得陈旧，剪接保证将破裂。",
+          "originalExcerpt": "generated by the old policy cannot be safely reused for the next update cycle — the ratio rt (θ) would become stale and the clipping guarantees would break."
+        },
+        {
+          "id": "s-5-5-3-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.5.3",
+            "pages": "145"
+          },
+          "text": "推出缓冲对重放缓冲(DQN， SAC): 退出政策 无限期存储数百万的过渡 随机抽样 数据在众多更新中重复使用 推出缓冲(PPO， GRPO): 上政策 存储了一批轨迹。用于几个时代，然后完全丢弃。每个周期都需要新鲜数据。这就是为什么PPO需要连续生成的原因 — — 每次更新后缓冲器都会被清空，需要新的推出。这使得生成瓶颈(60–70%的壁点时间)特别痛苦。 在RLHF环境下的vLLM在RLHF训练中， vLLM被用于生成阶段(60–70%的壁点时间 )。政策模式产生推出，然后按奖励模式进行评分。",
+          "originalExcerpt": "Rollout Buffer vs Replay Buffer Replay Buffer (DQN, SAC): Off-policy. Stores millions of transitions indefinitely. Random sampling. Data reused across many updates. Rollout Buffer (PPO, GRPO): On-policy. Stores one batch of trajectories. Used for a few epochs, then discarded entirely. Fresh data required every cycle. This is why PPO requires continuous gener..."
+        },
+        {
+          "id": "s-5-5-3-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.5.3",
+            "pages": "145"
+          },
+          "text": "• 抽打生成:生成256+反应，并平行地在各种提示中进行。",
+          "originalExcerpt": "• Batched generation: Generate 256+ responses in parallel across prompts."
+        },
+        {
+          "id": "s-5-5-3-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.5.3",
+            "pages": "145"
+          },
+          "text": "• 内存效率:适应更多同时代 − 在使用期间使用全球统一系数较高",
+          "originalExcerpt": "• Memory efficiency: Fit more concurrent generations → higher GPU utilization during"
+        },
+        {
+          "id": "s-5-5-3-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.5.3",
+            "pages": "145"
+          },
+          "text": "一代的瓶颈。",
+          "originalExcerpt": "the generation bottleneck."
+        },
+        {
+          "id": "s-5-5-3-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.5.3",
+            "pages": "146"
+          },
+          "text": "• 前缀共享:当生成 N = 每个 迅速 8 个响应( GRPO) 时， 即时 KV",
+          "originalExcerpt": "• Prefix sharing: When generating N = 8 responses per prompt (GRPO), the prompt KV"
+        },
+        {
+          "id": "s-5-5-3-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.5.3",
+            "pages": "146"
+          },
+          "text": "计算一次并共享所有 8 个——没有多余的预填。",
+          "originalExcerpt": "is computed once and shared across all 8 — no redundant prefill."
+        },
+        {
+          "id": "s-5-5-3-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.5.3",
+            "pages": "146"
+          },
+          "text": "• 整合:OpenRLHF和TRL等框架使用vLLM作为生成后端，",
+          "originalExcerpt": "• Integration: Frameworks like OpenRLHF and TRL use vLLM as the generation backend,"
+        },
+        {
+          "id": "s-5-5-3-b15",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.5.3",
+            "pages": "146"
+          },
+          "text": "将一代工人(vLLM)与培训工人(DeepSpeed/FSDP)分离。",
+          "originalExcerpt": "separating generation workers (vLLM) from training workers (DeepSpeed/FSDP)."
+        }
+      ]
+    },
+    {
+      "id": "s-5-6",
+      "number": "5.6",
+      "level": 1,
+      "enTitle": "PPO for RLHF: The Full Loop",
+      "zhTitle": "高频的PPO:全循环",
+      "pages": "146",
+      "blocks": [
+        {
+          "id": "s-5-6-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 5,
+            "section": "5.6",
+            "pages": "146"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §5.6「高频的PPO:全循环」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-5-6-b1",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 5,
+            "section": "5.6",
+            "pages": "146"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "Concrete PPO Step for a 70B Chat Model Setup: Batch of 128 prompts, Llama-3-70B policy, 512 max tokens. Step 1 — Generate: Sample 128 responses (temperature=0.7, top-p=0.9). This takes 60% of time. Step 2 — Score: Reward model scores each (prompt, response) pair. Range: 0.2–0.95. Step 3 — KL: Compute per-token KL: KLt = log πθ (yt |y<t ) − log πref (yt |y<t ..."
+        },
+        {
+          "id": "s-5-6-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.6",
+            "pages": "146"
+          },
+          "text": "• KL会计:按同一语义内容计算，按千兆克L总和计算不同的总额",
+          "originalExcerpt": "• KL accounting: Per-token KL sums to different totals for the same semantic content"
+        },
+        {
+          "id": "s-5-6-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.6",
+            "pages": "146"
+          },
+          "text": "符号化不同(例如，稀有词分割成更多子词得到更高的总KL惩罚)。",
+          "originalExcerpt": "tokenized differently (e.g., rare words split into more subwords get higher total KL penalty)."
+        },
+        {
+          "id": "s-5-6-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.6",
+            "pages": "146"
+          },
+          "text": "• 信贷转让:GAE按象征性地位分配优势——但语义上的“决定”",
+          "originalExcerpt": "• Credit assignment: GAE assigns advantage per token position—but semantic “decisions”"
+        },
+        {
+          "id": "s-5-6-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.6",
+            "pages": "146"
+          },
+          "text": "模式只在词首的符号上真正“desides ” ; 后面的子词符号基本上具有决定性意义。",
+          "originalExcerpt": "often span multiple tokens. The model only truly “decides” at the first token of a word; subsequent subword tokens are largely deterministic."
+        },
+        {
+          "id": "s-5-6-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.6",
+            "pages": "146"
+          },
+          "text": "• 奖励安排:只将奖励放在最后的象征，意味着所有前一种象征",
+          "originalExcerpt": "• Reward placement: Placing reward only at the final token means all preceding tokens"
+        },
+        {
+          "id": "s-5-6-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.6",
+            "pages": "146"
+          },
+          "text": "必须通过GAE更长时间的反应，将信贷向后推广，信号会更加稀释。",
+          "originalExcerpt": "must propagate credit backward through GAE—longer responses suffer from more diluted signal."
+        },
+        {
+          "id": "s-5-6-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.6",
+            "pages": "146"
+          },
+          "text": "缓解:有些系统按序列长度使KL正常化，使用词级奖励塑造，或应用语义边界而不是最终的表示号来奖励。",
+          "originalExcerpt": "Mitigation: Some systems normalize KL by sequence length, use word-level reward shaping, or apply reward at semantic boundaries rather than the final token."
+        }
+      ]
+    },
+    {
+      "id": "s-5-7",
+      "number": "5.7",
+      "level": 1,
+      "enTitle": "Detailed Mechanics: Logits and Policy Updates",
+      "zhTitle": "详细机械:逻辑和政策更新",
+      "pages": "146-147",
+      "blocks": [
+        {
+          "id": "s-5-7-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7",
+            "pages": "146-147"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §5.7「详细机械:逻辑和政策更新」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-5-7-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7",
+            "pages": "146"
+          },
+          "text": "PPO管理内存中两个不同的参数状态，它们共享相同的神经网络地形，但在优化过程中持有不同的权重值:",
+          "originalExcerpt": "PPO manages two distinct parameter states in memory, which share the same neural network topology but hold different weight values during optimization:"
+        },
+        {
+          "id": "s-5-7-b2",
+          "type": "figure",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7",
+            "pages": "147",
+            "figure": "Figure 5.1"
+          },
+          "src": null,
+          "alt": "图5.1: PPO端对端:从及时批量到生成，奖励评分， KL计算，优势估计，到剪切策略更新。反馈循环显示更新的政策用于下一代步骤。",
+          "caption": "图5.1: PPO端对端:从及时批量到生成，奖励评分， KL计算，优势估计，到剪切策略更新。反馈循环显示更新的政策用于下一代步骤。",
+          "adapted": false
+        },
+        {
+          "id": "s-5-7-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7",
+            "pages": "147"
+          },
+          "text": "核心结构:两个网络",
+          "originalExcerpt": "Core Architecture: Two Networks"
+        },
+        {
+          "id": "s-5-7-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7",
+            "pages": "147"
+          },
+          "text": "1. 政策网(",
+          "originalExcerpt": "1. The Policy Network (πθ ): The active, live network parameterized by weights θ. Continu-"
+        },
+        {
+          "id": "s-5-7-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7",
+            "pages": "147"
+          },
+          "text": "在优化期间通过反向传播进行同步更新。",
+          "originalExcerpt": "ously updated via backpropagation during optimization."
+        },
+        {
+          "id": "s-5-7-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7",
+            "pages": "147"
+          },
+          "text": "2. 老政策网(πθ):一个以重量为单位的冻结快照参数。",
+          "originalExcerpt": "2. The Old Policy Network (πθold ): A frozen snapshot parameterized by weights θold . Acts"
+        },
+        {
+          "id": "s-5-7-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7",
+            "pages": "147"
+          },
+          "text": "在一个单一优化周期内作为固定的锚，以防止政策发生过度变化。",
+          "originalExcerpt": "as a static anchor during a single optimization cycle to prevent the policy from shifting too drastically."
+        }
+      ]
+    },
+    {
+      "id": "s-5-7-1",
+      "number": "5.7.1",
+      "level": 2,
+      "enTitle": "Phase 1: Rollout (Data Collection)",
+      "zhTitle": "第一阶段:推出(数据收集)",
+      "pages": "147",
+      "blocks": [
+        {
+          "id": "s-5-7-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.1",
+            "pages": "147"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §5.7.1「第一阶段:推出(数据收集)」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-5-7-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.1",
+            "pages": "147"
+          },
+          "text": "在数据收集过程中，该剂会与环境相互作用，用于T步骤。在每次时间步骤 t:",
+          "originalExcerpt": "During data collection, the agent interacts with the environment for T steps. At each time-step t:"
+        },
+        {
+          "id": "s-5-7-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.1",
+            "pages": "147"
+          },
+          "text": "1. 环境产生当前状态/观测状态(对LLMs: 即时+生成的信号)",
+          "originalExcerpt": "1. The environment yields the current state/observation st (for LLMs: prompt + tokens generated"
+        },
+        {
+          "id": "s-5-7-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.1",
+            "pages": "147"
+          },
+          "text": "2. 国家标准通过目前的网络快照(旧)。",
+          "originalExcerpt": "2. State st is passed through the current network snapshot (θold )."
+        },
+        {
+          "id": "s-5-7-1-b5",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.1",
+            "pages": "147"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "3. The network outputs raw unnormalized values — logits zold — a vector of size |V | (vocabulary"
+        },
+        {
+          "id": "s-5-7-1-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.1",
+            "pages": "147"
+          },
+          "text": "4. 概率通过Softmax计算:",
+          "originalExcerpt": "4. Probabilities are computed via Softmax:"
+        },
+        {
+          "id": "s-5-7-1-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.1",
+            "pages": "147"
+          },
+          "text": "exp(zold， a) P(a | | |) = Softmax(zold) = P|V |(5.14) j=1 exp(zold， j) =，=， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， z， j， j， j， j， j， j， j， j， j， j， j， j， j， j， j， j， j， j， j， j， j， j， j， j， j， j， j， j， j， j， j， j， j)。",
+          "originalExcerpt": "exp(zold,a ) P (a | st ) = Softmax(zold ) = P|V | (5.14) j=1 exp(zold,j )"
+        },
+        {
+          "id": "s-5-7-1-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.1",
+            "pages": "147"
+          },
+          "text": "5. 从P(a | st)和过渡的Tuple st(rt)抽取(next sorder)的动作，在(rt)， st+1 ⟩",
+          "originalExcerpt": "5. An action at (next token) is sampled from P (a | st ), and the transition tuple ⟨st , at , rt , st+1 ⟩"
+        },
+        {
+          "id": "s-5-7-1-b10",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.1",
+            "pages": "147"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "along with log πθold (at | st ) is stored in the rollout buffer."
+        },
+        {
+          "id": "s-5-7-1-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.1",
+            "pages": "147"
+          },
+          "text": "为什么要保存 log-probability？在 rollout 阶段把 log πθold(at|st) 保存为标量，优化时便无需再次运行冻结的旧策略网络。这样每个 mini-batch 可少做一次完整前向计算；对 70B 级模型而言，这一节省非常显著。",
+          "originalExcerpt": "Why Store Log-Probabilities? Storing log πθold (at | st ) as a scalar during rollout avoids re-running the frozen network during optimization. This saves one full forward pass per mini-batch — significant for 70B models."
+        }
+      ]
+    },
+    {
+      "id": "s-5-7-2",
+      "number": "5.7.2",
+      "level": 2,
+      "enTitle": "Phase 2: Optimization Loop (Mini-Batch Updates)",
+      "zhTitle": "阶段2:优化循环(Mini-Batch更新)",
+      "pages": "147-148",
+      "blocks": [
+        {
+          "id": "s-5-7-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.2",
+            "pages": "147-148"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §5.7.2「阶段2:优化循环(Mini-Batch更新)」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-5-7-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.2",
+            "pages": "147"
+          },
+          "text": "一旦推出缓冲器满了， PPO就会在小炮管上运行 K 时代( 通常为 3–10 )。 对于每个梯度步骤，都会使用存储状态 st: 旧政策评估( 冻结) 生成对数 :",
+          "originalExcerpt": "Once the rollout buffer is full, PPO runs K epochs (typically 3–10) over mini-batches. For every gradient step, logits are generated for both policies using the stored state st : Old Policy Evaluation (frozen):"
+        },
+        {
+          "id": "s-5-7-2-b2",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.2",
+            "pages": "147"
+          },
+          "expression": "zold = f (st ; θold ) −→ log πθold (at | st ) = LogSoftmax(zold )[at ] (5.15)",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-5-7-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.2",
+            "pages": "147"
+          },
+          "text": "执行快捷键:从推出时重用存储的标板，而不是重计算。",
+          "originalExcerpt": "Implementation shortcut: reuse the stored scalar from rollout instead of re-computing."
+        },
+        {
+          "id": "s-5-7-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.2",
+            "pages": "148"
+          },
+          "text": "实况政策评估(更新):",
+          "originalExcerpt": "Live Policy Evaluation (updating):"
+        },
+        {
+          "id": "s-5-7-2-b5",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.2",
+            "pages": "148"
+          },
+          "expression": "znew = f (st ; θ) −→ log πθ (at | st ) = LogSoftmax(znew )[at ] (5.16)",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-5-7-2-b6",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.2",
+            "pages": "148"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "Because θ updates after every mini-batch gradient step, znew changes continuously throughout the optimization loop, whereas zold remains perfectly static."
+        }
+      ]
+    },
+    {
+      "id": "s-5-7-3",
+      "number": "5.7.3",
+      "level": 2,
+      "enTitle": "From Logits to Probability Ratio",
+      "zhTitle": "从逻辑到概率比",
+      "pages": "148",
+      "blocks": [
+        {
+          "id": "s-5-7-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.3",
+            "pages": "148"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §5.7.3「从逻辑到概率比」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-5-7-3-b1",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.3",
+            "pages": "148"
+          },
+          "expression": "The core PPO ratio measures how much more or less likely an action is under the new policy vs the old: πθ (at | st ) rt (θ) = (5.17) πθold (at | st )",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-5-7-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.3",
+            "pages": "148"
+          },
+          "text": "为了避免将原始概率除以灾难性数字流量/流出，计算按对数空间进行:",
+          "originalExcerpt": "To avoid catastrophic numerical underflow/overflow from dividing raw probabilities, the calculation is performed in log-space:"
+        },
+        {
+          "id": "s-5-7-3-b3",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.3",
+            "pages": "148"
+          },
+          "expression": "log πθ (at | st ) = LogSoftmax(znew )[at ] (5.18) log πθold (at | st ) = LogSoftmax(zold )[at ] (5.19)",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-5-7-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.3",
+            "pages": "148"
+          },
+          "text": "比率通过差异指数来恢复:",
+          "originalExcerpt": "The ratio is recovered via exponentiation of the difference:"
+        },
+        {
+          "id": "s-5-7-3-b5",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.3",
+            "pages": "148"
+          },
+          "expression": "rt (θ) = exp(log πθ (at | st ) − log πθold (at | st )) (5.20)",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-5-7-3-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.3",
+            "pages": "148"
+          },
+          "text": "这一比例被注入PPO剪辑目标:h \u0010i LCLIP (θ) = Êt min rt (θ) θt， clip(rθ)， 1−ε， 1+ε( (5) Â(5.21) Ât ( (5) .t ( (5) .t (θ) θt (θ) θt (θ) θt (θ) θt (θ) θt (θ) θt (θ) θt (θ) clipt (θ) clipt (θ) clipt (θ) clipt (θ) clipt (θ) clipt (θ) clipt (θ) clipt (θ) clipt (θ) θt (θ) +εt (θ) +εt (+ε) +ε) +εt (+ε) +εt (+ε) +εt (+ε) +ε(θ) +εt) +εt ( (5( (5) +ε) +εt ( (5) +εt ( (5) +ε( (5) +εt)",
+          "originalExcerpt": "This ratio is injected into the PPO clipping objective: h \u0010 \u0011i LCLIP (θ) = Êt min rt (θ)Ât , clip(rt (θ), 1−ϵ, 1+ϵ) Ât (5.21)"
+        },
+        {
+          "id": "s-5-7-3-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.3",
+            "pages": "148"
+          },
+          "text": "如何剪切工作",
+          "originalExcerpt": "How Clipping Works"
+        },
+        {
+          "id": "s-5-7-3-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.3",
+            "pages": "148"
+          },
+          "text": "• 如果",
+          "originalExcerpt": "• If Ât > 0 (good action): ratio is clipped at 1 + ϵ — cannot over-exploit good actions."
+        },
+        {
+          "id": "s-5-7-3-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.3",
+            "pages": "148"
+          },
+          "text": "• 如果 < 0(不良行动):比率被缩小为1- -不能过度惩罚不良行动。",
+          "originalExcerpt": "• If Ât < 0 (bad action): ratio is clipped at 1 − ϵ — cannot over-penalize bad actions."
+        },
+        {
+          "id": "s-5-7-3-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.3",
+            "pages": "148"
+          },
+          "text": "• 分钟(...)确保我们总是采取较保守的估计。",
+          "originalExcerpt": "• The min(·) ensures we always take the more conservative estimate."
+        },
+        {
+          "id": "s-5-7-3-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.3",
+            "pages": "148"
+          },
+          "text": "结果:在一个信任区域内单调改善——没有灾难性的崩溃。",
+          "originalExcerpt": "Result: monotonic improvement within a trust region — no catastrophic collapses."
+        }
+      ]
+    },
+    {
+      "id": "s-5-7-4",
+      "number": "5.7.4",
+      "level": 2,
+      "enTitle": "The PPO Weight Lifecycle",
+      "zhTitle": "PPO 重量周期",
+      "pages": "148",
+      "blocks": [
+        {
+          "id": "s-5-7-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.4",
+            "pages": "148"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §5.7.4「PPO 重量周期」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-5-7-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.4",
+            "pages": "148"
+          },
+          "text": "表5.1: 预防腐败方案培训阶段的 和 年 月 日的演变情况。",
+          "originalExcerpt": "Table 5.1: Evolution of θ and θold across PPO training phases."
+        },
+        {
+          "id": "s-5-7-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.4",
+            "pages": "148"
+          },
+          "text": "阶段性现场直播 旧比例(",
+          "originalExcerpt": "Phase Live θ Old θold Ratio rt (θ)"
+        },
+        {
+          "id": "s-5-7-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.4",
+            "pages": "148"
+          },
+          "text": "1. 推出活动副本 相同的活动副本 总是1.0(按身份)",
+          "originalExcerpt": "1. Rollout Start Active copy Same active copy Always 1.0 (by identity)"
+        },
+        {
+          "id": "s-5-7-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.4",
+            "pages": "148"
+          },
+          "text": "2. 批次步骤1 计算梯度 1.0(初始步骤)",
+          "originalExcerpt": "2. Batch Step 1 Computes gradients Frozen 1.0 (initial step)"
+        },
+        {
+          "id": "s-5-7-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.4",
+            "pages": "148"
+          },
+          "text": "3. 批量步骤N修改(θ ̸= old old ̸= )) 冻结 变形从1.0(如1.06，0.94)",
+          "originalExcerpt": "3. Batch Step N Modifying (θ ̸= θold ) Frozen Deviates from 1.0 (e.g., 1.06, 0.94)"
+        },
+        {
+          "id": "s-5-7-4-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.4",
+            "pages": "148"
+          },
+          "text": "4. 被绑在捆绑处的冻死人员(1±++++)",
+          "originalExcerpt": "4. Clipping Active Bounded by ϵ Frozen Trapped at bound (1 ± ϵ)"
+        },
+        {
+          "id": "s-5-7-4-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.4",
+            "pages": "148"
+          },
+          "text": "5. 优化结束 高度优化弃置",
+          "originalExcerpt": "5. Optimization End Highly optimized Discarded N/A"
+        },
+        {
+          "id": "s-5-7-4-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.4",
+            "pages": "148"
+          },
+          "text": "6。下一个周期 —— 旧的 —— 接收新鲜的 —— 重新装到 1.0",
+          "originalExcerpt": "6. Next Cycle θ → θold Receives fresh θ Resets back to 1.0"
+        }
+      ]
+    },
+    {
+      "id": "s-5-7-5",
+      "number": "5.7.5",
+      "level": 2,
+      "enTitle": "Continuous Action Spaces Extension",
+      "zhTitle": "连续行动空间扩展",
+      "pages": "148-149",
+      "blocks": [
+        {
+          "id": "s-5-7-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.5",
+            "pages": "148-149"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §5.7.5「连续行动空间扩展」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-5-7-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.5",
+            "pages": "148"
+          },
+          "text": "对于连续动作空间(并非典型的LLMs，但对机器人RL很重要)，网络输出分配参数而不是离散的对数:",
+          "originalExcerpt": "For continuous action spaces (not typical for LLMs, but important for robotics RL), the network outputs distribution parameters instead of discrete logits:"
+        },
+        {
+          "id": "s-5-7-5-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.5",
+            "pages": "148"
+          },
+          "text": "• 预测的平均矢量微量",
+          "originalExcerpt": "• Predicted mean vector µ"
+        },
+        {
+          "id": "s-5-7-5-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.5",
+            "pages": "149"
+          },
+          "text": "• 预测的标准差向量和",
+          "originalExcerpt": "• Predicted standard deviation vector σ"
+        },
+        {
+          "id": "s-5-7-5-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.5",
+            "pages": "149"
+          },
+          "text": "日志概率通过高斯日志-PDF计算:",
+          "originalExcerpt": "Log-probabilities are computed via the Gaussian log-PDF:"
+        },
+        {
+          "id": "s-5-7-5-b5",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.5",
+            "pages": "149"
+          },
+          "expression": "1 at − µ 2 1 \u0012 \u0013 log π(at | st ) = − − log(σ) − log(2π) (5.22) 2 σ 2",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-5-7-5-b6",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.7.5",
+            "pages": "149"
+          },
+          "expression": "The ratio rt (θ) = exp(log πθ − log πθold ) is then computed identically and fed into the same clipping objective.",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        }
+      ]
+    },
+    {
+      "id": "s-5-8",
+      "number": "5.8",
+      "level": 1,
+      "enTitle": "TRL Implementation",
+      "zhTitle": "TRL 执行",
+      "pages": "149-150",
+      "blocks": [
+        {
+          "id": "s-5-8-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 5,
+            "section": "5.8",
+            "pages": "149-150"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §5.8「TRL 执行」 的实现时，不只看 happy path。请同时标出 state schema、外部依赖、权限边界、重试与终止条件、可观测字段和可能产生副作用的 action；代码能运行，并不等于系统已经具备可恢复性。"
+        },
+        {
+          "id": "s-5-8-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.8",
+            "pages": "149"
+          },
+          "text": "HuggingFace TRL库 [376] 提供从 trl 导入 PPOConfig， PPOTrainer， Au t o M o d e o F r C a i L M W i t o i e H e e d 的Transformer导入自动调试器的所有相关 RL 方法的制作准备实施",
+          "originalExcerpt": "The HuggingFace TRL library [376] provides production-ready implementations of all major RL methods for LLMs. from trl import PPOConfig , PPOTrainer , A u t o M o d e l F o r C a u s a l L M W i t h V a l u e H e a d from transformers import AutoTokenizer from peft import LoraConfig"
+        },
+        {
+          "id": "s-5-8-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.8",
+            "pages": "149"
+          },
+          "text": "#型号设置模型 = Au t o M o d e o r C = Loraconfig (r = 64， lora alpha = 16， 目标-模块= [ \" q proj \"， v proj \"， k proj \" ]] 引导器 = 自动触控器 =。 bfloat16， 设备 map = \" 自动 \"， eft config = Loraconfig (r = 64， lora alpha = 16， 目标-模块= [ \" q proj \"， v proj \"， k proj \" ]]) 引体 = 自动触控器 = ; = oprureducent ( \" meta - llama / Llama - 3.1-8 B - 构型 \" )",
+          "originalExcerpt": "# Model setup model = A u t o M o d e l F o r C a u s a l L M W i t h V a l u e H e a d . from_pretrained ( \" meta - llama / Llama -3.1 -8 B - Instruct \" , torch_dtype = torch . bfloat16 , device_map = \" auto \" , peft_config = LoraConfig ( r =64 , lora_alpha =16 , target_modules =[ \" q_proj \" ,\" v_proj \" , \" k_proj \" ,\" o_proj \" ]) ) tokenizer = AutoTokenize..."
+        },
+        {
+          "id": "s-5-8-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.8",
+            "pages": "149"
+          },
+          "text": "# PPO配置所有关键超参数 ppo config=PPOConfig(学习-速率=1.5 e-6，稳定批量的低LR=128，每步提示小 批量 大小=16，每批渐进积累单位 ppo epochs=4，每批重复使用数据) Epochs=1，0，0，0，0，0，9，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，0，",
+          "originalExcerpt": "# PPO config with all critical hyperparameters ppo_config = PPOConfig ( learning_rate =1.5 e -6 , # Low LR for stability batch_size =128 , # Prompts per step mini_batch_size =16 , # Gradient accumulation unit ppo_epochs =4 , # Epochs per batch ( reuse data ) gamma =1.0 , # No discounting ( single turn ) lam =0.95 , # GAE lambda cliprange =0.2 , # PPO epsilon..."
+        },
+        {
+          "id": "s-5-8-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.8",
+            "pages": "149"
+          },
+          "text": "ppo 教练 = PPOTrainer (配置 = Ppo config，模型 = 模型， 标语符 = 标语符，数据集 = polain dataset，数据 编曲 = 拼音符) 互联网档案馆的存檔，存档日期2013-09-02.",
+          "originalExcerpt": "ppo_trainer = PPOTrainer ( config = ppo_config , model = model , tokenizer = tokenizer , dataset = prompt_dataset , data_collator = collator )"
+        },
+        {
+          "id": "s-5-8-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.8",
+            "pages": "149"
+          },
+          "text": "ppo trainer trainer trainer trainer trainer ppo trainer ppo ppo ppo ppo ppo ppo ppo ppo ppo ppo ppo ppo ppo ppo生成响应查询 天线 = 批次 [ \" 输入 ids \" ] 响应 天线 = ppo 教练。生成(查询 天线， 最大 new tokens = 512， 温度= 0.7， 顶 p = 0.9， do sample = true) 2. 奖励模式文本的分数=[标注符 .解码(r，跳 special tokens = true ) r 答复 tensors] 奖励=[火炬。 lalor(奖励 model。得分(q， r)) q， r in zip(批[ \" 查询 \" ]，文本)] 3. PPO 更新(处理 KL， GAE， 剪辑内部)。",
+          "originalExcerpt": "# Training loop for batch in ppo_trainer . dataloader : # 1. Generate responses query_tensors = batch [ \" input_ids \" ] response_tensors = ppo_trainer . generate ( query_tensors , max_new_tokens =512 , temperature =0.7 , top_p =0.9 , do_sample = True ) # 2. Score with reward model texts = [ tokenizer . decode (r , skip_special_tokens = True ) for r in respon..."
+        },
+        {
+          "id": "s-5-8-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.8",
+            "pages": "150"
+          },
+          "text": "stats = po 教练。 step (查询 收视率，响应 收视率，奖励) # 监视器: stats [\"ppo / 平均 分数\"]， stats [\"ppo / policy / 近 kl \"]",
+          "originalExcerpt": "stats = ppo_trainer . step ( query_tensors , response_tensors , rewards ) # Monitor : stats [\" ppo / mean_scores \"] , stats [\" ppo / policy / approx_kl \"]"
+        }
+      ]
+    },
+    {
+      "id": "s-5-9",
+      "number": "5.9",
+      "level": 1,
+      "enTitle": "Critical Hyperparameters",
+      "zhTitle": "临界超参数",
+      "pages": "150",
+      "blocks": [
+        {
+          "id": "s-5-9-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 5,
+            "section": "5.9",
+            "pages": "150"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §5.9「临界超参数」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-5-9-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 5,
+            "section": "5.9",
+            "pages": "150"
+          },
+          "text": "参数“获取错误剪切范围”的典型效果 0.2 : 少了: 少了: 少了: 不稳定了。 intit kl coef 0.01- 0.1 : reward hacking。 高了: 困在 SFT 上。 目标 kl 4-8 适应性控制器目标。下行=保守。 ppo epocs 4 太多:超标到批量。废物生成率太低: 废物生成率太高， 学习率太高， 造成灾难性的遗忘。 批量大小64-256 较大 = 梯度比较平滑， 更高的生成率。 温度 0。7– 1.0 降低: 勘探较少。 更高 : 鼻音优势。",
+          "originalExcerpt": "Parameter Typical Effect of Getting It Wrong cliprange 0.2 Too low: no learning. Too high: instability. init_kl_coef 0.01–0.1 Too low: reward hacking. Too high: stuck at SFT. target_kl 4–8 Adaptive controller target. Lower = conservative. ppo_epochs 4 Too many: overfits to batch. Too few: wastes gen compute. learning_rate 1−5 × 10−6 Too high: catastrophic fo..."
+        }
+      ]
+    }
+  ],
+  "glossary": [
+    {
+      "term": "Agent",
+      "zh": "智能体",
+      "meaning": "由模型、状态、工具和运行循环共同构成的目标导向系统。"
+    },
+    {
+      "term": "rollout",
+      "zh": "轨迹采样",
+      "meaning": "使用当前策略生成完整 response 或交互 trajectory 的过程。"
+    },
+    {
+      "term": "reward model",
+      "zh": "Reward Model",
+      "meaning": "把人类或规则偏好映射为可优化标量信号的模型。"
+    },
+    {
+      "term": "token",
+      "zh": "词元",
+      "meaning": "模型处理和生成文本时使用的离散单位。"
+    }
+  ],
+  "summary": [
+    "问题:香草政策梯度更新对步长没有限制。单次不幸运的批次可以将政策推向产生垃圾的区 – 垃圾得到低回报 – 下一个梯度让事情更糟糕 – 无法恢复的崩溃。 解决方案历史 :",
+    "1. TRPO [317] (2015):限制KL在新旧政策之间的差别。",
+    "需要昂贵的二阶优化(Fisher信息矩阵，交错梯度)。"
+  ],
+  "metrics": {
+    "chineseCharacters": 5925,
+    "sourceCoverage": 84,
+    "sectionCount": 23,
+    "blockCount": 157
+  }
+}

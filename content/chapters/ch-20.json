@@ -1,0 +1,1134 @@
+{
+  "chapter": 20,
+  "title": "Agent Design Patterns",
+  "zhTitle": "Agent 设计模式",
+  "pages": "398-403",
+  "minutes": 22,
+  "overview": "建立有效的Agent不仅需要强大的模型和一套工具。架构—— LLM 如何安排、 任务如何分解、 组件之间的控制流动—— 确定一个Agent是否可靠、 调试以及成本效益高。本章介绍了在Anthropic、OpenAI、Google和开源社区生产部署中出现的犬类设计模式。当使用Agent对工作流时，并非每一项任务都需要一个自主的Agent。关键区别:",
+  "status": "in_progress",
+  "sections": [
+    {
+      "id": "s-20-introduction",
+      "number": null,
+      "level": 1,
+      "enTitle": "Chapter introduction",
+      "zhTitle": "章节导入",
+      "pages": "398",
+      "blocks": [
+        {
+          "id": "s-20-introduction-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 20,
+            "section": null,
+            "pages": "398"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 本章导入「章节导入」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-20-introduction-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": null,
+            "pages": "398"
+          },
+          "text": "建立有效的Agent不仅需要强大的模型和一套工具。架构—— LLM 如何安排、 任务如何分解、 组件之间的控制流动—— 确定一个Agent是否可靠、 调试以及成本效益高。本章介绍了在Anthropic、OpenAI、Google和开源社区生产部署中出现的犬类设计模式。当使用Agent对工作流时，并非每一项任务都需要一个自主的Agent。关键区别:",
+          "originalExcerpt": "Building effective agents requires more than a powerful model and a set of tools. The architecture—how the LLM is orchestrated, how tasks are decomposed, and how control flows between components— determines whether an agent is reliable, debuggable, and cost-effective. This chapter presents the canonical design patterns that have emerged from production deplo..."
+        },
+        {
+          "id": "s-20-introduction-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": null,
+            "pages": "398"
+          },
+          "text": "• 工作流程:预先确定的控制流程， LLM在具体步骤下调用。",
+          "originalExcerpt": "• Workflows: Predefined control flow, LLM calls at specific steps. Predictable, testable,"
+        },
+        {
+          "id": "s-20-introduction-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": null,
+            "pages": "398"
+          },
+          "text": "便宜。 当任务结构已知时使用。",
+          "originalExcerpt": "cheaper. Use when the task structure is known."
+        },
+        {
+          "id": "s-20-introduction-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": null,
+            "pages": "398"
+          },
+          "text": "• Agent:LLM动态决定下一步要做什么，灵活处理新情况。",
+          "originalExcerpt": "• Agents: LLM dynamically decides what to do next. Flexible, handles novel situations. Use"
+        },
+        {
+          "id": "s-20-introduction-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": null,
+            "pages": "398"
+          },
+          "text": "当任务需要适应性决策时。",
+          "originalExcerpt": "when tasks require adaptive decision-making."
+        },
+        {
+          "id": "s-20-introduction-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": null,
+            "pages": "398"
+          },
+          "text": "从工作流程开始。 只有在任务真正需要动态路径或开放式探索时， 才向Agent毕业。",
+          "originalExcerpt": "Start with workflows. Graduate to agents only when the task genuinely requires dynamic routing or open-ended exploration."
+        }
+      ]
+    },
+    {
+      "id": "s-20-1",
+      "number": "20.1",
+      "level": 1,
+      "enTitle": "Workflow Patterns",
+      "zhTitle": "Workflow Patterns",
+      "pages": "398",
+      "blocks": [
+        {
+          "id": "s-20-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 20,
+            "section": "20.1",
+            "pages": "398"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §20.1「Workflow Patterns」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-20-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.1",
+            "pages": "398"
+          },
+          "text": "这些模式 — — 适应于Anthropic对Agent建筑构件的分类[10] — — 在预先确定的控制流中使用LLM。 执行命令由系统(而不是模型)决定。",
+          "originalExcerpt": "These patterns—adapted from Anthropic’s taxonomy of agentic building blocks [10]—use LLMs within a predefined control flow. The system (not the model) decides the execution order."
+        }
+      ]
+    },
+    {
+      "id": "s-20-1-1",
+      "number": "20.1.1",
+      "level": 2,
+      "enTitle": "Prompt Chaining",
+      "zhTitle": "Prompt Chaining",
+      "pages": "398",
+      "blocks": [
+        {
+          "id": "s-20-1-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 20,
+            "section": "20.1.1",
+            "pages": "398"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §20.1.1「Prompt Chaining」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-20-1-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.1.1",
+            "pages": "398"
+          },
+          "text": "最简单的模式: 将一个复杂的任务中断为 LLM 调用的固定序列， 将一个调用的结果作为上下文输入下一个调用。 步骤之间的验证门在下游传播前提早捕捉错误。",
+          "originalExcerpt": "The simplest pattern: break a complex task into a fixed sequence of LLM calls, piping the result of one call as context into the next. Validation gates between steps catch errors early before they propagate downstream."
+        },
+        {
+          "id": "s-20-1-1-b2",
+          "type": "figure",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.1.1",
+            "pages": "398",
+            "figure": "Figure 20.1"
+          },
+          "src": null,
+          "alt": "图20.1: 带有质量门的快速链路。 每一步都是单独的 LLM 调用。 Gates 可以基于 LLM 或 程序。",
+          "caption": "图20.1: 带有质量门的快速链路。 每一步都是单独的 LLM 调用。 Gates 可以基于 LLM 或 程序。",
+          "adapted": false
+        },
+        {
+          "id": "s-20-1-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.1.1",
+            "pages": "398"
+          },
+          "text": "使用时: 任务自然是顺序的 —— 内容生成、 数据转换、 多阶段分析。 关键优势: 每个步骤都可以使用不同的快捷、 模型或温度。 中间结果可以检查和调试。",
+          "originalExcerpt": "When to use: Tasks that are naturally sequential—content generation, data transformation, multi-stage analysis. Key advantage: Each step can use a different prompt, model, or temperature. Intermediate results are inspectable and debuggable."
+        }
+      ]
+    },
+    {
+      "id": "s-20-1-2",
+      "number": "20.1.2",
+      "level": 2,
+      "enTitle": "Routing",
+      "zhTitle": "Routing",
+      "pages": "399",
+      "blocks": [
+        {
+          "id": "s-20-1-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 20,
+            "section": "20.1.2",
+            "pages": "399"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §20.1.2「Routing」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-20-1-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.1.2",
+            "pages": "399"
+          },
+          "text": "分类器(LLM或传统)检查输入和发送到一个专业处理器。",
+          "originalExcerpt": "A classifier (LLM or traditional) examines the input and dispatches to a specialized handler."
+        },
+        {
+          "id": "s-20-1-2-b2",
+          "type": "figure",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.1.2",
+            "pages": "399",
+            "figure": "Figure 20.2"
+          },
+          "src": null,
+          "alt": "图20.2: 运行模式:输入被分类一次，然后由专家处理。使用时: 不同任务类型，具有不同的最佳提示，工具，或模型。客户支持分解，多模式输入处理。",
+          "caption": "图20.2: 运行模式:输入被分类一次，然后由专家处理。使用时: 不同任务类型，具有不同的最佳提示，工具，或模型。客户支持分解，多模式输入处理。",
+          "adapted": false
+        }
+      ]
+    },
+    {
+      "id": "s-20-1-3",
+      "number": "20.1.3",
+      "level": 2,
+      "enTitle": "Parallelization",
+      "zhTitle": "Parallelization",
+      "pages": "399",
+      "blocks": [
+        {
+          "id": "s-20-1-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 20,
+            "section": "20.1.3",
+            "pages": "399"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §20.1.3「Parallelization」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-20-1-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.1.3",
+            "pages": "399"
+          },
+          "text": "多个LLM呼叫同时运行，并有一个程序层，将输出结合起来。",
+          "originalExcerpt": "Multiple LLM calls run concurrently, with a programmatic layer combining their outputs. Two sub-patterns emerge:"
+        },
+        {
+          "id": "s-20-1-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.1.3",
+            "pages": "399"
+          },
+          "text": "• 分块(fan-out):将投入分解为断块，并各自独立处理——",
+          "originalExcerpt": "• Sectioning (fan-out): Partition the input into disjoint chunks and process each independently—"
+        },
+        {
+          "id": "s-20-1-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.1.3",
+            "pages": "399"
+          },
+          "text": "例如，同时运行一个编码库的安全性，性能和样式检查。",
+          "originalExcerpt": "e.g., run security, performance, and style checks on a codebase simultaneously."
+        },
+        {
+          "id": "s-20-1-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.1.3",
+            "pages": "399"
+          },
+          "text": "• 投票(留任):发出同样迅速的N次，种子或温度不同，",
+          "originalExcerpt": "• Voting (redundancy): Issue the same prompt N times with different seeds or temperatures,"
+        },
+        {
+          "id": "s-20-1-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.1.3",
+            "pages": "399"
+          },
+          "text": "然后通过多数票[368]、奖励-模式评分或LLM-即决裁判来选择最佳结果。",
+          "originalExcerpt": "then select the best result via majority vote [368], reward-model scoring, or LLM-as-judge."
+        },
+        {
+          "id": "s-20-1-3-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.1.3",
+            "pages": "399"
+          },
+          "text": "并行性实例:守则审查",
+          "originalExcerpt": "Parallelization Example: Code Review"
+        },
+        {
+          "id": "s-20-1-3-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.1.3",
+            "pages": "399"
+          },
+          "text": "1. 平行呼吁:安保审查 绩效审查 样式审查",
+          "originalExcerpt": "1. Parallel calls: Security review ∥ Performance review ∥ Style review"
+        },
+        {
+          "id": "s-20-1-3-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.1.3",
+            "pages": "399"
+          },
+          "text": "2. 汇总:将所有调查结果合并，重复，按严重程度排列",
+          "originalExcerpt": "2. Aggregation: Merge all findings, deduplicate, rank by severity"
+        },
+        {
+          "id": "s-20-1-3-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.1.3",
+            "pages": "399"
+          },
+          "text": "P Latency = 最大(个人电话)而不是(个人电话)。",
+          "originalExcerpt": "P Latency = max(individual calls) rather than (individual calls)."
+        }
+      ]
+    },
+    {
+      "id": "s-20-1-4",
+      "number": "20.1.4",
+      "level": 2,
+      "enTitle": "Orchestrator-Workers",
+      "zhTitle": "Orchestrator-Workers",
+      "pages": "399",
+      "blocks": [
+        {
+          "id": "s-20-1-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 20,
+            "section": "20.1.4",
+            "pages": "399"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §20.1.4「Orchestrator-Workers」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-20-1-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.1.4",
+            "pages": "399"
+          },
+          "text": "由LLM自己决定如何分拆工作。管弦乐师模型分析任务，制作子任务计划，将每个子任务发送给工人LLM(可能具有不同的提示或工具)，最后将输出合并为一致的结果。与平行化的关键区别在于分解逻辑是模型生成的，而不是硬编码的。何时使用:在设计时无法列举子任务的数量和性质的无限制问题——例如， \" 重设这个编码库 \" 要求首先理解依赖性图表，然后决定修改哪些文件。",
+          "originalExcerpt": "Here the LLM itself decides how to split the work. An orchestrator model analyzes the task, produces a plan of subtasks, dispatches each subtask to a worker LLM (potentially with different prompts or tools), and finally merges their outputs into a coherent result. The key difference from parallelization is that the decomposition logic is model-generated, not..."
+        }
+      ]
+    },
+    {
+      "id": "s-20-1-5",
+      "number": "20.1.5",
+      "level": 2,
+      "enTitle": "Evaluator-Optimizer",
+      "zhTitle": "Evaluator-Optimizer",
+      "pages": "399-400",
+      "blocks": [
+        {
+          "id": "s-20-1-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 20,
+            "section": "20.1.5",
+            "pages": "399-400"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §20.1.5「Evaluator-Optimizer」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-20-1-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.1.5",
+            "pages": "399"
+          },
+          "text": "一个双模式反馈循环[246]:一个生成器产生候选产出，而另一个评估者则根据明确的标准对产出进行评分。如果分数低于门槛，评估者的评论附在生成器上下文之后，周期重复，直至达到质量标准或用尽重新试验的预算。何时使用: 具有明确质量标准的任务——必须通过测试的代码，必须保留意义，写作必须符合样式指南的翻译。",
+          "originalExcerpt": "A two-model feedback loop [246]: a generator produces candidate outputs while a separate evaluator scores them against explicit criteria. If the score falls below a threshold, the evaluator’s critique is appended to the generator’s context and the cycle repeats until the quality bar is met or a retry budget is exhausted. When to use: Tasks with clear quality..."
+        },
+        {
+          "id": "s-20-1-5-b2",
+          "type": "figure",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.1.5",
+            "pages": "400",
+            "figure": "Figure 20.3"
+          },
+          "src": null,
+          "alt": "图20.3:兽医-工人: LLM决定如何分解任务，综合工人成果。",
+          "caption": "图20.3:兽医-工人: LLM决定如何分解任务，综合工人成果。",
+          "adapted": false
+        },
+        {
+          "id": "s-20-1-5-b3",
+          "type": "figure",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.1.5",
+            "pages": "400",
+            "figure": "Figure 20.4"
+          },
+          "src": null,
+          "alt": "图20.4:评估员-优化者:不经过培训的迭代完善。",
+          "caption": "图20.4:评估员-优化者:不经过培训的迭代完善。",
+          "adapted": false
+        }
+      ]
+    },
+    {
+      "id": "s-20-2",
+      "number": "20.2",
+      "level": 1,
+      "enTitle": "Autonomous Agent Patterns",
+      "zhTitle": "Autonomous Agent Patterns",
+      "pages": "400",
+      "blocks": [
+        {
+          "id": "s-20-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 20,
+            "section": "20.2",
+            "pages": "400"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §20.2「Autonomous Agent Patterns」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-20-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.2",
+            "pages": "400"
+          },
+          "text": "这些图案赋予了LLM对执行流本身的控制。",
+          "originalExcerpt": "These patterns give the LLM control over the execution flow itself."
+        }
+      ]
+    },
+    {
+      "id": "s-20-2-1",
+      "number": "20.2.1",
+      "level": 2,
+      "enTitle": "ReAct (Reason + Act)",
+      "zhTitle": "ReAct (Reason + Act)",
+      "pages": "400",
+      "blocks": [
+        {
+          "id": "s-20-2-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 20,
+            "section": "20.2.1",
+            "pages": "400"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §20.2.1「ReAct (Reason + Act)」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-20-2-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.2.1",
+            "pages": "400"
+          },
+          "text": "基础Agent模式 [408]。 LLM 替代思维(内部推理)，动作(tool calling)，和观察(处理结果)之间的循环，直到生成最终答案。 React Europement Basics",
+          "originalExcerpt": "The foundational agent pattern [408]. The LLM alternates between thinking (internal reasoning), acting (tool calls), and observing (processing results) in a loop until it produces a final answer. ReAct Implementation Essentials"
+        },
+        {
+          "id": "s-20-2-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.2.1",
+            "pages": "400"
+          },
+          "text": "• 刷卡板:“思潮”步骤已登录，但未向用户显示。",
+          "originalExcerpt": "• Scratchpad: The “Thought” step is logged but not shown to the user."
+        },
+        {
+          "id": "s-20-2-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.2.1",
+            "pages": "400"
+          },
+          "text": "• 工具解析:从模型输出中提取结构化tool calling。",
+          "originalExcerpt": "• Tool parsing: The harness extracts structured tool calls from model output."
+        },
+        {
+          "id": "s-20-2-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.2.1",
+            "pages": "400"
+          },
+          "text": "^ 最大迭代:总是封顶循环(典型:10–25迭代)。",
+          "originalExcerpt": "• Max iterations: Always cap the loop (typical: 10–25 iterations)."
+        },
+        {
+          "id": "s-20-2-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.2.1",
+            "pages": "400"
+          },
+          "text": "• 终止:模式输出一种特殊行动(例如，最后的回答)，或没有tool calling",
+          "originalExcerpt": "• Termination: Model outputs a special action (e.g., final_answer) or no tool call is"
+        }
+      ]
+    },
+    {
+      "id": "s-20-2-2",
+      "number": "20.2.2",
+      "level": 2,
+      "enTitle": "Planning Agents",
+      "zhTitle": "Planning Agents",
+      "pages": "400-401",
+      "blocks": [
+        {
+          "id": "s-20-2-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 20,
+            "section": "20.2.2",
+            "pages": "400-401"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §20.2.2「Planning Agents」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-20-2-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.2.2",
+            "pages": "400"
+          },
+          "text": "Agent在执行前生成明确的计划，并且可以修改计划中期执行[364]。规划Agent: 研究报告生成用户请求:“为时间序列预测写一份两页的报告，比较Transformer结构。” 步骤1——计划生成(单一LLM呼叫):",
+          "originalExcerpt": "The agent generates an explicit plan before executing, and can revise the plan mid-execution [364]. Planning Agent: Research Report Generation User request: “Write a 2-page report comparing transformer architectures for time-series forecasting.” Step 1 — Plan generation (single LLM call):"
+        },
+        {
+          "id": "s-20-2-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.2.2",
+            "pages": "401"
+          },
+          "text": "表20.1: 比较规划战略",
+          "originalExcerpt": "Table 20.1: Planning strategies compared"
+        },
+        {
+          "id": "s-20-2-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.2.2",
+            "pages": "401"
+          },
+          "text": "战略重新规划特征:计划 -- -- 当时从未简单;易受意外结果的影响;只有在一步失败时才重新规划失败;在每次观察之后，每一步都要进行全面重新评估;高水平计划完成后， 高层次计划得到固定; 次级计划产生动态",
+          "originalExcerpt": "Strategy Replanning Characteristics Plan-then-Execute Never Simple; fragile to unexpected results Adaptive On failure Replans only when a step fails; moderate cost Continuous Every step Full re-evaluation after each observation; expensive but robust Hierarchical On sub-plan done High-level plan fixed; sub-plans generated dynamically"
+        },
+        {
+          "id": "s-20-2-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.2.2",
+            "pages": "401"
+          },
+          "text": "计划= [{ ' id ' : 1， \" 任务 \" : \" 搜索最近的Transformer-基于 ' 时间-系列型号(2023-2025) \"， \" 工具 \" : \" 搜索-网络 \"， \" 道普 \" : [ ]， { \" id \" : 2， \" 任务 \" :\" 阅读前5篇论文，提取关键方法 \"， \" 工具 \" : \" 读纸 \"， \" 道普 \" : [1]， { \" id \" : 3， \" 任务 \" : \" 构建比较表(架构， \" 数据集， 度量衡 \" )， \" 无 \"， \" 道普 \" : [2]，{ \" id \" :4， \" 任务 \" : \" 写入介绍+方法部分 \"， \" 工具 \" : \" 无 \"， \" 道普 \" :[2]}，{ \" id \" :5， \" 任务 \" : \" 写出结果+结论 \"， \" 工具 \" : \" 无 \"， \" 道普 \" :[3，4]]]，{ \" id \" :6， \" 任务 \" :\" 审查和抛光最后报告 \"， \" 工具 \" : \" 无 \"， \" 道具 \" :[5]}]，",
+          "originalExcerpt": "plan = [ { \" id \" : 1 , \" task \" : \" Search for recent transformer - based \" \" time - series models (2023 -2025) \" , \" tool \" : \" search_web \" , \" deps \" : []} , { \" id \" : 2 , \" task \" : \" Read top 5 papers , extract key methods \" , \" tool \" : \" read_papers \" , \" deps \" : [1]} , { \" id \" : 3 , \" task \" : \" Build comparison table ( architecture , \" \" dataset..."
+        },
+        {
+          "id": "s-20-2-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.2.2",
+            "pages": "401"
+          },
+          "text": "步骤2——以适应性再规划的方式执行:Agent执行步骤按依附顺序执行。步骤1后，搜索只返回3份相关文件。 Agent重新规划:它增加了一个子步骤，将搜索范围扩大到邻近域(如PatchTST， iTransformer)。修订后的计划从第2步开始，延续到扩展的命题。关键见解:该计划是一个活的文件，它提供了结构，但适应观察。 绑绳轨作为DAG的依赖性，并且只执行其前身已经完成的步骤。",
+          "originalExcerpt": "Step 2 — Execution with adaptive replanning: The agent executes steps in dependency order. After step 1, the search returns only 3 relevant papers. The agent replans: it adds a sub-step to broaden the search to adjacent domains (e.g., PatchTST, iTransformer). The revised plan continues from step 2 with the expanded corpus. Key insight: The plan is a living d..."
+        }
+      ]
+    },
+    {
+      "id": "s-20-2-3",
+      "number": "20.2.3",
+      "level": 2,
+      "enTitle": "Reflection and Self-Critique",
+      "zhTitle": "Reflection and Self-Critique",
+      "pages": "401",
+      "blocks": [
+        {
+          "id": "s-20-2-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 20,
+            "section": "20.2.3",
+            "pages": "401"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §20.2.3「Reflection and Self-Critique」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-20-2-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.2.3",
+            "pages": "401"
+          },
+          "text": "Agent暂停评估自己的轨迹和正确的航向:",
+          "originalExcerpt": "The agent pauses to evaluate its own trajectory and correct course:"
+        },
+        {
+          "id": "s-20-2-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.2.3",
+            "pages": "401"
+          },
+          "text": "1. 产出验证: \" 这样做对吗？我错过了什么了吗？\"",
+          "originalExcerpt": "1. Output validation: “Is this correct? Did I miss anything?”"
+        },
+        {
+          "id": "s-20-2-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.2.3",
+            "pages": "401"
+          },
+          "text": "2. 轨迹审查:审查最后K步骤，找出错误或效率低下。",
+          "originalExcerpt": "2. Trajectory review: Review last k steps, identify mistakes or inefficiencies."
+        },
+        {
+          "id": "s-20-2-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.2.3",
+            "pages": "401"
+          },
+          "text": "3. 战略修订:重新考虑总体办法(“我是否解决了正确的问题？” )。",
+          "originalExcerpt": "3. Strategy revision: Reconsider the overall approach (“Am I solving the right problem?”)."
+        },
+        {
+          "id": "s-20-2-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.2.3",
+            "pages": "401"
+          },
+          "text": "反射:从失败中学习反射模式[326] 保持了持续的“反射记忆 ”。 每次失败尝试后， Agent写作自然语言反射(“我失败是因为我没有检查边缘情况 ” )。在下一次尝试中，这些思考被纳入了快速的学习，在不更新重量的情况下，贯穿各个阶段。",
+          "originalExcerpt": "Reflexion: Learning from Failure The Reflexion pattern [326] maintains a persistent “reflection memory.” After each failed attempt, the agent writes a natural-language reflection (“I failed because I didn’t check the edge case”). On the next attempt, these reflections are included in the prompt—enabling learning across episodes without weight updates."
+        }
+      ]
+    },
+    {
+      "id": "s-20-2-4",
+      "number": "20.2.4",
+      "level": 2,
+      "enTitle": "Tool-Use Patterns",
+      "zhTitle": "Tool-Use Patterns",
+      "pages": "401-402",
+      "blocks": [
+        {
+          "id": "s-20-2-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 20,
+            "section": "20.2.4",
+            "pages": "401-402"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §20.2.4「Tool-Use Patterns」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-20-2-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.2.4",
+            "pages": "401"
+          },
+          "text": "Agent如何使用工具会显著影响其可靠性、耐久性和成本。",
+          "originalExcerpt": "How an agent invokes tools significantly affects its reliability, latency, and cost. Five canonical patterns have emerged [315]:"
+        },
+        {
+          "id": "s-20-2-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.2.4",
+            "pages": "401"
+          },
+          "text": "单调工具使用。 最简单的模式是: 模型发出一个tool calling， 接收结果， 并生成一个最终答案。 足够进行事实检查、 单位转换或单个 API 查询。牵引装置发出两个LLM的电话(一个是决定工具，一个是综合结果)。",
+          "originalExcerpt": "Single-Turn Tool Use. The simplest pattern: the model issues one tool call, receives the result, and produces a final answer. Sufficient for factual lookups, unit conversions, or single API queries. The harness makes exactly two LLM calls (one to decide on the tool, one to synthesize the result)."
+        },
+        {
+          "id": "s-20-2-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.2.4",
+            "pages": "402"
+          },
+          "text": "表20.2: 工具引用模式",
+          "originalExcerpt": "Table 20.2: Tool invocation patterns"
+        },
+        {
+          "id": "s-20-2-4-b4",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 20,
+            "section": "20.2.4",
+            "pages": "402"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "Pattern Description Example Single-turn One tool call per LLM re- Simple Q&A with search sponse Multi-tool Multiple parallel tool calls in Search + calculate + format one response Sequential Tool output feeds into next Search → read → extract tool call Nested Tool call triggers another Code agent calls test-runner agent Fallback Preferred tool fails; try alt..."
+        },
+        {
+          "id": "s-20-2-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.2.4",
+            "pages": "402"
+          },
+          "text": "多工具( Parallel)。现代API( OpenAI， Anthropic) 允许模型在一个响应中请求多个tool calling。 控制器同时执行它们并一起返回所有结果。这大大降低了需要从多种来源获得独立信息的任务的延迟性，例如同时获取股票价格、天气和日历。关键制约因素:工具必须独立(不需要工具输出作为另一个输入)。",
+          "originalExcerpt": "Multi-Tool (Parallel). Modern APIs (OpenAI, Anthropic) allow the model to request multiple tool calls in a single response. The harness executes them concurrently and returns all results together. This dramatically reduces latency for tasks requiring independent information from multiple sources— e.g., fetching stock price, weather, and calendar simultaneous..."
+        },
+        {
+          "id": "s-20-2-4-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.2.4",
+            "pages": "402"
+          },
+          "text": "序列( Pipeline)。 每个工具的输出输入下一个工具的输入， 形成一个数据管道。 该模型根据先前的结果决定下一个工具。 常见的研究工作流程: 搜索 – 获取 page – 提取 数据 – 分析。利用手段必须跟踪日益增长的背景，可能需要总结中期成果，以保持在预算范围内。",
+          "originalExcerpt": "Sequential (Pipeline). Each tool’s output feeds into the next tool’s input, forming a data pipeline. The model decides the next tool based on the previous result. Common in research workflows: search → fetch_page → extract_data → analyze. The harness must track the growing context and may need to summarize intermediate results to stay within budget."
+        },
+        {
+          "id": "s-20-2-4-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.2.4",
+            "pages": "402"
+          },
+          "text": "Nested (Agent-as- Tool)。 一个tool calling一个完全独立的Agent， 带有自己的快捷、 工具、 和上下文。 母Agent将子Agent视为一个黑盒函数。这使得专业化成为可能: 一个研究Agent将代码执行委托给一个编码Agent，后者可以访问沙盒和测试跑者。 Swarm模式[276] 通过专门Agent之间的交割来概括这一点。",
+          "originalExcerpt": "Nested (Agent-as-Tool). A tool call invokes an entirely separate agent—with its own prompt, tools, and context. The parent agent treats the sub-agent as a black-box function. This enables specialization: a research agent delegates code execution to a coding agent, which has access to a sandbox and test runner. The Swarm pattern [276] generalizes this via han..."
+        },
+        {
+          "id": "s-20-2-4-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.2.4",
+            "pages": "402"
+          },
+          "text": "倒置( Graceful deform)。 控制器按优先级顺序尝试工具: 如果首选工具失败( 超时、 速率限制、 API 错误)， 它会自动返回到一个替代工具。该模型不需要意识到倒置逻辑—— 控制器可以透明地处理它。 例如: 主搜索 API – 备份搜索 – 缓存结果 – 通知模型无法搜索。",
+          "originalExcerpt": "Fallback (Graceful Degradation). The harness tries tools in priority order: if the preferred tool fails (timeout, rate limit, API error), it automatically falls back to an alternative. The model need not be aware of the fallback logic—the harness handles it transparently. Example: primary search API → backup search → cached results → inform model that search..."
+        }
+      ]
+    },
+    {
+      "id": "s-20-3",
+      "number": "20.3",
+      "level": 1,
+      "enTitle": "Design Principles",
+      "zhTitle": "Design Principles",
+      "pages": "402-403",
+      "blocks": [
+        {
+          "id": "s-20-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 20,
+            "section": "20.3",
+            "pages": "402-403"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §20.3「Design Principles」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-20-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.3",
+            "pages": "402"
+          },
+          "text": "以下原则摘自Anthropic关于有效剂的建造指南[10]，适用于所有模式:",
+          "originalExcerpt": "The following principles, distilled from Anthropic’s guide to building effective agents [10], apply across all patterns:"
+        },
+        {
+          "id": "s-20-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.3",
+            "pages": "402"
+          },
+          "text": "1. 保持简单。使用最简单的有效架构。仅在",
+          "originalExcerpt": "1. Keep it simple. Use the simplest architecture that works. Add complexity only when"
+        },
+        {
+          "id": "s-20-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.3",
+            "pages": "402"
+          },
+          "text": "解决问题的快速链总是比可能存在的多Agent系统更可取。",
+          "originalExcerpt": "demonstrated necessary. A prompt chain that solves the problem is always preferable to a multi-agent system that might."
+        },
+        {
+          "id": "s-20-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.3",
+            "pages": "402"
+          },
+          "text": "2. 透明度高于聪明，每一步骤都应可以检查。",
+          "originalExcerpt": "2. Transparency over cleverness. Every step should be inspectable. Avoid hidden state or"
+        },
+        {
+          "id": "s-20-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.3",
+            "pages": "402"
+          },
+          "text": "隐含推理。 当Agent失败时， 您需要理解为什么不透明架构使得调试无法进行。",
+          "originalExcerpt": "implicit reasoning. When an agent fails, you need to understand why—opaque architectures make debugging impossible."
+        },
+        {
+          "id": "s-20-3-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.3",
+            "pages": "402"
+          },
+          "text": "3. 提供良好的工具。有明确错误信息的有记录、类型良好的工具是强制的",
+          "originalExcerpt": "3. Provide good tools. Well-documented, well-typed tools with clear error messages are force"
+        },
+        {
+          "id": "s-20-3-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.3",
+            "pages": "402"
+          },
+          "text": "乘数。 描述模糊的工具将被滥用; 将正确选择一个具有精确的策略和使用指导的工具。",
+          "originalExcerpt": "multipliers. A tool with a vague description will be misused; a tool with a precise schema and usage guidance will be selected correctly."
+        },
+        {
+          "id": "s-20-3-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.3",
+            "pages": "402"
+          },
+          "text": "4. 失败计划。 每一次tool calling都可能失败。 构建重试逻辑、 倒计时和优雅的退化",
+          "originalExcerpt": "4. Plan for failure. Every tool call can fail. Build retry logic, fallbacks, and graceful degradation"
+        },
+        {
+          "id": "s-20-3-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.3",
+            "pages": "402"
+          },
+          "text": "使用控制系统，所以模型不需要对基础设施故障提出理由。",
+          "originalExcerpt": "at the harness level so the model does not need to reason about infrastructure failures."
+        },
+        {
+          "id": "s-20-3-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.3",
+            "pages": "403"
+          },
+          "text": "5. 使用结构化输出。 限制生成( JSON 计划， 函数调用) 防止",
+          "originalExcerpt": "5. Use structured outputs. Constrained generation (JSON schema, function calling) prevents"
+        },
+        {
+          "id": "s-20-3-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.3",
+            "pages": "403"
+          },
+          "text": "解析失败。 生成需要 regex 解析的自由格式文本的Agent是脆弱的; 生成经验证的 JSON 的Agent是坚固的。",
+          "originalExcerpt": "parse failures. An agent that produces free-form text requiring regex parsing is fragile; one that produces validated JSON is robust."
+        },
+        {
+          "id": "s-20-3-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.3",
+            "pages": "403"
+          },
+          "text": "6。测试有多种输入。 Agent行为比单回合聊天更可变。",
+          "originalExcerpt": "6. Test with diverse inputs. Agent behaviour is more variable than single-turn chat. The same"
+        },
+        {
+          "id": "s-20-3-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.3",
+            "pages": "403"
+          },
+          "text": "extract 可以在不同运行上产生不同的tool calling序列。 测试时会对抗性，有边缘案例、模糊的请求和错误的输入。",
+          "originalExcerpt": "prompt can produce different tool-call sequences on different runs. Test adversarially, with edge cases, ambiguous requests, and malformed inputs."
+        }
+      ]
+    },
+    {
+      "id": "s-20-4",
+      "number": "20.4",
+      "level": 1,
+      "enTitle": "Pattern Selection Guide",
+      "zhTitle": "Pattern Selection Guide",
+      "pages": "403",
+      "blocks": [
+        {
+          "id": "s-20-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 20,
+            "section": "20.4",
+            "pages": "403"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §20.4「Pattern Selection Guide」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-20-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.4",
+            "pages": "403"
+          },
+          "text": "选择正确的模式取决于三个因素:(1)任务结构的可预测性如何，(2)你用耐久性和成本可以承受多少LLM呼叫，(3)质量是否需要迭代。使用下表作为决定矩阵——从顶部开始(最简单)，只有在较简单的模式明显失败时才下移。",
+          "originalExcerpt": "Choosing the right pattern depends on three factors: (1) how predictable the task structure is, (2) how many LLM calls you can afford in latency and cost, and (3) whether quality requires iteration. Use the table below as a decision matrix—start from the top (simplest) and move down only when the simpler pattern demonstrably fails. Table 20.3: When to use ea..."
+        },
+        {
+          "id": "s-20-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.4",
+            "pages": "403"
+          },
+          "text": "模式复杂 LLM 调用最有利于快速链路 低N(固定)序列任务 内容管道 运行低1+1 多类型输入 分化 低N(平行) 独立子任务 投票 Orchestrator-work 中变变量 解析 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变值 中变",
+          "originalExcerpt": "Pattern Complexity LLM Calls Best For Prompt chaining Low N (fixed) Sequential tasks, content pipelines Routing Low 1+1 Multi-type inputs, triage Parallelization Low N (parallel) Independent subtasks, voting Orchestrator-workers Medium Variable Unknown decomposition Evaluator-optimizer Medium 2–10 (loop) Quality-critical outputs ReAct Medium 3–25 (loop) Gene..."
+        },
+        {
+          "id": "s-20-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 20,
+            "section": "20.4",
+            "pages": "403"
+          },
+          "text": "模式是可调和的:规划Agent可以使用快速链路来进行单个步骤，在其审查阶段使用评估-优化器，以及将子任务发送给专家的路径。 艺术知道何时停止增加层。",
+          "originalExcerpt": "Patterns are composable: a planning agent may use prompt chaining for individual steps, an evaluator-optimizer within its review phase, and routing to dispatch subtasks to specialists. The art is knowing when to stop adding layers."
+        }
+      ]
+    }
+  ],
+  "glossary": [
+    {
+      "term": "Agent",
+      "zh": "智能体",
+      "meaning": "由模型、状态、工具和运行循环共同构成的目标导向系统。"
+    },
+    {
+      "term": "Transformer",
+      "zh": "Transformer",
+      "meaning": "以 attention 为核心的序列建模架构。"
+    }
+  ],
+  "summary": [
+    "建立有效的Agent不仅需要强大的模型和一套工具。架构—— LLM 如何安排、 任务如何分解、 组件之间的控制流动—— 确定一个Agent是否可靠、 调试以及成本效益高。本章介绍了在Anthropic、OpenAI、Google和开源社区生产部署中出现的犬类设计模式。当使用Agent对工作流时，并非每一项任务都需要一个自主的Agent。关键区别:",
+    "• 工作流程:预先确定的控制流程， LLM在具体步骤下调用。",
+    "便宜。 当任务结构已知时使用。"
+  ],
+  "metrics": {
+    "chineseCharacters": 4315,
+    "sourceCoverage": 94,
+    "sectionCount": 14,
+    "blockCount": 79
+  }
+}

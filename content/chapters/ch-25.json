@@ -1,0 +1,4681 @@
+{
+  "chapter": 25,
+  "title": "Multi-Agent Systems",
+  "zhTitle": "Multi-Agent 系统",
+  "pages": "468-488",
+  "minutes": 50,
+  "overview": "人工智能的历史在许多方面都是规模的历史。早期的AI系统是单体的:一个单一的程序，一个单一的知识库，一个单一的推论引擎。随着问题日益复杂，研究人员发现，没有任何单一的Agent——无论多么有能力——能够有效地处理一项丰富、无限制的任务的每一个方面。这种见解长期存在于分布式AI和多Agent系统(MAS)研究中[375，381]，在大语言模型时代又发现新的紧迫性。 Core Intuition A 单 LLM，无论大小，都是通论者。专门法学硕士小组，每个小组都侧重于一个狭隘的子问题，并交流其成果，能够比一般学者在复杂、多方面的任务上表现得更好——就像人类专家小组在复杂的工程项目上表现得比单一一般学者。推动从单一物剂向Agent社会转变的有四个基本动机:",
+  "status": "in_progress",
+  "sections": [
+    {
+      "id": "s-25-1",
+      "number": "25.1",
+      "level": 1,
+      "enTitle": "Motivation: Why Multiple Agents?",
+      "zhTitle": "Motivation: Why Multiple Agents?",
+      "pages": "468-469",
+      "blocks": [
+        {
+          "id": "s-25-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.1",
+            "pages": "468-469"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.1「Motivation: Why Multiple Agents?」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-25-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.1",
+            "pages": "468"
+          },
+          "text": "人工智能的历史在许多方面都是规模的历史。早期的AI系统是单体的:一个单一的程序，一个单一的知识库，一个单一的推论引擎。随着问题日益复杂，研究人员发现，没有任何单一的Agent——无论多么有能力——能够有效地处理一项丰富、无限制的任务的每一个方面。这种见解长期存在于分布式AI和多Agent系统(MAS)研究中[375，381]，在大语言模型时代又发现新的紧迫性。 Core Intuition A 单 LLM，无论大小，都是通论者。专门法学硕士小组，每个小组都侧重于一个狭隘的子问题，并交流其成果，能够比一般学者在复杂、多方面的任务上表现得更好——就像人类专家小组在复杂的工程项目上表现得比单一一般学者。推动从单一物剂向Agent社会转变的有四个基本动机:",
+          "originalExcerpt": "The history of artificial intelligence is, in many ways, a history of scale. Early AI systems were monolithic: a single program, a single knowledge base, a single inference engine. As problems grew more complex, researchers discovered that no single agent—however capable—could efficiently handle every aspect of a rich, open-ended task. This insight, long est..."
+        },
+        {
+          "id": "s-25-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.1",
+            "pages": "468"
+          },
+          "text": "专业化 不同的子任务得益于不同的能力，激励策略，甚至不同的基模型。代码生成Agent可以对编程corpora进行微调;事实检查Agent可以使用检索工具进行定位;可以激发创作写作Agent，以达到风格多样性。强迫单一的Agent同时在所有这些方面发挥卓越作用既效率低下，也往往不可能。",
+          "originalExcerpt": "Specialization. Different sub-tasks benefit from different capabilities, prompting strategies, and even different base models. A code-generation agent can be fine-tuned on programming corpora; a fact-checking agent can be grounded with retrieval tools; a creative-writing agent can be prompted for stylistic diversity. Forcing a single agent to excel at all of..."
+        },
+        {
+          "id": "s-25-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.1",
+            "pages": "468"
+          },
+          "text": "并行主义。 许多现实世界的任务会分解成独立的子任务， 可以同时执行。需要文献审查，数据分析和报告撰写的研究管道可以同时运行所有三个，大幅缩短墙时钟时间。序列单剂处理是多剂并行主义消除的瓶颈。",
+          "originalExcerpt": "Parallelism. Many real-world tasks decompose into independent sub-tasks that can be executed concurrently. A research pipeline that requires literature review, data analysis, and report writing can run all three in parallel, dramatically reducing wall-clock time. Sequential single-agent processing is a bottleneck that multi-agent parallelism eliminates."
+        },
+        {
+          "id": "s-25-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.1",
+            "pages": "468"
+          },
+          "text": "强力。 单剂是失败的单一点。 如果它产生幻觉， 被卡在环中， 或产生一个隐蔽错误的答案， 则没有检查。多剂系统引入冗余:第二剂可以验证、批评或独立地重新确定结果。 反面剂可以在相信输出之前对弱点进行探究。",
+          "originalExcerpt": "Robustness. A single agent is a single point of failure. If it hallucinates, gets stuck in a loop, or produces a subtly wrong answer, there is no check. Multi-agent systems introduce redundancy: a second agent can verify, critique, or independently re-derive results. Adversarial agents can probe for weaknesses before outputs are trusted."
+        },
+        {
+          "id": "s-25-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.1",
+            "pages": "468"
+          },
+          "text": "新兴能力。也许最有趣的是， Agent集体能够表现出任何个体Agent都不具备的能力。通过辩论、谈判和反复完善，多剂系统可以找到超越任何单一剂能单独产生的解决方案——一种与社会生物的新兴智能的计算模拟。历史背景 多Agent系统研究可追溯到1980年代，基础工作涉及分布式问题解决[80]，合同网协议[334]，以及FIPAAgent通信标准[93]。转向LLM的Agent 以新的底物来重新激活这些古典思想:而不是",
+          "originalExcerpt": "Emergent Capabilities. Perhaps most intriguingly, agent collectives can exhibit capabilities that no individual agent possesses. Through debate, negotiation, and iterative refinement, multiagent systems can arrive at solutions that transcend what any single agent could produce alone—a computational analog to the emergent intelligence of social organisms. His..."
+        },
+        {
+          "id": "s-25-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.1",
+            "pages": "469"
+          },
+          "text": "以象征性推理为主的手编码Agent，我们现在有从所学的神经表达中“认知”出来的Agent。 核心建筑模式 — — 等级、市场、黑板、信息传递 — — 仍然具有显著的相关性。从单质物剂向Agent社会的过渡，反映了复杂系统中更广泛的模式:随着问题空间的扩大，分布，模块化建筑的运行一贯超过集中化，单质化的建筑。问题不再在于是否使用多种Agent，而是如何组织。",
+          "originalExcerpt": "hand-coded agents with symbolic reasoning, we now have agents whose “cognition” emerges from learned neural representations. The core architectural patterns—hierarchies, markets, blackboards, message passing—remain remarkably relevant. The transition from monolithic agents to agent societies mirrors a broader pattern in complex systems: as the problem space ..."
+        }
+      ]
+    },
+    {
+      "id": "s-25-2",
+      "number": "25.2",
+      "level": 1,
+      "enTitle": "Multi-Agent Architectures",
+      "zhTitle": "Multi-Agent Architectures",
+      "pages": "469",
+      "blocks": [
+        {
+          "id": "s-25-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2",
+            "pages": "469"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.2「Multi-Agent Architectures」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-25-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2",
+            "pages": "469"
+          },
+          "text": "多Agent系统的地形学——如何将Agent连接起来，以及权威如何在Agent之间流动——是最有影响的建筑决定。 出现了四条条条形图案，每个条条都有明显的权衡。",
+          "originalExcerpt": "The topology of a multi-agent system—how agents are connected and how authority flows among them—is the most consequential architectural decision. Four canonical patterns have emerged, each with distinct trade-offs."
+        }
+      ]
+    },
+    {
+      "id": "s-25-2-1",
+      "number": "25.2.1",
+      "level": 2,
+      "enTitle": "Centralized (Supervisor/Manager) Architecture",
+      "zhTitle": "Centralized (Supervisor/Manager) Architecture",
+      "pages": "469-470",
+      "blocks": [
+        {
+          "id": "s-25-2-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.1",
+            "pages": "469-470"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.2.1「Centralized (Supervisor/Manager) Architecture」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-25-2-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.1",
+            "pages": "469"
+          },
+          "text": "在中央架构中，一个单一的管弦乐团Agent(不同意义上的主管，经理，或规划者)掌握着全球状态，分解任务，将子任务分配给工人Agent，并汇总其成果。地貌是一个枢纽式的和声:所有通信都通过中央节点流。",
+          "originalExcerpt": "In a centralized architecture, a single orchestrator agent (variously called supervisor, manager, or planner) holds global state, decomposes tasks, delegates sub-tasks to worker agents, and aggregates their results. The topology is a hub-and-spoke: all communication flows through the central node."
+        },
+        {
+          "id": "s-25-2-1-b2",
+          "type": "figure",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.1",
+            "pages": "469",
+            "figure": "Figure 25.1"
+          },
+          "src": null,
+          "alt": "图25.1:中央(监督)结构 经理将任务交给专业工人，并汇总其产出，所有通信都通过中央枢纽进行。",
+          "caption": "图25.1:中央(监督)结构 经理将任务交给专业工人，并汇总其产出，所有通信都通过中央枢纽进行。",
+          "adapted": false
+        },
+        {
+          "id": "s-25-2-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.1",
+            "pages": "469"
+          },
+          "text": "管理人员的职责包括:",
+          "originalExcerpt": "The manager’s responsibilities include:"
+        },
+        {
+          "id": "s-25-2-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.1",
+            "pages": "469"
+          },
+          "text": "• 任务路线:决定哪些工人最适合每个次级任务",
+          "originalExcerpt": "• Task routing: deciding which worker is best suited for each sub-task"
+        },
+        {
+          "id": "s-25-2-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.1",
+            "pages": "469"
+          },
+          "text": "• 环境管理:向每个工人提供相关的全球背景",
+          "originalExcerpt": "• Context management: providing each worker with the relevant subset of global context"
+        },
+        {
+          "id": "s-25-2-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.1",
+            "pages": "469"
+          },
+          "text": "• 成果汇总:将工人产出综合成一个整体",
+          "originalExcerpt": "• Result aggregation: synthesizing worker outputs into a coherent whole"
+        },
+        {
+          "id": "s-25-2-1-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.1",
+            "pages": "469"
+          },
+          "text": "• 处理错误:发现工人故障，重新定位或重新试验",
+          "originalExcerpt": "• Error handling: detecting worker failures and re-routing or retrying"
+        },
+        {
+          "id": "s-25-2-1-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.1",
+            "pages": "470"
+          },
+          "text": "朗格拉夫的监制模式",
+          "originalExcerpt": "Supervisor Pattern in LangGraph"
+        },
+        {
+          "id": "s-25-2-1-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.1",
+            "pages": "470"
+          },
+          "text": "从langraph 中获取。图表导入状态 Graph， START， END 输入输入类型Dict， literal",
+          "originalExcerpt": "from langgraph . graph import StateGraph , START , END from typing import TypedDict , Literal"
+        },
+        {
+          "id": "s-25-2-1-b10",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.1",
+            "pages": "470"
+          },
+          "language": "python",
+          "code": "class TeamState ( TypedDict ) : task : str plan : str code : str tests : str review : str next_agent : str final_output : str",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-25-2-1-b11",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.1",
+            "pages": "470"
+          },
+          "language": "python",
+          "code": "def supervisor_node ( state : TeamState ) -> TeamState : \" \" \" Central orchestrator : decides which agent to invoke next . \" \" \" messages = [ { \" role \" : \" system \" , \" content \" : SUPERVISOR_PROMPT } , { \" role \" : \" user \" , \" content \" : f \" Task : { state [ ’ task ’]}\\ n \" f \" Plan : { state . get ( ’ plan ’ , ’ ’) }\\ n \" f \" Code : { state . get ( ’ code ’ , ’ ’) }\\ n \" f \" Tests : { state . get ( ’ tests ’ , ’ ’) }\\ n \" \" Which agent should act next ? \" \" Options : planner , coder , tester , reviewer , FINISH \" } ] response = llm . invoke ( messages ) return {** state , \" next_agent \" : response . content . strip () }",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-25-2-1-b12",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.1",
+            "pages": "470"
+          },
+          "language": "python",
+          "code": "def route ( state : TeamState ) -> Literal [ \" planner \" ,\" coder \" ,\" tester \" ,\" reviewer \" ,\" __end__ \" ]: return state [ \" next_agent \" ] if state [ \" next_agent \" ] != \" FINISH \" else END",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-25-2-1-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.1",
+            "pages": "470"
+          },
+          "text": "建构器 = StateGraph (Team State) 建构器。添加 节点(\"主管\"，主管 节点) 建构器。添加 节点(\"规划器\"，计划器 节点) 建构器。添加 节点(\"代码\"，编码器 节点)。添加 节点(\"测试器\"，测试器 节点) 建构器。添加 节点(\"审查器\"，审查器 节点)。",
+          "originalExcerpt": "builder = StateGraph ( TeamState ) builder . add_node ( \" supervisor \" , supervisor_node ) builder . add_node ( \" planner \" , planner_node ) builder . add_node ( \" coder \" , coder_node ) builder . add_node ( \" tester \" , tester_node ) builder . add_node ( \" reviewer \" , reviewer_node )"
+        },
+        {
+          "id": "s-25-2-1-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.1",
+            "pages": "470"
+          },
+          "text": "。添加-edge(START， \" 主管 \" ) 构建器。 a dd c ondi tiona l ed gees( \" 主管 \"，路线)，用于[ \" 规划者 \"， \" 编码者 \"， \" 测试者 \"， \" 审查者 \" ]中的Agent:。添加对接(Agent， \" 主管 \" ) # 总是返回主管",
+          "originalExcerpt": "builder . add_edge ( START , \" supervisor \" ) builder . a dd_c ondi tiona l_ed ges ( \" supervisor \" , route ) for agent in [ \" planner \" , \" coder \" , \" tester \" , \" reviewer \" ]: builder . add_edge ( agent , \" supervisor \" ) # always return to supervisor"
+        },
+        {
+          "id": "s-25-2-1-b15",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.1",
+            "pages": "470"
+          },
+          "text": "图 = 构建器.编译 ()",
+          "originalExcerpt": "graph = builder . compile ()"
+        },
+        {
+          "id": "s-25-2-1-b16",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.1",
+            "pages": "470"
+          },
+          "text": "集中式建筑权衡方案:简单控制流程;明确问责;易于调试(所有决定都放在一个地方);直接执行。",
+          "originalExcerpt": "Centralized Architecture Trade-offs Pros: Simple control flow; clear accountability; easy to debug (all decisions in one place); straightforward to implement."
+        },
+        {
+          "id": "s-25-2-1-b17",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.1",
+            "pages": "470"
+          },
+          "text": "康斯:失败的单一点——如果管理者产生幻觉或感到困惑，整个系统都会失败;管理者在高负荷下成为瓶颈;管理者context window必须持有全局状态，限制可扩展性。",
+          "originalExcerpt": "Cons: Single point of failure—if the manager hallucinates or gets confused, the entire system fails; the manager becomes a bottleneck under high load; the manager’s context window must hold the global state, limiting scalability."
+        }
+      ]
+    },
+    {
+      "id": "s-25-2-2",
+      "number": "25.2.2",
+      "level": 2,
+      "enTitle": "Decentralized (Peer-to-Peer) Architecture",
+      "zhTitle": "Decentralized (Peer-to-Peer) Architecture",
+      "pages": "470-471",
+      "blocks": [
+        {
+          "id": "s-25-2-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.2",
+            "pages": "470-471"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.2.2「Decentralized (Peer-to-Peer) Architecture」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-25-2-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.2",
+            "pages": "470"
+          },
+          "text": "在分散的架构中， Agent在没有中央协调器的情况下直接相互交流。地形学是网格:任何Agent都可以与任何其他人交流。协调产生于地方互动而不是全球规划。",
+          "originalExcerpt": "In a decentralized architecture, agents interact directly with one another without a central coordinator. The topology is a mesh: any agent can communicate with any other. Coordination emerges from local interactions rather than global planning. Emergent coordination in peer-to-peer systems arises through mechanisms such as:"
+        },
+        {
+          "id": "s-25-2-2-b2",
+          "type": "figure",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.2",
+            "pages": "471",
+            "figure": "Figure 25.2"
+          },
+          "src": null,
+          "alt": "图25.2:分散化(逐级)结构:Agent直接沟通;协调产生于地方互动。",
+          "caption": "图25.2:分散化(逐级)结构:Agent直接沟通;协调产生于地方互动。",
+          "adapted": false
+        },
+        {
+          "id": "s-25-2-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.2",
+            "pages": "471"
+          },
+          "text": "• 谈判:Agent竞价执行任务或资源",
+          "originalExcerpt": "• Negotiation: agents bid for tasks or resources"
+        },
+        {
+          "id": "s-25-2-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.2",
+            "pages": "471"
+          },
+          "text": "• 污名:Agent修改他人观察到的共用状态(见第25.3.6节)",
+          "originalExcerpt": "• Stigmergy: agents modify shared state that others observe (see Section 25.3.6)"
+        },
+        {
+          "id": "s-25-2-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.2",
+            "pages": "471"
+          },
+          "text": "• 八卦天线协议:Agent通过网络传播信息",
+          "originalExcerpt": "• Gossip protocols: agents propagate information through the network"
+        },
+        {
+          "id": "s-25-2-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.2",
+            "pages": "471"
+          },
+          "text": "• 地方共识:少数机构在没有全球协调的情况下达成协议",
+          "originalExcerpt": "• Local consensus: small groups of agents reach agreement without global coordination"
+        },
+        {
+          "id": "s-25-2-2-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.2",
+            "pages": "471"
+          },
+          "text": "分散式建筑权衡:对个别Agent失败具有弹性;自然增加Agent的尺度;没有瓶颈。",
+          "originalExcerpt": "Decentralized Architecture Trade-offs Pros: Resilient to individual agent failures; scales naturally as agents are added; no bottleneck."
+        },
+        {
+          "id": "s-25-2-2-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.2",
+            "pages": "471"
+          },
+          "text": "康斯:很难调试-紧急行为难以追踪;当Agent对状态的看法不一致时，可能会发生冲突;协调的间接费用随着O(n2)的天真消息传来而增加;难以保证全球的一致性。",
+          "originalExcerpt": "Cons: Hard to debug—emergent behavior is difficult to trace; potential for conflicts when agents have inconsistent views of state; coordination overhead grows as O(n2 ) with naive message passing; difficult to guarantee global consistency."
+        }
+      ]
+    },
+    {
+      "id": "s-25-2-3",
+      "number": "25.2.3",
+      "level": 2,
+      "enTitle": "Hierarchical Architecture",
+      "zhTitle": "Hierarchical Architecture",
+      "pages": "471-472",
+      "blocks": [
+        {
+          "id": "s-25-2-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.3",
+            "pages": "471-472"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.2.3「Hierarchical Architecture」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-25-2-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.3",
+            "pages": "471"
+          },
+          "text": "等级结构将集中式模式概括为具有多层次管理功能的树结构，顶级管弦乐代表到特定域的子管理者，而子管理者则委托给专业工人。这反映了大型企业的组织结构。",
+          "originalExcerpt": "Hierarchical architectures generalize the centralized pattern into a tree structure with multiple levels of management. A top-level orchestrator delegates to domain-specific sub-managers, who in turn delegate to specialized workers. This mirrors the organizational structure of large enterprises. Key features of hierarchical systems:"
+        },
+        {
+          "id": "s-25-2-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.3",
+            "pages": "471"
+          },
+          "text": "• 权力下放链:权力和背景流经树下;结果向上流动",
+          "originalExcerpt": "• Delegation chains: authority and context flow down the tree; results flow up"
+        },
+        {
+          "id": "s-25-2-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.3",
+            "pages": "471"
+          },
+          "text": "• 升级途径:工人可以将无法解决的问题升级到管理人员手中",
+          "originalExcerpt": "• Escalation paths: workers can escalate unresolvable issues to their manager"
+        },
+        {
+          "id": "s-25-2-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.3",
+            "pages": "471"
+          },
+          "text": "• 域隔离:子管理者保持特定域的背景，减少认知",
+          "originalExcerpt": "• Domain isolation: sub-managers maintain domain-specific context, reducing the cognitive"
+        },
+        {
+          "id": "s-25-2-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.3",
+            "pages": "471"
+          },
+          "text": "装入顶级管弦乐器",
+          "originalExcerpt": "load on the top-level orchestrator"
+        },
+        {
+          "id": "s-25-2-3-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.3",
+            "pages": "471"
+          },
+          "text": "• 范围限制:每个Agent只需了解其直属上级和下属机构的情况",
+          "originalExcerpt": "• Scope limitation: each agent only needs to know about its immediate superiors and subordi-"
+        },
+        {
+          "id": "s-25-2-3-b8",
+          "type": "figure",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.3",
+            "pages": "472",
+            "figure": "Figure 25.3"
+          },
+          "src": null,
+          "alt": "图25.3:等级结构 域域副管理者的最高一级管弦乐代表，他们委托给专门工人，达希德箭头显示的是升级路径。",
+          "caption": "图25.3:等级结构 域域副管理者的最高一级管弦乐代表，他们委托给专门工人，达希德箭头显示的是升级路径。",
+          "adapted": false
+        },
+        {
+          "id": "s-25-2-3-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.3",
+            "pages": "472"
+          },
+          "text": "企业类比是合适的:首席执行官(顶级指挥员)制定战略;副管理者将战略转化为域计划;个人贡献者(工人)执行。 等级制在保持问责制的同时，使规模得以实现。",
+          "originalExcerpt": "The enterprise analogy is apt: a CEO (top orchestrator) sets strategy; VPs (sub-managers) translate strategy into domain plans; individual contributors (workers) execute. The hierarchy enables scale while preserving accountability."
+        }
+      ]
+    },
+    {
+      "id": "s-25-2-4",
+      "number": "25.2.4",
+      "level": 2,
+      "enTitle": "Swarm Architecture",
+      "zhTitle": "Swarm Architecture",
+      "pages": "472-473",
+      "blocks": [
+        {
+          "id": "s-25-2-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.4",
+            "pages": "472-473"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.2.4「Swarm Architecture」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-25-2-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.4",
+            "pages": "472"
+          },
+          "text": "由生物系统(蚁群，鸟群)所启发的沼泽结构由许多松散的结合剂组成，它们遵循简单的局部规则，产生复杂的全球行为，而没有任何中央协调者或全球状态。 OpenAI的Swarm框架[276](现在被OpenAI Agents SDK所取代，但其概念原始语仍然有影响力)以两个原始语来操作:",
+          "originalExcerpt": "Swarm architectures, inspired by biological systems (ant colonies, bird flocking), consist of many loosely coupled agents that follow simple local rules, producing complex global behavior without any central coordinator or global state. OpenAI’s Swarm framework [276] (now superseded by the OpenAI Agents SDK, but its conceptual primitives remain influential) ..."
+        },
+        {
+          "id": "s-25-2-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.4",
+            "pages": "472"
+          },
+          "text": "• 例行程序:Agent为完成一项次级任务而遵循的指示序列",
+          "originalExcerpt": "• Routines: sequences of instructions an agent follows to complete a sub-task"
+        },
+        {
+          "id": "s-25-2-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.4",
+            "pages": "472"
+          },
+          "text": "• 交接:将控制权(和相关背景)转移给另一Agent的Agent",
+          "originalExcerpt": "• Handoffs: an agent transferring control (and relevant context) to another agent"
+        },
+        {
+          "id": "s-25-2-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.4",
+            "pages": "472"
+          },
+          "text": "OpenAI 斯瓦姆: 常规和交易",
+          "originalExcerpt": "OpenAI Swarm: Routines and Handoffs"
+        },
+        {
+          "id": "s-25-2-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.4",
+            "pages": "472"
+          },
+          "text": "由群导入 Swarm Agent",
+          "originalExcerpt": "from swarm import Swarm , Agent"
+        },
+        {
+          "id": "s-25-2-4-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.4",
+            "pages": "472"
+          },
+          "text": "客户端 = swarm ()",
+          "originalExcerpt": "client = Swarm ()"
+        },
+        {
+          "id": "s-25-2-4-b7",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.4",
+            "pages": "472"
+          },
+          "language": "python",
+          "code": "def t r an s fer_to_billing () : \" \" \" Handoff : transfer control to the billing specialist . \" \" \" return billing_agent",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-25-2-4-b8",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.4",
+            "pages": "472"
+          },
+          "language": "python",
+          "code": "def t r a n s fer_ to_te chni cal () : \" \" \" Handoff : transfer control to the technical support agent . \" \" \" return technical_agent",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-25-2-4-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.4",
+            "pages": "472"
+          },
+          "text": "triage Agent=Agent(名称= \" triage Agent \"，指令= \" ) 您是客户服务分管Agent。确定客户问题的性质:- 一般性问题，直接回答 \" \"，函数=[转 转 转 转 转 转 转 技术nical]，",
+          "originalExcerpt": "triage_agent = Agent ( name = \" Triage Agent \" , instructions = \" \" \" You are a customer service triage agent . Determine the nature of the customer ’s issue : - For billing questions , transfer to billing . - For technical issues , transfer to technical support . - For general questions , answer directly . \" \" \" , functions =[ transfer_to_billing , tra nsfe..."
+        },
+        {
+          "id": "s-25-2-4-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.4",
+            "pages": "472"
+          },
+          "text": "记账Agent Agent=Agent(名称= \" 记账专家 \"，指示= \" 你处理记账查询。 \" 访问账户数据并解决付款问题。\"，函数=[查询-账户，处理-退款]，",
+          "originalExcerpt": "billing_agent = Agent ( name = \" Billing Specialist \" , instructions = \" You handle billing inquiries . \" \" Access account data and resolve payment issues . \" , functions =[ lookup_account , process_refund ] , )"
+        },
+        {
+          "id": "s-25-2-4-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.4",
+            "pages": "472"
+          },
+          "text": "技术 Agent = Agent(",
+          "originalExcerpt": "technical_agent = Agent ("
+        },
+        {
+          "id": "s-25-2-4-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.4",
+            "pages": "473"
+          },
+          "text": "name= \" 技术支助 \"， 说明= \" 你解决技术问题。 \" 诊断问题并提供逐级解决方案。 \"，函数=[运行-诊断]， e s ca la t e t o en e er in g]，",
+          "originalExcerpt": "name = \" Technical Support \" , instructions = \" You resolve technical issues . \" \" Diagnose problems and provide step - by - step solutions . \" , functions =[ run_diagnostics , e s ca la t e_ t o_ en g in e er in g ] , )"
+        },
+        {
+          "id": "s-25-2-4-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.4",
+            "pages": "473"
+          },
+          "text": "# 没有全局状态 -- -- 每个Agent按其本地上下文响应=客户端运行。运行(Agent=三切 Agent，消息=[{ ' 作用 ' : \" 用户 \"， \" 内容 \" : \" 我的发票是错的 \" )",
+          "originalExcerpt": "# No global state --- each agent operates on its local context response = client . run ( agent = triage_agent , messages =[{ \" role \" : \" user \" , \" content \" : \" My invoice is wrong \" }] )"
+        },
+        {
+          "id": "s-25-2-4-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.4",
+            "pages": "473"
+          },
+          "text": "沼泽属性",
+          "originalExcerpt": "Swarm Properties"
+        },
+        {
+          "id": "s-25-2-4-b15",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.4",
+            "pages": "473"
+          },
+          "text": "• 没有全球状态:每个Agent机构只维持其本地背景窗口",
+          "originalExcerpt": "• No global state: each agent maintains only its local context window"
+        },
+        {
+          "id": "s-25-2-4-b16",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.4",
+            "pages": "473"
+          },
+          "text": "• 地方决定:路线决定由现任Agent作出，而不是由中央规划员作出",
+          "originalExcerpt": "• Local decisions: routing decisions are made by the current agent, not a central planner"
+        },
+        {
+          "id": "s-25-2-4-b17",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.4",
+            "pages": "473"
+          },
+          "text": "• 通过集体行为完成任务:通过一个机构完成复杂任务",
+          "originalExcerpt": "• Task completion through collective behavior: complex tasks are completed through a"
+        },
+        {
+          "id": "s-25-2-4-b18",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.4",
+            "pages": "473"
+          },
+          "text": "每一Agent贡献其专长",
+          "originalExcerpt": "chain of handoffs, each agent contributing its specialty"
+        },
+        {
+          "id": "s-25-2-4-b19",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.2.4",
+            "pages": "473"
+          },
+          "text": "• 轻巧:不发生任何间接安排;Agent在交接期间无国籍",
+          "originalExcerpt": "• Lightweight: no orchestration overhead; agents are stateless between handoffs"
+        }
+      ]
+    },
+    {
+      "id": "s-25-3",
+      "number": "25.3",
+      "level": 1,
+      "enTitle": "Coordination Mechanisms",
+      "zhTitle": "Coordination Mechanisms",
+      "pages": "473",
+      "blocks": [
+        {
+          "id": "s-25-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3",
+            "pages": "473"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.3「Coordination Mechanisms」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-25-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3",
+            "pages": "473"
+          },
+          "text": "Agent如何协调—如何分享信息、分工工作和解决冲突—与地形学同样重要。 六个犬科协调机制适用于基于LLM的多Agent系统。",
+          "originalExcerpt": "How agents coordinate—how they share information, divide work, and resolve conflicts—is as important as the topology. Six canonical coordination mechanisms apply to LLM-based multi-agent systems."
+        }
+      ]
+    },
+    {
+      "id": "s-25-3-1",
+      "number": "25.3.1",
+      "level": 2,
+      "enTitle": "Shared State (Global Blackboard)",
+      "zhTitle": "Shared State (Global Blackboard)",
+      "pages": "473-474",
+      "blocks": [
+        {
+          "id": "s-25-3-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.1",
+            "pages": "473-474"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.3.1「Shared State (Global Blackboard)」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-25-3-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.1",
+            "pages": "473"
+          },
+          "text": "黑板架构[135]提供了所有Agent可以读取和写入的共享数据结构。在 LLM 系统中， 通常执行为共享词典、 数据库或结构化文档。 导入数据类的线索 导入数据类。 输入字段输入导入 Any 、 Callable 、 Dict 、 List",
+          "originalExcerpt": "The blackboard architecture [135] provides a shared data structure that all agents can read from and write to. In LLM systems, this is typically implemented as a shared dictionary, database, or structured document. import threading from dataclasses import dataclass , field from typing import Any , Callable , Dict , List"
+        },
+        {
+          "id": "s-25-3-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.1",
+            "pages": "473"
+          },
+          "text": "@ dataclass class Blackboard Entry: 值:任意作者 : str timestamp: 浮置信心 : 浮置 = 1.",
+          "originalExcerpt": "@dataclass class BlackboardEntry : value : Any author : str timestamp : float confidence : float = 1.0"
+        },
+        {
+          "id": "s-25-3-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.1",
+            "pages": "473"
+          },
+          "text": "类黑板: \" 线条 -- -- 多种方式的安全共享状态 -- -- Agent协调。 \"",
+          "originalExcerpt": "class Blackboard : \" \" \" Thread - safe shared state for multi - agent coordination . \" \" \""
+        },
+        {
+          "id": "s-25-3-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.1",
+            "pages": "473"
+          },
+          "text": "def init (自 :自 )。 data:dict [str， Blackboard Entry] = {} 自我。 lock=线程。 RLock () 自我。 订阅者:dict [str， List [可调用]=",
+          "originalExcerpt": "def __init__ ( self ) : self . _data : Dict [ str , BlackboardEntry ] = {} self . _lock = threading . RLock () self . _subscribers : Dict [ str , List [ Callable ]] = {}"
+        },
+        {
+          "id": "s-25-3-1-b5",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.1",
+            "pages": "473"
+          },
+          "language": "python",
+          "code": "def write ( self , key : str , value : Any , author : str , confidence : float = 1.0) -> bool : \" \" \" Write to blackboard ; higher - confidence entries win conflicts . \" \" \" with self . _lock : existing = self . _data . get ( key ) if existing and existing . confidence > confidence : return False # Conflict : existing entry wins import time",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-25-3-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.1",
+            "pages": "474"
+          },
+          "text": "本身。 data [键] = 黑板 Entry(值=值，作者=作者，时间戳 ) 时间() 信任=自信 自我。 notify (键，值) 返回 True",
+          "originalExcerpt": "self . _data [ key ] = BlackboardEntry ( value = value , author = author , timestamp = time . time () , confidence = confidence ) self . _notify ( key , value ) return True"
+        },
+        {
+          "id": "s-25-3-1-b7",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.1",
+            "pages": "474"
+          },
+          "language": "python",
+          "code": "def read ( self , key : str ) -> Any : with self . _lock : entry = self . _data . get ( key ) return entry . value if entry else None",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-25-3-1-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.1",
+            "pages": "474"
+          },
+          "text": "def 订阅( 自我， 密钥 : str， callback: callbackable) : \" \" Agent订阅特定密钥上的更改。\"。 \" \" 自我。 订阅者。 setdefault (密钥， [])。 appince( callback)",
+          "originalExcerpt": "def subscribe ( self , key : str , callback : Callable ) : \" \" \" Agents subscribe to changes on specific keys . \" \" \" self . _subscribers . setdefault ( key , []) . append ( callback )"
+        },
+        {
+          "id": "s-25-3-1-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.1",
+            "pages": "474"
+          },
+          "text": "def notify(自，键 : str，值 : 任意) f: 用于 cb 本身 订阅者。 get(键， []): cb(键，值)",
+          "originalExcerpt": "def _notify ( self , key : str , value : Any ) : for cb in self . _subscribers . get ( key , []) : cb ( key , value )"
+        },
+        {
+          "id": "s-25-3-1-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.1",
+            "pages": "474"
+          },
+          "text": "25.1 冲突解决共同黑板",
+          "originalExcerpt": "Listing 25.1: Shared blackboard with conflict resolution"
+        }
+      ]
+    },
+    {
+      "id": "s-25-3-2",
+      "number": "25.3.2",
+      "level": 2,
+      "enTitle": "Message Passing",
+      "zhTitle": "Message Passing",
+      "pages": "474",
+      "blocks": [
+        {
+          "id": "s-25-3-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.2",
+            "pages": "474"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.3.2「Message Passing」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-25-3-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.2",
+            "pages": "474"
+          },
+          "text": "消息传递是LLMAgent最自然的协调机制:Agent通过向对方发送结构化的短信进行沟通。主要的设计决定包括:",
+          "originalExcerpt": "Message passing is the most natural coordination mechanism for LLM agents: agents communicate by sending structured text messages to one another. Key design decisions include:"
+        },
+        {
+          "id": "s-25-3-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.2",
+            "pages": "474"
+          },
+          "text": "• 信息格式:结构化(JSON schema)与自然语言对混合语言",
+          "originalExcerpt": "• Message format: structured (JSON schema) vs. natural language vs. hybrid"
+        },
+        {
+          "id": "s-25-3-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.2",
+            "pages": "474"
+          },
+          "text": "• 跑道:直接(Agent对Agent)与广播对基于主题的酒吧/分店",
+          "originalExcerpt": "• Routing: direct (agent-to-agent) vs. broadcast vs. topic-based pub/sub"
+        },
+        {
+          "id": "s-25-3-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.2",
+            "pages": "474"
+          },
+          "text": "• 对话线:在多回合交流中保持上下文",
+          "originalExcerpt": "• Conversation threads: maintaining context across multi-turn exchanges"
+        },
+        {
+          "id": "s-25-3-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.2",
+            "pages": "474"
+          },
+          "text": "• 承认:发件人是否需要确认收货/处理",
+          "originalExcerpt": "• Acknowledgment: whether senders require confirmation of receipt/processing"
+        }
+      ]
+    },
+    {
+      "id": "s-25-3-3",
+      "number": "25.3.3",
+      "level": 2,
+      "enTitle": "Planning and Decomposition",
+      "zhTitle": "Planning and Decomposition",
+      "pages": "474-475",
+      "blocks": [
+        {
+          "id": "s-25-3-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.3",
+            "pages": "474-475"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.3.3「Planning and Decomposition」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-25-3-3-b1",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.3",
+            "pages": "474"
+          },
+          "language": "python",
+          "code": "A manager agent decomposes a high-level task into a directed acyclic graph (DAG) of sub-tasks, assigns each to an appropriate worker, and tracks dependencies. This is the multi-agent analog of classical hierarchical task network (HTN) planning. from dataclasses import dataclass , field from typing import List , Optional import asyncio",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-25-3-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.3",
+            "pages": "474"
+          },
+          "text": "@dataclass 类任务 : id: str 描述 : str 指定 to: str 依赖 : liet [str] = 字段( 默认 actory = list ) 状态 : str = \" 待决 \" # 等待 = 运行 === 完成 = 失败结果 : 可选 [str] = 无",
+          "originalExcerpt": "@dataclass class Task : id : str description : str assigned_to : str dependencies : List [ str ] = field ( default_factory = list ) status : str = \" pending \" # pending | running | done | failed result : Optional [ str ] = None"
+        },
+        {
+          "id": "s-25-3-3-b3",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.3",
+            "pages": "474"
+          },
+          "language": "python",
+          "code": "class TaskDAG : def __init__ ( self ) : self . tasks : dict [ str , Task ] = {}",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-25-3-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.3",
+            "pages": "474"
+          },
+          "text": "def 添加 任务( 自己， 任务 : 任务 ) : 自己。任务 [任务。 id] = 任务",
+          "originalExcerpt": "def add_task ( self , task : Task ) : self . tasks [ task . id ] = task"
+        },
+        {
+          "id": "s-25-3-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.3",
+            "pages": "474"
+          },
+          "text": "def 准备中的任务(自) - > 列表 [任务]: \" 其依赖性全部完成的返回任务。 \"",
+          "originalExcerpt": "def ready_tasks ( self ) -> List [ Task ]: \" \" \" Return tasks whose dependencies are all completed . \" \" \""
+        },
+        {
+          "id": "s-25-3-3-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.3",
+            "pages": "475"
+          },
+          "text": "返回 [t 对于 t 本身的任务 值 () 如果 t 状态 = \" 待定 \" 和全部 (自。任务 [d]。 status = \" 已完成 \"， = d in t。 dependenies )",
+          "originalExcerpt": "return [ t for t in self . tasks . values () if t . status == \" pending \" and all ( self . tasks [ d ]. status == \" done \" for d in t . dependencies ) ]"
+        },
+        {
+          "id": "s-25-3-3-b7",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.3",
+            "pages": "475"
+          },
+          "language": "python",
+          "code": "async def execute ( self , agent_pool : dict ) : while any ( t . status != \" done \" for t in self . tasks . values () ) : ready = self . ready_tasks () if not ready : await asyncio . sleep (0.1) continue # Execute ready tasks in parallel await asyncio . gather (*[ self . _run_task (t , agent_pool [ t . assigned_to ]) for t in ready ])",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-25-3-3-b8",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.3",
+            "pages": "475"
+          },
+          "language": "python",
+          "code": "async def _run_task ( self , task : Task , agent ) : task . status = \" running \" try : task . result = await agent . execute ( task . description ) task . status = \" done \" except Exception as e : task . status = \" failed \" raise",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-25-3-3-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.3",
+            "pages": "475"
+          },
+          "text": "列出 25.2: 任务 DAG 分解",
+          "originalExcerpt": "Listing 25.2: Task DAG decomposition"
+        }
+      ]
+    },
+    {
+      "id": "s-25-3-4",
+      "number": "25.3.4",
+      "level": 2,
+      "enTitle": "Voting and Consensus",
+      "zhTitle": "Voting and Consensus",
+      "pages": "475",
+      "blocks": [
+        {
+          "id": "s-25-3-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.4",
+            "pages": "475"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.3.4「Voting and Consensus」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-25-3-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.4",
+            "pages": "475"
+          },
+          "text": "当多个Agent产生相互矛盾的产出时，投票机制将其反应汇总为单一决定。",
+          "originalExcerpt": "When multiple agents produce conflicting outputs, voting mechanisms aggregate their responses into a single decision. Common schemes include:"
+        },
+        {
+          "id": "s-25-3-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.4",
+            "pages": "475"
+          },
+          "text": "• 多数表决:最常见的答案胜诉;对事实问题有效",
+          "originalExcerpt": "• Majority voting: the most common answer wins; effective for factual questions"
+        },
+        {
+          "id": "s-25-3-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.4",
+            "pages": "475"
+          },
+          "text": "• 加权投票:成绩或信心分数较高的Agent获得更多的分数",
+          "originalExcerpt": "• Weighted voting: agents with higher track records or confidence scores receive more weight"
+        },
+        {
+          "id": "s-25-3-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.4",
+            "pages": "475"
+          },
+          "text": "• 辩论决议:Agent为其立场争吵;法官决定",
+          "originalExcerpt": "• Debate-based resolution: agents argue for their positions; a judge agent decides"
+        },
+        {
+          "id": "s-25-3-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.4",
+            "pages": "475"
+          },
+          "text": "德尔菲方法:Agent在见到他人后修改答案的迭轮",
+          "originalExcerpt": "• Delphi method: iterative rounds where agents revise their answers after seeing others’"
+        },
+        {
+          "id": "s-25-3-4-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.4",
+            "pages": "475"
+          },
+          "text": "正式地，给定n Agent输出{o1， .，。 on} 重 {w1， .， .，。 n}， 加权共识为: n o * = arg max X wi = 1 [oi = o] (25.1) o i= 1",
+          "originalExcerpt": "Formally, given n agents producing outputs {o1 , . . . , on } with weights {w1 , . . . , wn }, the weighted consensus is: n o∗ = arg max X wi · 1[oi = o] (25.1) o i=1"
+        },
+        {
+          "id": "s-25-3-4-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.4",
+            "pages": "475"
+          },
+          "text": "对于连续输出(如概率估计)，适用加权平均值: Pn i=1 wi → pi p̂ = Pn (25.2) i=1 wi",
+          "originalExcerpt": "For continuous outputs (e.g., probability estimates), weighted averaging applies: Pn i=1 wi · pi p̂ = P n (25.2) i=1 wi"
+        }
+      ]
+    },
+    {
+      "id": "s-25-3-5",
+      "number": "25.3.5",
+      "level": 2,
+      "enTitle": "Market-Based Coordination",
+      "zhTitle": "Market-Based Coordination",
+      "pages": "475-476",
+      "blocks": [
+        {
+          "id": "s-25-3-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.5",
+            "pages": "475-476"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.3.5「Market-Based Coordination」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-25-3-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.5",
+            "pages": "475"
+          },
+          "text": "市场机制通过拍卖和投标分配任务和资源。",
+          "originalExcerpt": "Market mechanisms allocate tasks and resources through auctions and bidding. The Contract Net Protocol [334], one of the oldest multi-agent coordination mechanisms, is a task auction:"
+        },
+        {
+          "id": "s-25-3-5-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.5",
+            "pages": "475"
+          },
+          "text": "1. 管理人员播放附有要求的任务通知",
+          "originalExcerpt": "1. A manager broadcasts a task announcement with requirements"
+        },
+        {
+          "id": "s-25-3-5-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.5",
+            "pages": "475"
+          },
+          "text": "2. 承包商Agent提交投标(能力申报+费用估计数)",
+          "originalExcerpt": "2. Contractor agents submit bids (capability declarations + cost estimates)"
+        },
+        {
+          "id": "s-25-3-5-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.5",
+            "pages": "476"
+          },
+          "text": "3. 经理将合同授予最有竞争力的投标人",
+          "originalExcerpt": "3. The manager awards the contract to the best bidder"
+        },
+        {
+          "id": "s-25-3-5-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.5",
+            "pages": "476"
+          },
+          "text": "4. 中标的承包商执行并报告结果",
+          "originalExcerpt": "4. The winning contractor executes and reports results"
+        },
+        {
+          "id": "s-25-3-5-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.5",
+            "pages": "476"
+          },
+          "text": "在LLM系统中，投标可以用自然语言(“我能够以高度自信的3步完成”)或结构化格式表示。市场机制对于必须尽量减少API成本的受资源限制环境特别有效。",
+          "originalExcerpt": "In LLM systems, bids can be expressed in natural language (“I can complete this in 3 steps with high confidence”) or structured formats. Market mechanisms are particularly effective for resource-constrained settings where API costs must be minimized."
+        }
+      ]
+    },
+    {
+      "id": "s-25-3-6",
+      "number": "25.3.6",
+      "level": 2,
+      "enTitle": "Stigmergy: Indirect Communication Through Environment",
+      "zhTitle": "Stigmergy: Indirect Communication Through Environment",
+      "pages": "476",
+      "blocks": [
+        {
+          "id": "s-25-3-6-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.6",
+            "pages": "476"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.3.6「Stigmergy: Indirect Communication Through Environment」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-25-3-6-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.6",
+            "pages": "476"
+          },
+          "text": "刺毒[117]用一个更简单的机制取代了明确的Agent对Agent消息:每个Agent改变共享环境作为其工作的副作用，其他Agent对这些修改而不是直接信号作出反应。典型的插图是将寄生的激素放入返回路径;随后蚂蚁将成功的路线扩大而不会对另一蚂蚁“说话 ”。 在LLM多剂系统中，缩略图显示如下:",
+          "originalExcerpt": "Stigmergy [117] replaces explicit agent-to-agent messaging with a simpler mechanism: each agent modifies the shared environment as a side effect of its work, and other agents react to those modifications rather than to direct signals. The classic illustration is a foraging ant depositing pheromone on its return path; subsequent ants amplify successful routes..."
+        },
+        {
+          "id": "s-25-3-6-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.6",
+            "pages": "476"
+          },
+          "text": "• 共享文件:Agent向共享文件写信;其他人阅读并在此基础上发展",
+          "originalExcerpt": "• Shared documents: agents write to a shared document; others read and build upon it"
+        },
+        {
+          "id": "s-25-3-6-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.6",
+            "pages": "476"
+          },
+          "text": "• 密码寄存器:一个Agent执行密码;另一个Agent执行密码并进行扩展",
+          "originalExcerpt": "• Code repositories: one agent commits code; another reads and extends it"
+        },
+        {
+          "id": "s-25-3-6-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.6",
+            "pages": "476"
+          },
+          "text": "• 注释层:Agent对共享文物进行注释(突出错误，增加评论)",
+          "originalExcerpt": "• Annotation layers: agents annotate shared artifacts (highlight errors, add comments)"
+        },
+        {
+          "id": "s-25-3-6-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.6",
+            "pages": "476"
+          },
+          "text": "• 任务队列:从共享队列添加和消耗任务Agent员",
+          "originalExcerpt": "• Task queues: agents add and consume tasks from a shared queue"
+        },
+        {
+          "id": "s-25-3-6-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.3.6",
+            "pages": "476"
+          },
+          "text": "耻辱使得协调无需明确的沟通， Agent机构只是观察共同环境的状况，并据此采取行动。",
+          "originalExcerpt": "Stigmergy enables coordination without explicit communication overhead—agents simply observe the state of the shared environment and act accordingly."
+        }
+      ]
+    },
+    {
+      "id": "s-25-4",
+      "number": "25.4",
+      "level": 1,
+      "enTitle": "Communication Protocols",
+      "zhTitle": "Communication Protocols",
+      "pages": "476",
+      "blocks": [
+        {
+          "id": "s-25-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.4",
+            "pages": "476"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.4「Communication Protocols」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-25-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.4",
+            "pages": "476"
+          },
+          "text": "有效的多Agent系统需要定义明确的通信协议:协议格式，语义，以及Agent对Agent消息的模式。 (关于标准化的Agent协议，见第24章)",
+          "originalExcerpt": "Effective multi-agent systems require well-defined communication protocols: agreed-upon formats, semantics, and patterns for agent-to-agent messages. (For the standardized inter-agent protocol, see Chapter 24.)"
+        }
+      ]
+    },
+    {
+      "id": "s-25-4-1",
+      "number": "25.4.1",
+      "level": 2,
+      "enTitle": "Structured Message Formats",
+      "zhTitle": "Structured Message Formats",
+      "pages": "476-477",
+      "blocks": [
+        {
+          "id": "s-25-4-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.4.1",
+            "pages": "476-477"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.4.1「Structured Message Formats」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-25-4-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.4.1",
+            "pages": "476"
+          },
+          "text": "液态LMAgent之间的消息结构应能够进行可靠的解析和路由。最小消息计划: 从 pydantic 导入 BaseModel， 从输入的字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字元字",
+          "originalExcerpt": "Messages between LLM agents should be structured to enable reliable parsing and routing. A minimal message schema: from pydantic import BaseModel , Field from typing import Literal , Optional , Dict , Any from datetime import datetime , timezone import uuid"
+        },
+        {
+          "id": "s-25-4-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.4.1",
+            "pages": "476"
+          },
+          "text": "演绎式Type = 文艺 [ \" 告知 \"，# 共享信息 \" 请求 \"，# 请求采取行动 \" 提议 \"，# 提议行动方案 \" 接受 \"，# 接受一个提案 \" 拒绝 \"，# 拒绝一个提案 \" 查询 \"，# 提问 \" 确认 \"，# 确认收到/完成 \" 失败 \"，# 报告失败]",
+          "originalExcerpt": "PerformativeType = Literal [ \" inform \" , # Share information \" request \" , # Request an action \" propose \" , # Propose a course of action \" accept \" , # Accept a proposal \" reject \" , # Reject a proposal \" query \" , # Ask a question \" confirm \" , # Confirm receipt / completion \" failure \" , # Report a failure ]"
+        },
+        {
+          "id": "s-25-4-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.4.1",
+            "pages": "476"
+          },
+          "text": "类 AgentMessage (BaseModel ) : message id: str = Field (默认 factory = lambda ): str (uuid。 uuid4()) 对话 id: str #组相关消息发送者: str #Agent身份识别器接收者:str # 目标Agent( 或 \" 广播 \" )",
+          "originalExcerpt": "class AgentMessage ( BaseModel ) : message_id : str = Field ( default_factory = lambda : str ( uuid . uuid4 () ) ) conversation_id : str # Groups related messages sender : str # Agent identifier receiver : str # Target agent ( or \" broadcast \")"
+        },
+        {
+          "id": "s-25-4-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.4.1",
+            "pages": "477"
+          },
+          "text": "演绎性: 演绎性主题 内容:str#自然语言内容元数据:dict [str， Any]=#结构有效载荷回复 to:可选 [str]=无#消息 id被回复时间戳:日期时间 = 字段(默认 factory = lambda : 日期时间。 now (时区。 utc)) )。",
+          "originalExcerpt": "performative : PerformativeType content : str # Natural language content metadata : Dict [ str , Any ] = {} # Structured payload reply_to : Optional [ str ] = None # message_id being replied to timestamp : datetime = Field ( default_factory = lambda : datetime . now ( timezone . utc ) )"
+        },
+        {
+          "id": "s-25-4-1-b5",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.4.1",
+            "pages": "477"
+          },
+          "language": "python",
+          "code": "def to_llm_prompt ( self ) -> str : \" \" \" Render message as a prompt fragment for the receiving agent . \" \" \" return ( f \" [ MESSAGE from { self . sender }]\\ n \" f \" Type : { self . performative }\\ n \" f \" Content : { self . content }\\ n \" + ( f \" Metadata : { self . metadata }\\ n \" if self . metadata else \" \" ) )",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-25-4-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.4.1",
+            "pages": "477"
+          },
+          "text": "列出 25.3:Agent信件计划",
+          "originalExcerpt": "Listing 25.3: Agent message schema"
+        }
+      ]
+    },
+    {
+      "id": "s-25-4-2",
+      "number": "25.4.2",
+      "level": 2,
+      "enTitle": "Performative Types (FIPA-ACL Inspired)",
+      "zhTitle": "Performative Types (FIPA-ACL Inspired)",
+      "pages": "477",
+      "blocks": [
+        {
+          "id": "s-25-4-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.4.2",
+            "pages": "477"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.4.2「Performative Types (FIPA-ACL Inspired)」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-25-4-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.4.2",
+            "pages": "477"
+          },
+          "text": "利用FIPAAgent通信语言[93]，对LLMAgent进行现代化: 表25.1:FIPA-ACL启发的LLMAgent消息的表演类型。",
+          "originalExcerpt": "Drawing from the FIPA Agent Communication Language [93], modernized for LLM agents: Table 25.1: FIPA-ACL-inspired performative types for LLM agent messages."
+        },
+        {
+          "id": "s-25-4-2-b2",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 25,
+            "section": "25.4.2",
+            "pages": "477"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "Performative Semantics Example Use inform Sender believes ϕ is true Share research findings request Sender wants receiver to do α Delegate a sub-task propose Sender proposes plan π Suggest an approach accept Receiver agrees to proposal Confirm task assignment reject Receiver declines proposal Refuse incompatible task query Sender wants to know ϕ Ask for clar..."
+        }
+      ]
+    },
+    {
+      "id": "s-25-4-3",
+      "number": "25.4.3",
+      "level": 2,
+      "enTitle": "Context Sharing Strategies",
+      "zhTitle": "Context Sharing Strategies",
+      "pages": "477",
+      "blocks": [
+        {
+          "id": "s-25-4-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.4.3",
+            "pages": "477"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.4.3「Context Sharing Strategies」 时，沿信息生命周期追踪：内容何时写入、采用什么表示、怎样检索、如何进入 context、何时更新或删除。保存更多信息并不自动带来更好结果，选择机制和冲突处理同样重要。"
+        },
+        {
+          "id": "s-25-4-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.4.3",
+            "pages": "477"
+          },
+          "text": "多重Agent通信中的一个关键挑战是环境管理:每个Agent机构需要多少历史？三种战略:",
+          "originalExcerpt": "A critical challenge in multi-agent communication is context management: how much history does each agent need? Three strategies:"
+        },
+        {
+          "id": "s-25-4-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.4.3",
+            "pages": "477"
+          },
+          "text": "• 完整历史:将整个对话历史传递给每位Agent。",
+          "originalExcerpt": "• Full history: pass the entire conversation history to each agent. Maximally informative but"
+        },
+        {
+          "id": "s-25-4-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.4.3",
+            "pages": "477"
+          },
+          "text": "昂贵; context window快速填充。",
+          "originalExcerpt": "expensive; context windows fill quickly."
+        },
+        {
+          "id": "s-25-4-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.4.3",
+            "pages": "477"
+          },
+          "text": "• 摘要:摘要剂将以前的交换压缩成一个紧凑的摘要。",
+          "originalExcerpt": "• Summary: a summarizer agent condenses prior exchanges into a compact summary. Efficient"
+        },
+        {
+          "id": "s-25-4-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.4.3",
+            "pages": "477"
+          },
+          "text": "但却是损失;重要的细节可能会被删除。",
+          "originalExcerpt": "but lossy; important details may be dropped."
+        },
+        {
+          "id": "s-25-4-3-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.4.3",
+            "pages": "477"
+          },
+          "text": "· 相关摘录:仅使用语义搜索检索最相关的前置消息。",
+          "originalExcerpt": "• Relevant excerpt: retrieve only the most relevant prior messages using semantic search."
+        },
+        {
+          "id": "s-25-4-3-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.4.3",
+            "pages": "477"
+          },
+          "text": "平衡成本和信息;需要有一个检索机制。",
+          "originalExcerpt": "Balances cost and informativeness; requires a retrieval mechanism."
+        },
+        {
+          "id": "s-25-4-3-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.4.3",
+            "pages": "477"
+          },
+          "text": "上下文共享规则缩略图 使用完整历史进行短对话(<10个回合); 中长对话摘要; 检索-添加的节录用于长期Agent会话。总是包括最新的 k 消息 逐字保存当前上下文。",
+          "originalExcerpt": "Context Sharing Rule of Thumb Use full history for short conversations (<10 turns); summaries for medium-length conversations; retrieval-augmented excerpts for long-running agent sessions. Always include the most recent k messages verbatim to preserve immediate context."
+        }
+      ]
+    },
+    {
+      "id": "s-25-5",
+      "number": "25.5",
+      "level": 1,
+      "enTitle": "Role Design and Specialization",
+      "zhTitle": "Role Design and Specialization",
+      "pages": "477",
+      "blocks": [
+        {
+          "id": "s-25-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.5",
+            "pages": "477"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.5「Role Design and Specialization」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-25-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.5",
+            "pages": "477"
+          },
+          "text": "设计Agent角色 — — 其能力、人格和责任 — — 与科学一样是一门艺术。 精心设计的角色可以实现专业化;设计不当的角色会造成混乱和冗余。",
+          "originalExcerpt": "The design of agent roles—their capabilities, personas, and responsibilities—is as much an art as a science. Well-designed roles enable specialization; poorly designed roles create confusion and redundancy."
+        }
+      ]
+    },
+    {
+      "id": "s-25-5-1",
+      "number": "25.5.1",
+      "level": 2,
+      "enTitle": "Defining Agent Roles",
+      "zhTitle": "Defining Agent Roles",
+      "pages": "478",
+      "blocks": [
+        {
+          "id": "s-25-5-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.5.1",
+            "pages": "478"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.5.1「Defining Agent Roles」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-25-5-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.5.1",
+            "pages": "478"
+          },
+          "text": "LLM多Agent系统中的共同角色: 表25.2:LLM多Agent系统中的共同Agent角色。",
+          "originalExcerpt": "Common roles in LLM multi-agent systems: Table 25.2: Common agent roles in LLM multi-agent systems."
+        },
+        {
+          "id": "s-25-5-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.5.1",
+            "pages": "478"
+          },
+          "text": "角色主能力典型工具 研究者信息收集，合成-网络搜索， RAG，数据库sis Planner任务解析， schedul-None(仅合理) 代码生成，调试代码解译， linter 审核者质量评估，批判无(仅合理) 测试者测试生成，执行测试 测试 运行 测试 工具 Writer Prose生成，编辑语法检查 风格指导 批评 反面评估 无(仅合理) Orchestrator 协调， 授权所有Agent界面",
+          "originalExcerpt": "Role Primary Capability Typical Tools Researcher Information gathering, synthe- Web search, RAG, databases sis Planner Task decomposition, schedul- None (reasoning only) ing Coder Code generation, debugging Code interpreter, linter Reviewer Quality assessment, critique None (reasoning only) Tester Test generation, execution Test runner, coverage tools Writer..."
+        }
+      ]
+    },
+    {
+      "id": "s-25-5-2",
+      "number": "25.5.2",
+      "level": 2,
+      "enTitle": "Capability-Based vs. Role-Based Assignment",
+      "zhTitle": "Capability-Based vs. Role-Based Assignment",
+      "pages": "478",
+      "blocks": [
+        {
+          "id": "s-25-5-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.5.2",
+            "pages": "478"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.5.2「Capability-Based vs. Role-Based Assignment」 时，不要寻找脱离场景的“最佳方案”。应在质量、latency、计算与存储成本、数据要求、可控性和运维复杂度上逐项比较，并保留原书说明的适用前提与例外。"
+        },
+        {
+          "id": "s-25-5-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.5.2",
+            "pages": "478"
+          },
+          "text": "任务任务的两个哲学:",
+          "originalExcerpt": "Two philosophies for task assignment:"
+        },
+        {
+          "id": "s-25-5-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.5.2",
+            "pages": "478"
+          },
+          "text": "• 基于角色:根据预先确定的角色标签分配任务。",
+          "originalExcerpt": "• Role-based: tasks are assigned based on predefined role labels. Simple and predictable; may"
+        },
+        {
+          "id": "s-25-5-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.5.2",
+            "pages": "478"
+          },
+          "text": "当任务跨越多个角色时，会低于最佳。",
+          "originalExcerpt": "be suboptimal when a task spans multiple roles."
+        },
+        {
+          "id": "s-25-5-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.5.2",
+            "pages": "478"
+          },
+          "text": "· 能力:根据对每种制剂的卡比利的动态评估分配任务。",
+          "originalExcerpt": "• Capability-based: tasks are assigned based on a dynamic assessment of each agent’s capabili-"
+        },
+        {
+          "id": "s-25-5-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.5.2",
+            "pages": "478"
+          },
+          "text": "需要建立能力登记和匹配机制。",
+          "originalExcerpt": "ties relative to the task requirements. More flexible; requires a capability registry and matching mechanism."
+        }
+      ]
+    },
+    {
+      "id": "s-25-5-3",
+      "number": "25.5.3",
+      "level": 2,
+      "enTitle": "Dynamic Role Reassignment",
+      "zhTitle": "Dynamic Role Reassignment",
+      "pages": "478",
+      "blocks": [
+        {
+          "id": "s-25-5-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.5.3",
+            "pages": "478"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.5.3「Dynamic Role Reassignment」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-25-5-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.5.3",
+            "pages": "478"
+          },
+          "text": "在长期运行的系统中，静态角色分配变得不尽人意。动态调任允许Agent基于以下因素承担新角色: 任务在任务中被替换为任务。",
+          "originalExcerpt": "In long-running systems, static role assignments become suboptimal. Dynamic reassignment allows agents to take on new roles based on:"
+        },
+        {
+          "id": "s-25-5-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.5.3",
+            "pages": "478"
+          },
+          "text": "• 目前的工作量(工作量平衡)",
+          "originalExcerpt": "• Current workload (load balancing)"
+        },
+        {
+          "id": "s-25-5-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.5.3",
+            "pages": "478"
+          },
+          "text": "• 近期任务的业绩证明",
+          "originalExcerpt": "• Demonstrated performance on recent tasks"
+        },
+        {
+          "id": "s-25-5-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.5.3",
+            "pages": "478"
+          },
+          "text": "• 任务要求的改变",
+          "originalExcerpt": "• Changing task requirements"
+        },
+        {
+          "id": "s-25-5-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.5.3",
+            "pages": "478"
+          },
+          "text": "• 需要保险的Agent故障",
+          "originalExcerpt": "• Agent failures requiring coverage"
+        }
+      ]
+    },
+    {
+      "id": "s-25-5-4",
+      "number": "25.5.4",
+      "level": 2,
+      "enTitle": "Persona Design for Diversity of Thought",
+      "zhTitle": "Persona Design for Diversity of Thought",
+      "pages": "478-479",
+      "blocks": [
+        {
+          "id": "s-25-5-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.5.4",
+            "pages": "478-479"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.5.4「Persona Design for Diversity of Thought」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-25-5-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.5.4",
+            "pages": "478"
+          },
+          "text": "一种微妙而有力的技术:给予不同Agent以鼓励不同观点的鲜明人物。",
+          "originalExcerpt": "A subtle but powerful technique: give agents distinct personas that encourage diverse perspectives. Rather than five identical “assistant” agents, design:"
+        },
+        {
+          "id": "s-25-5-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.5.4",
+            "pages": "478"
+          },
+          "text": "• 乐观主义者强调机会",
+          "originalExcerpt": "• An optimist who emphasizes opportunities"
+        },
+        {
+          "id": "s-25-5-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.5.4",
+            "pages": "478"
+          },
+          "text": "• 怀疑谁质疑假设",
+          "originalExcerpt": "• A skeptic who challenges assumptions"
+        },
+        {
+          "id": "s-25-5-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.5.4",
+            "pages": "478"
+          },
+          "text": "• 注重执行的实用主义者",
+          "originalExcerpt": "• A pragmatist who focuses on implementation"
+        },
+        {
+          "id": "s-25-5-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.5.4",
+            "pages": "478"
+          },
+          "text": "• 一个具有远见、认为长期性的人",
+          "originalExcerpt": "• A visionary who thinks long-term"
+        },
+        {
+          "id": "s-25-5-4-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.5.4",
+            "pages": "478"
+          },
+          "text": "· 主张相反立场的恶魔律师",
+          "originalExcerpt": "• A devil’s advocate who argues the opposite position"
+        },
+        {
+          "id": "s-25-5-4-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.5.4",
+            "pages": "478"
+          },
+          "text": "这种思想的多样性，受到像六思帽[28]这样的技术的启发，减少了群体思考，产生了更强的集体推理。",
+          "originalExcerpt": "This diversity of thought, inspired by techniques like Six Thinking Hats [28], reduces groupthink and produces more robust collective reasoning."
+        },
+        {
+          "id": "s-25-5-4-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.5.4",
+            "pages": "479"
+          },
+          "text": "当Agent的职责重叠时，冲突就会发生。用明确的优先权规则来解决:确定每种任务类型的优先作用。或者，使用一个全权负责的冲突仲裁的元Agent，绝不要隐含角色冲突，它们将表现为相互矛盾的产出或无限循环。",
+          "originalExcerpt": "Role Conflict Resolution When agents have overlapping responsibilities, conflicts arise. Resolve them with explicit priority rules: define which role takes precedence for each task type. Alternatively, use a meta-agent whose sole responsibility is conflict arbitration. Never leave role conflicts implicit—they will manifest as contradictory outputs or infinit..."
+        }
+      ]
+    },
+    {
+      "id": "s-25-6",
+      "number": "25.6",
+      "level": 1,
+      "enTitle": "Multi-Agent Patterns for LLMs",
+      "zhTitle": "Multi-Agent Patterns for LLMs",
+      "pages": "479",
+      "blocks": [
+        {
+          "id": "s-25-6-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6",
+            "pages": "479"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.6「Multi-Agent Patterns for LLMs」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-25-6-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6",
+            "pages": "479"
+          },
+          "text": "除了建筑地形外，若干相互作用模式已证明对基于LLM的多Agent系统特别有效。 (这些模式补充了第20章中的单一Agent设计模式。 )",
+          "originalExcerpt": "Beyond architectural topologies, several interaction patterns have proven particularly effective for LLM-based multi-agent systems. (These complement the single-agent design patterns in Chapter 20.)"
+        }
+      ]
+    },
+    {
+      "id": "s-25-6-1",
+      "number": "25.6.1",
+      "level": 2,
+      "enTitle": "Debate Pattern",
+      "zhTitle": "Debate Pattern",
+      "pages": "479",
+      "blocks": [
+        {
+          "id": "s-25-6-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6.1",
+            "pages": "479"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.6.1「Debate Pattern」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-25-6-1-b1",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6.1",
+            "pages": "479"
+          },
+          "language": "python",
+          "code": "Multiple agents argue for different positions; a judge agent evaluates the arguments and decides. Debate has been shown to improve factual accuracy and reduce hallucinations [78]. async def debate_round ( question : str , agents : list , judge : Agent , rounds : int = 2) -> str : \" \" \" Run a multi - agent debate and return the judge ’s verdict . \" \" \" positions = { a . name : await a . generate_position ( question ) for a in agents }",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-25-6-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6.1",
+            "pages": "479"
+          },
+          "text": "圆 num在射程(回合)中:#每个Agent都看到他人的位置，可以反驳反驳========================================================================================================================================================================================================================================v for k， v in positions () if k != Agent name ) 反驳 [Agent。 name] = 等待Agent 反驳 (问题， 位置 [Agent。 name]， others ) 反驳 职位 = 反驳",
+          "originalExcerpt": "for round_num in range ( rounds ) : # Each agent sees others ’ positions and can rebut rebuttals = {} for agent in agents : others = { k : v for k , v in positions . items () if k != agent . name } rebuttals [ agent . name ] = await agent . rebut ( question , positions [ agent . name ] , others ) positions = rebuttals"
+        },
+        {
+          "id": "s-25-6-1-b3",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6.1",
+            "pages": "479"
+          },
+          "language": "text",
+          "code": "# Judge evaluates all final positions verdict = await judge . evaluate ( question , positions ) return verdict",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-25-6-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6.1",
+            "pages": "479"
+          },
+          "text": "25.4: 辩论模式执行情况",
+          "originalExcerpt": "Listing 25.4: Debate pattern implementation"
+        }
+      ]
+    },
+    {
+      "id": "s-25-6-2",
+      "number": "25.6.2",
+      "level": 2,
+      "enTitle": "Reflection Pattern",
+      "zhTitle": "Reflection Pattern",
+      "pages": "479",
+      "blocks": [
+        {
+          "id": "s-25-6-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6.2",
+            "pages": "479"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.6.2「Reflection Pattern」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-25-6-2-b1",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6.2",
+            "pages": "479"
+          },
+          "language": "python",
+          "code": "One agent generates an output; a second agent critiques it; the first agent revises based on the critique. This implements a generate-critique-revise loop that iteratively improves quality. async def reflection_loop ( task : str , generator : Agent , critic : Agent , max_rounds : int = 3) -> str : draft = await generator . generate ( task )",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-25-6-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6.2",
+            "pages": "479"
+          },
+          "text": "评语=等待评语 评语(任务，草稿) 如果评语为 满意 : 断稿=等待生成器 : 修改(任务，草稿，评论.反馈)。",
+          "originalExcerpt": "for _ in range ( max_rounds ) : critique = await critic . critique ( task , draft ) if critique . is_satisfactory : break draft = await generator . revise ( task , draft , critique . feedback )"
+        },
+        {
+          "id": "s-25-6-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6.2",
+            "pages": "479"
+          },
+          "text": "列出 25.5:反思模式",
+          "originalExcerpt": "Listing 25.5: Reflection pattern"
+        }
+      ]
+    },
+    {
+      "id": "s-25-6-3",
+      "number": "25.6.3",
+      "level": 2,
+      "enTitle": "Division of Labor Pattern",
+      "zhTitle": "Division of Labor Pattern",
+      "pages": "480",
+      "blocks": [
+        {
+          "id": "s-25-6-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6.3",
+            "pages": "480"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.6.3「Division of Labor Pattern」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-25-6-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6.3",
+            "pages": "480"
+          },
+          "text": "任务被分解成独立的子任务， 并同时执行。 结果是由合成Agent进行汇总的。 这种模式可以最大限度地实现并行任务的吞吐量。",
+          "originalExcerpt": "The task is decomposed into independent sub-tasks executed in parallel. Results are aggregated by a synthesis agent. This pattern maximizes throughput for embarrassingly parallel tasks."
+        }
+      ]
+    },
+    {
+      "id": "s-25-6-4",
+      "number": "25.6.4",
+      "level": 2,
+      "enTitle": "Pipeline Pattern",
+      "zhTitle": "Pipeline Pattern",
+      "pages": "480",
+      "blocks": [
+        {
+          "id": "s-25-6-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6.4",
+            "pages": "480"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.6.4「Pipeline Pattern」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-25-6-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6.4",
+            "pages": "480"
+          },
+          "text": "Agent构成一个顺序处理链: 每个Agent转换上一个Agent的输出。 类似 Unix 管道。 有效执行具有明确顺序依赖性的任务( 如研究 ~ 大纲 ~ 草稿 ~ 编辑 ~ 格式)。",
+          "originalExcerpt": "Agents form a sequential processing chain: each agent transforms the output of the previous agent. Analogous to Unix pipes. Effective for tasks with clear sequential dependencies (e.g., research → outline → draft → edit → format)."
+        }
+      ]
+    },
+    {
+      "id": "s-25-6-5",
+      "number": "25.6.5",
+      "level": 2,
+      "enTitle": "Ensemble Pattern",
+      "zhTitle": "Ensemble Pattern",
+      "pages": "480",
+      "blocks": [
+        {
+          "id": "s-25-6-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6.5",
+            "pages": "480"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.6.5「Ensemble Pattern」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-25-6-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6.5",
+            "pages": "480"
+          },
+          "text": "多Agent独立解决了同样的问题;一个选择机制选择最佳答案(best-of-N)或聚合答案(mixture-of-experts style)。以计算为代价提高可靠性。",
+          "originalExcerpt": "Multiple agents independently solve the same problem; a selection mechanism picks the best answer (best-of-N ) or aggregates answers (mixture-of-experts style). Improves reliability at the cost of compute."
+        },
+        {
+          "id": "s-25-6-5-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6.5",
+            "pages": "480"
+          },
+          "text": "o* = 最大分数(o，任务)(25.3) o=1，...， oN }",
+          "originalExcerpt": "o∗ = arg max score(o, task) (25.3) o∈{o1 ,...,oN }"
+        },
+        {
+          "id": "s-25-6-5-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6.5",
+            "pages": "480"
+          },
+          "text": "得分可以是一个Reward Model，法官LLM，或者一个核查者。",
+          "originalExcerpt": "where score can be a reward model, a judge LLM, or a verifier."
+        }
+      ]
+    },
+    {
+      "id": "s-25-6-6",
+      "number": "25.6.6",
+      "level": 2,
+      "enTitle": "Teacher-Student Pattern",
+      "zhTitle": "Teacher-Student Pattern",
+      "pages": "480",
+      "blocks": [
+        {
+          "id": "s-25-6-6-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6.6",
+            "pages": "480"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.6.6「Teacher-Student Pattern」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-25-6-6-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6.6",
+            "pages": "480"
+          },
+          "text": "能力较强的Agent(教师)通过任务指导能力较弱的Agent(学生)，提供提示，校正和解释。这种模式使得知识在推论时间蒸馏，并可用于微调学生的Agent。",
+          "originalExcerpt": "A more capable agent (teacher) guides a less capable agent (student) through a task, providing hints, corrections, and explanations. This pattern enables knowledge distillation at inference time and can be used to fine-tune the student agent."
+        }
+      ]
+    },
+    {
+      "id": "s-25-6-7",
+      "number": "25.6.7",
+      "level": 2,
+      "enTitle": "Red Team Pattern",
+      "zhTitle": "Red Team Pattern",
+      "pages": "480",
+      "blocks": [
+        {
+          "id": "s-25-6-7-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6.7",
+            "pages": "480"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.6.7「Red Team Pattern」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-25-6-7-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6.7",
+            "pages": "480"
+          },
+          "text": "对抗方(红色团队)积极寻找其他团队产出中的弱点、错误或安全违规。 红色团队的团队在攻击中受到最大批评和创造力的激励。 红团队的团队在攻击中扮演着重要角色，而其作用是扮演重要角色。这种模式对于安全关键应用至关重要。",
+          "originalExcerpt": "An adversarial agent (red team) actively tries to find weaknesses, errors, or safety violations in the outputs of other agents. The red team agent is prompted to be maximally critical and creative in its attacks. This pattern is essential for safety-critical applications. Red Team Agent Prompt"
+        },
+        {
+          "id": "s-25-6-7-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6.7",
+            "pages": "480"
+          },
+          "text": "RED TEAM PROMPT = \" 你是红色团队Agent。您的工作是找到以下产出中的缺陷、错误、偏差、安全违规和失败模式。要具有对抗性、创造性和透彻性。",
+          "originalExcerpt": "RED_TEAM_PROMPT = \" \" \" You are a red team agent . Your job is to find flaws , errors , biases , safety violations , and failure modes in the following output . Be adversarial , creative , and thorough ."
+        },
+        {
+          "id": "s-25-6-7-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6.7",
+            "pages": "480"
+          },
+          "text": "1. 事实错误或幻觉",
+          "originalExcerpt": "1. Factual errors or hallucinations"
+        },
+        {
+          "id": "s-25-6-7-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6.7",
+            "pages": "480"
+          },
+          "text": "2. 逻辑上的不一致",
+          "originalExcerpt": "2. Logical inconsistencies"
+        },
+        {
+          "id": "s-25-6-7-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6.7",
+            "pages": "480"
+          },
+          "text": "3. 安全和道德关切",
+          "originalExcerpt": "3. Safety and ethical concerns"
+        },
+        {
+          "id": "s-25-6-7-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6.7",
+            "pages": "480"
+          },
+          "text": "4 解决方案无法处理的边缘案例",
+          "originalExcerpt": "4. Edge cases the solution doesn ’t handle"
+        },
+        {
+          "id": "s-25-6-7-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6.7",
+            "pages": "480"
+          },
+          "text": "5. 恶意用户利用这一产出的方式",
+          "originalExcerpt": "5. Ways a malicious user could exploit this output"
+        },
+        {
+          "id": "s-25-6-7-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6.7",
+            "pages": "480"
+          },
+          "text": "6。无意的后果",
+          "originalExcerpt": "6. Unintended consequences"
+        },
+        {
+          "id": "s-25-6-7-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6.7",
+            "pages": "480"
+          },
+          "text": "输出 : {Agent 输出}",
+          "originalExcerpt": "Output : { agent_output }"
+        },
+        {
+          "id": "s-25-6-7-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.6.7",
+            "pages": "480"
+          },
+          "text": "提供详细的评论，并举例说明发现的每一个缺陷。 \"。",
+          "originalExcerpt": "Provide a detailed critique with specific examples of each flaw found . \" \" \""
+        }
+      ]
+    },
+    {
+      "id": "s-25-7",
+      "number": "25.7",
+      "level": 1,
+      "enTitle": "Training Multi-Agent Systems with Reinforcement Learning",
+      "zhTitle": "Training Multi-Agent Systems with Reinforcement Learning",
+      "pages": "480",
+      "blocks": [
+        {
+          "id": "s-25-7-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7",
+            "pages": "480"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.7「Training Multi-Agent Systems with Reinforcement Learning」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-25-7-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7",
+            "pages": "480"
+          },
+          "text": "使用RL培训多Agent系统带来了超出单AgentRL范围的挑战。根本的困难在于每个Agent的环境包括其他学习Agent，使环境从任何单一Agent的角度来看都变得不固定。",
+          "originalExcerpt": "Training multi-agent systems with RL introduces challenges that go beyond single-agent RL. The fundamental difficulty is that each agent’s environment includes other learning agents, making the environment non-stationary from any single agent’s perspective."
+        }
+      ]
+    },
+    {
+      "id": "s-25-7-1",
+      "number": "25.7.1",
+      "level": 2,
+      "enTitle": "Mathematical Formulation",
+      "zhTitle": "Mathematical Formulation",
+      "pages": "481",
+      "blocks": [
+        {
+          "id": "s-25-7-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.1",
+            "pages": "481"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.7.1「Mathematical Formulation」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-25-7-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.1",
+            "pages": "481"
+          },
+          "text": "多Agent系统正式成为马尔科夫游戏(也称\"斯图克游戏\")[324]:",
+          "originalExcerpt": "A multi-agent system is formalized as a Markov Game (also called a stochastic game) [324]:"
+        },
+        {
+          "id": "s-25-7-1-b2",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.1",
+            "pages": "481"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "G = ⟨N , S, {Ai }i∈N , T , {Ri }i∈N , γ⟩ (25.4) where N = {1, . . . , n} is the set of agents, S is the shared state space, Ai is agent i’s action space, T : S × A1 × · · · × An → ∆(S) is the transition function, Ri : S × A1 × · · · × An → R is agent i’s reward function, and γ is the discount factor. Each agent i seeks to maximize its expected discounted ret..."
+        }
+      ]
+    },
+    {
+      "id": "s-25-7-2",
+      "number": "25.7.2",
+      "level": 2,
+      "enTitle": "Independent Learning",
+      "zhTitle": "Independent Learning",
+      "pages": "481",
+      "blocks": [
+        {
+          "id": "s-25-7-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.2",
+            "pages": "481"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.7.2「Independent Learning」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-25-7-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.2",
+            "pages": "481"
+          },
+          "text": "最简单的方法是:每个Agenti将其他Agent作为环境的一部分对待，并独立地使用标准的单AgentRL(如PPO， REINFORCE)优化自己的政策。 hi i i i i i i i i i i i i i i i i i i i i i i i i i i (ait oit) i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i",
+          "originalExcerpt": "The simplest approach: each agent i treats other agents as part of its environment and optimizes its own policy π i independently using standard single-agent RL (e.g., PPO, REINFORCE). h i ∇θi J i ≈ E ∇θi log π i (ait |oit ) · Âit (25.6)"
+        },
+        {
+          "id": "s-25-7-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.2",
+            "pages": "481"
+          },
+          "text": "非定时问题独立学习违反了马尔科夫的假设:随着其他Agent更新政策， AgentI看到的过渡和奖励分配会有所改变。独立学习在实践中可以完成简单的合作任务，但在竞争或复杂的合作环境中却会挣扎。",
+          "originalExcerpt": "Non-Stationarity Problem Independent learning violates the Markov assumption: as other agents update their policies, the transition and reward distributions seen by agent i change. This can cause training instability, oscillation, and failure to converge. Independent learning works in practice for simple cooperative tasks but struggles in competitive or comp..."
+        }
+      ]
+    },
+    {
+      "id": "s-25-7-3",
+      "number": "25.7.3",
+      "level": 2,
+      "enTitle": "Centralized Training, Decentralized Execution (CTDE)",
+      "zhTitle": "Centralized Training, Decentralized Execution (CTDE)",
+      "pages": "481",
+      "blocks": [
+        {
+          "id": "s-25-7-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.3",
+            "pages": "481"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.7.3「Centralized Training, Decentralized Execution (CTDE)」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-25-7-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.3",
+            "pages": "481"
+          },
+          "text": "CTDE [239， 306] 是合作多AgentRL的主要范例。 在培训期间，一个集中式的批评家可以进入全球状态，所有Agent的行动都为(a1，.，.，.)。执行期间，每个Agent只使用其局部观察oi。中央批判Agenti:",
+          "originalExcerpt": "CTDE [239, 306] is the dominant paradigm for cooperative multi-agent RL. During training, a centralized critic has access to the global state s and all agents’ actions a = (a1 , . . . , an ). During execution, each agent acts using only its local observation oi . The centralized critic for agent i:"
+        },
+        {
+          "id": "s-25-7-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.3",
+            "pages": "481"
+          },
+          "text": "Qiφ(s， a) = Qiφ(s， a1， a) )(25.7) Q(25.7) Q(25.",
+          "originalExcerpt": "Qiϕ (s, a) = Qiϕ (s, a1 , . . . , an ) (25.7)"
+        },
+        {
+          "id": "s-25-7-3-b3",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.3",
+            "pages": "481"
+          },
+          "expression": "The decentralized actor for agent i: πθi i (ai |oi ) (25.8) The policy gradient with centralized critic: h i ∇θi J i = E ∇θi log π i (ai |oi ) · Qiϕ (s, a) (25.9)",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-25-7-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.3",
+            "pages": "481"
+          },
+          "text": "CTDE解决培训期间的非站立性(中央评论家看到完全联合状态)，同时保留分散执行(在推论时间不需要通信)。",
+          "originalExcerpt": "CTDE resolves non-stationarity during training (the centralized critic sees the full joint state) while preserving decentralized execution (no communication required at inference time)."
+        }
+      ]
+    },
+    {
+      "id": "s-25-7-4",
+      "number": "25.7.4",
+      "level": 2,
+      "enTitle": "Communication Learning",
+      "zhTitle": "Communication Learning",
+      "pages": "481",
+      "blocks": [
+        {
+          "id": "s-25-7-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.4",
+            "pages": "481"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.7.4「Communication Learning」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-25-7-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.4",
+            "pages": "481"
+          },
+          "text": "Agent可以学习什么是通信，而不是使用固定通信协议。在不同的通信框架中[66，343]， Agent产生连续通信矢量密托，传递给其他Agent:",
+          "originalExcerpt": "Rather than using fixed communication protocols, agents can learn what to communicate. In differentiable communication frameworks [66, 343], agents produce continuous communication vectors mit that are passed to other agents:"
+        },
+        {
+          "id": "s-25-7-4-b2",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.4",
+            "pages": "481"
+          },
+          "expression": "ait , mit = πθi i (oit , {mjt−1 }j̸=i ) (25.10) The communication vectors are optimized end-to-end via backpropagation through the joint reward signal. For LLM agents, this is approximated by training agents to produce structured natural language messages that maximize task performance.",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        }
+      ]
+    },
+    {
+      "id": "s-25-7-5",
+      "number": "25.7.5",
+      "level": 2,
+      "enTitle": "Emergent Communication",
+      "zhTitle": "Emergent Communication",
+      "pages": "482",
+      "blocks": [
+        {
+          "id": "s-25-7-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.5",
+            "pages": "482"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.7.5「Emergent Communication」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-25-7-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.5",
+            "pages": "482"
+          },
+          "text": "当Agent员从头接受训练时，只使用一个奖励信号(没有预先定义的语言)，他们可以开发出新兴通信协议[199]:编码任务相关信息的共享符号系统。虽然在科学上令人着迷，但LLM系统中的新兴通信通常不可取——我们希望Agent用人语解释的交流。",
+          "originalExcerpt": "When agents are trained from scratch with only a reward signal (no predefined language), they can develop emergent communication protocols [199]: shared symbol systems that encode task-relevant information. While fascinating scientifically, emergent communication in LLM systems is typically undesirable—we want agents to communicate in human-interpretable lan..."
+        }
+      ]
+    },
+    {
+      "id": "s-25-7-6",
+      "number": "25.7.6",
+      "level": 2,
+      "enTitle": "Self-Play",
+      "zhTitle": "Self-Play",
+      "pages": "482",
+      "blocks": [
+        {
+          "id": "s-25-7-6-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.6",
+            "pages": "482"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.7.6「Self-Play」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-25-7-6-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.6",
+            "pages": "482"
+          },
+          "text": "在竞争或混合动机的环境下，自演[332]通过让自己与副本竞争来训练Agent。这产生了自动课程:随着Agent的改进，其对手(之前的版本本身)更难被击败。对于LLMAgent，自玩在:",
+          "originalExcerpt": "In competitive or mixed-motive settings, self-play [332] trains agents by having them compete against copies of themselves. This generates an automatic curriculum: as the agent improves, its opponent (a previous version of itself) becomes harder to beat. For LLM agents, self-play is used in:"
+        },
+        {
+          "id": "s-25-7-6-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.6",
+            "pages": "482"
+          },
+          "text": "• 红队对蓝队训练",
+          "originalExcerpt": "• Red team vs. blue team training"
+        },
+        {
+          "id": "s-25-7-6-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.6",
+            "pages": "482"
+          },
+          "text": "• 辩论培训(Agent相互争辩)",
+          "originalExcerpt": "• Debate training (agents argue against each other)"
+        },
+        {
+          "id": "s-25-7-6-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.6",
+            "pages": "482"
+          },
+          "text": "• 谈判培训(Agent相互谈判)",
+          "originalExcerpt": "• Negotiation training (agents negotiate with each other)"
+        }
+      ]
+    },
+    {
+      "id": "s-25-7-7",
+      "number": "25.7.7",
+      "level": 2,
+      "enTitle": "Population-Based Training",
+      "zhTitle": "Population-Based Training",
+      "pages": "482",
+      "blocks": [
+        {
+          "id": "s-25-7-7-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.7",
+            "pages": "482"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.7.7「Population-Based Training」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-25-7-7-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.7",
+            "pages": "482"
+          },
+          "text": "人口培训[158] 维持着不同的Agent员，他们有不同的政策、超参数和专门技能。定期评估Agent;不良Agent被高性能Agent的变异复制取代。对于多AgentLLM系统， PBT使:",
+          "originalExcerpt": "Population-Based Training (PBT) [158] maintains a diverse population of agents with different policies, hyperparameters, and specializations. Agents are periodically evaluated; underperforming agents are replaced by mutated copies of high-performing agents. For multi-agent LLM systems, PBT enables:"
+        },
+        {
+          "id": "s-25-7-7-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.7",
+            "pages": "482"
+          },
+          "text": "• 自动发现有效的专门角色",
+          "originalExcerpt": "• Automatic discovery of effective role specializations"
+        },
+        {
+          "id": "s-25-7-7-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.7",
+            "pages": "482"
+          },
+          "text": "• 个人Agent故障的强力(多样化人群)",
+          "originalExcerpt": "• Robustness to individual agent failures (diverse population)"
+        },
+        {
+          "id": "s-25-7-7-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.7",
+            "pages": "482"
+          },
+          "text": "• 通过人口多样性避免当地选择",
+          "originalExcerpt": "• Avoidance of local optima through population diversity"
+        }
+      ]
+    },
+    {
+      "id": "s-25-7-8",
+      "number": "25.7.8",
+      "level": 2,
+      "enTitle": "Social Welfare and Nash Equilibrium",
+      "zhTitle": "Social Welfare and Nash Equilibrium",
+      "pages": "482-483",
+      "blocks": [
+        {
+          "id": "s-25-7-8-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.8",
+            "pages": "482-483"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.7.8「Social Welfare and Nash Equilibrium」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-25-7-8-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.8",
+            "pages": "482"
+          },
+          "text": "在多剂设置中，优化性的概念比在单剂设置中更为复杂。两个关键的解决办法概念:纳什平衡:一项联合政策(π1 *， .，。 n )，即任何Agent都无法通过单方面偏离来改善其预期回报:",
+          "originalExcerpt": "In multi-agent settings, the notion of optimality is more complex than in single-agent settings. Two key solution concepts: Nash Equilibrium: a joint policy (π 1∗ , . . . , π n∗ ) such that no agent can improve its expected return by unilaterally deviating:"
+        },
+        {
+          "id": "s-25-7-8-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.8",
+            "pages": "482"
+          },
+          "text": "i(π) ≥( i) ≥(π) ∀(∀) ∀(∀) ∀(∀π) ∀( (25) i( (25) i( (25) i( (25) i( (25) ∀( (25) ∀( (25) ≥(∀π) ≥(∀π) ≥(∀π) ≥(∀) ≥(∀) ∀(∀) ∀(∀) ∀(∀) ∀(∀) ∀(∀) ∀(∀) ∀(∀) ∀(∀π) ∀(∀π) ∀(∀π) ∀(∀π) ∀(∀π) ∀(∀π) ∀(∀π) ∀(∀π) ∀(∀π) ∀(π) ∀(π) ∀(∀π) ∀(i) i(.11)) i( (25) i) i( (25)",
+          "originalExcerpt": "J i (π i∗ , π −i∗ ) ≥ J i (π i , π −i∗ ) ∀i, ∀π i (25.11)"
+        },
+        {
+          "id": "s-25-7-8-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.8",
+            "pages": "482"
+          },
+          "text": "i) 表示除社会福利最大化之外所有Agent的共同政策:优化所有Agent的回报总和:n X max J i(π 1，.，.，。 n) (25.12) π 1，.，.， π n i=1)",
+          "originalExcerpt": "where π −i denotes the joint policy of all agents except i. Social Welfare Maximization: optimize the sum of all agents’ returns: n X max J i (π 1 , . . . , π n ) (25.12) π 1 ,...,π n i=1"
+        },
+        {
+          "id": "s-25-7-8-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.8",
+            "pages": "482"
+          },
+          "text": "在完全合作(所有Agent都拥有同样的报酬)环境中，社会福利最大化是合适的目标。 在竞争环境中，纳什均衡是相关的解决方案概念。 纳什平衡是社会最大利益，而纳什平衡是社会最大利益。大多数现实世界的多AgentLLM系统都是混合动机:Agent部分对齐，部分相互冲突的目标。进一步阅读:多Agent游戏理论 RL 为对多Agent系统游戏理论基础感兴趣的读者:",
+          "originalExcerpt": "In fully cooperative settings (all agents share the same reward), social welfare maximization is the appropriate objective. In competitive settings, Nash equilibrium is the relevant solution concept. Most real-world multi-agent LLM systems are mixed-motive: agents have partially aligned, partially conflicting objectives. Further Reading: Game Theory for Mult..."
+        },
+        {
+          "id": "s-25-7-8-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.8",
+            "pages": "482"
+          },
+          "text": "• Shoham & Leyton-Brown [328]——涵盖纳什平原的综合教科书，",
+          "originalExcerpt": "• Shoham & Leyton-Brown [328] — comprehensive textbook covering Nash equilibria,"
+        },
+        {
+          "id": "s-25-7-8-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.8",
+            "pages": "482"
+          },
+          "text": "机制设计，以及Agent系统的社会选择理论。",
+          "originalExcerpt": "mechanism design, and social choice theory for agent systems."
+        },
+        {
+          "id": "s-25-7-8-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.8",
+            "pages": "483"
+          },
+          "text": "•张等 [423]——调查具有趋同保证的多剂RL算法。",
+          "originalExcerpt": "• Zhang et al. [423] — survey of multi-agent RL algorithms with convergence guarantees"
+        },
+        {
+          "id": "s-25-7-8-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.8",
+            "pages": "483"
+          },
+          "text": "合作、竞争和混合环境。",
+          "originalExcerpt": "under cooperative, competitive, and mixed settings."
+        },
+        {
+          "id": "s-25-7-8-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.8",
+            "pages": "483"
+          },
+          "text": "^ Nisan et al。[267]——关于算法游戏理论的确定性参考，涵盖拍卖，",
+          "originalExcerpt": "• Nisan et al. [267] — the definitive reference on algorithmic game theory, covering auctions,"
+        },
+        {
+          "id": "s-25-7-8-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.7.8",
+            "pages": "483"
+          },
+          "text": "平价计算，和无政府主义的代价。",
+          "originalExcerpt": "equilibria computation, and price of anarchy."
+        }
+      ]
+    },
+    {
+      "id": "s-25-8",
+      "number": "25.8",
+      "level": 1,
+      "enTitle": "Challenges and Solutions",
+      "zhTitle": "Challenges and Solutions",
+      "pages": "483",
+      "blocks": [
+        {
+          "id": "s-25-8-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8",
+            "pages": "483"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.8「Challenges and Solutions」 时，把每个 failure mode 拆成触发条件、可观测信号、影响范围、缓解措施和剩余风险。原书给出的警告不是附录信息，而是决定系统是否能进入生产环境的设计约束。"
+        },
+        {
+          "id": "s-25-8-structure-note",
+          "type": "callout",
+          "origin": "source_definition",
+          "source": {
+            "chapter": 25,
+            "section": "25.8",
+            "pages": "483"
+          },
+          "title": "原书结构说明",
+          "text": "§25.8 在原书中是父级目录节，具体论证由紧随其后的子节展开。本站保留这一锚点和来源页码，以维持与原书目录的一一对应，不把目录标题扩写成不存在的正文。"
+        },
+        {
+          "id": "s-25-8-source-note",
+          "type": "callout",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 25,
+            "section": "25.8",
+            "pages": "483"
+          },
+          "text": "本节主要由公式、图表或代码构成，网页转写仍在人工核对中；当前状态不会标记为精读完成。"
+        }
+      ]
+    },
+    {
+      "id": "s-25-8-1",
+      "number": "25.8.1",
+      "level": 2,
+      "enTitle": "Coordination Overhead",
+      "zhTitle": "Coordination Overhead",
+      "pages": "483",
+      "blocks": [
+        {
+          "id": "s-25-8-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.1",
+            "pages": "483"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.8.1「Coordination Overhead」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-25-8-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.1",
+            "pages": "483"
+          },
+          "text": "Agent信息中的每一条都会消耗符物，因此也消耗时间和金钱。 在执行过程中， Agent经常进行沟通，即使没有必要。 当不沟通时， Agent也经常进行沟通。",
+          "originalExcerpt": "Every inter-agent message consumes tokens—and therefore time and money. In a naive implementation, agents communicate constantly, even when unnecessary. When NOT to Communicate"
+        },
+        {
+          "id": "s-25-8-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.1",
+            "pages": "483"
+          },
+          "text": "• 当信息已经放在共享黑板上时",
+          "originalExcerpt": "• When the information is already in the shared blackboard"
+        },
+        {
+          "id": "s-25-8-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.1",
+            "pages": "483"
+          },
+          "text": "* 当接收Agent机构目前的任务不需要信息时",
+          "originalExcerpt": "• When the receiving agent doesn’t need the information for its current task"
+        },
+        {
+          "id": "s-25-8-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.1",
+            "pages": "483"
+          },
+          "text": "• 何时该电文将重复已发信息",
+          "originalExcerpt": "• When the message would duplicate information already sent"
+        },
+        {
+          "id": "s-25-8-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.1",
+            "pages": "483"
+          },
+          "text": "• 当任务简单到可以单独Agent时",
+          "originalExcerpt": "• When the task is simple enough for a single agent"
+        },
+        {
+          "id": "s-25-8-1-b6",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.1",
+            "pages": "483"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "Rule: communicate only when the expected value of the information exceeds the cost of the message. Quantifying communication cost: if a message costs c tokens and the receiving agent’s task has value v, communicate only if the expected improvement in task value ∆v > c · cost_per_token."
+        }
+      ]
+    },
+    {
+      "id": "s-25-8-2",
+      "number": "25.8.2",
+      "level": 2,
+      "enTitle": "Redundancy vs. Efficiency",
+      "zhTitle": "Redundancy vs. Efficiency",
+      "pages": "483",
+      "blocks": [
+        {
+          "id": "s-25-8-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.2",
+            "pages": "483"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.8.2「Redundancy vs. Efficiency」 时，不要寻找脱离场景的“最佳方案”。应在质量、latency、计算与存储成本、数据要求、可控性和运维复杂度上逐项比较，并保留原书说明的适用前提与例外。"
+        },
+        {
+          "id": "s-25-8-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.2",
+            "pages": "483"
+          },
+          "text": "多剂可能独立解决同一个子问题，浪费计算。 Professional:",
+          "originalExcerpt": "Multiple agents may independently solve the same sub-problem, wasting compute. Solutions:"
+        },
+        {
+          "id": "s-25-8-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.2",
+            "pages": "483"
+          },
+          "text": "• 重复检测:在开始任务之前，检查黑板是否发现现有结果",
+          "originalExcerpt": "• Duplicate detection: before starting a task, check the blackboard for existing results"
+        },
+        {
+          "id": "s-25-8-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.2",
+            "pages": "483"
+          },
+          "text": "• 结果缓存:将已完成的子任务结果与语义学密钥存储起来，以供检索",
+          "originalExcerpt": "• Result caching: store completed sub-task results with semantic keys for retrieval"
+        },
+        {
+          "id": "s-25-8-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.2",
+            "pages": "483"
+          },
+          "text": "• 任务锁定:将任务标为“正在进行中”以防止重复执行",
+          "originalExcerpt": "• Task locking: mark tasks as “in progress” to prevent duplicate execution"
+        }
+      ]
+    },
+    {
+      "id": "s-25-8-3",
+      "number": "25.8.3",
+      "level": 2,
+      "enTitle": "Attribution",
+      "zhTitle": "Attribution",
+      "pages": "483",
+      "blocks": [
+        {
+          "id": "s-25-8-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.3",
+            "pages": "483"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.8.3「Attribution」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-25-8-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.3",
+            "pages": "483"
+          },
+          "text": "当一个多Agent系统成功或失败时， 哪个Agent负责？归属对于:",
+          "originalExcerpt": "When a multi-agent system succeeds or fails, which agent is responsible? Attribution is critical for:"
+        },
+        {
+          "id": "s-25-8-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.3",
+            "pages": "483"
+          },
+          "text": "• 奖励分配(信贷分配问题)",
+          "originalExcerpt": "• RL reward assignment (credit assignment problem)"
+        },
+        {
+          "id": "s-25-8-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.3",
+            "pages": "483"
+          },
+          "text": "• 调试和改进",
+          "originalExcerpt": "• Debugging and improvement"
+        },
+        {
+          "id": "s-25-8-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.3",
+            "pages": "483"
+          },
+          "text": "• 信任校准(依靠这种物剂)",
+          "originalExcerpt": "• Trust calibration (which agents to rely on)"
+        },
+        {
+          "id": "s-25-8-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.3",
+            "pages": "483"
+          },
+          "text": "反事实信用转让办法估计了每个Agent的贡献，它问: \" 如果该Agent的行为不同，结果会改变多少?",
+          "originalExcerpt": "The counterfactual credit assignment approach estimates each agent’s contribution by asking: “How much would the outcome have changed if this agent had acted differently?”"
+        },
+        {
+          "id": "s-25-8-3-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.3",
+            "pages": "483"
+          },
+          "text": "c。= J(",
+          "originalExcerpt": "crediti = J(π 1 , . . . , π n ) − J(π 1 , . . . , πdefault i , . . . , πn) (25.13)"
+        }
+      ]
+    },
+    {
+      "id": "s-25-8-4",
+      "number": "25.8.4",
+      "level": 2,
+      "enTitle": "Scalability",
+      "zhTitle": "Scalability",
+      "pages": "483-484",
+      "blocks": [
+        {
+          "id": "s-25-8-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.4",
+            "pages": "483-484"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.8.4「Scalability」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-25-8-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.4",
+            "pages": "483"
+          },
+          "text": "直肠消息通过比例尺为 O( n2 )， 并带有Agent件数量。 解决方案 :",
+          "originalExcerpt": "Naive message passing scales as O(n2 ) with the number of agents. Solutions:"
+        },
+        {
+          "id": "s-25-8-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.4",
+            "pages": "483"
+          },
+          "text": "• 分级通信:Agent只在子树内进行通信",
+          "originalExcerpt": "• Hierarchical communication: agents communicate only within their subtree"
+        },
+        {
+          "id": "s-25-8-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.4",
+            "pages": "483"
+          },
+          "text": "• 主题性酒吧/分店:Agent只订阅相关信息专题",
+          "originalExcerpt": "• Topic-based pub/sub: agents subscribe only to relevant message topics"
+        },
+        {
+          "id": "s-25-8-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.4",
+            "pages": "484"
+          },
+          "text": "• 分层通信图:仅连接需要互动的Agent",
+          "originalExcerpt": "• Sparse communication graphs: only connect agents that need to interact"
+        },
+        {
+          "id": "s-25-8-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.4",
+            "pages": "484"
+          },
+          "text": "• 同步通信:Agent不阻拦等待答复",
+          "originalExcerpt": "• Asynchronous communication: agents don’t block waiting for responses"
+        }
+      ]
+    },
+    {
+      "id": "s-25-8-5",
+      "number": "25.8.5",
+      "level": 2,
+      "enTitle": "Emergent Behavior and Safety",
+      "zhTitle": "Emergent Behavior and Safety",
+      "pages": "484",
+      "blocks": [
+        {
+          "id": "s-25-8-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.5",
+            "pages": "484"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.8.5「Emergent Behavior and Safety」 时，把每个 failure mode 拆成触发条件、可观测信号、影响范围、缓解措施和剩余风险。原书给出的警告不是附录信息，而是决定系统是否能进入生产环境的设计约束。"
+        },
+        {
+          "id": "s-25-8-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.5",
+            "pages": "484"
+          },
+          "text": "多剂系统可以显示出乎意料的突发行为——产生结果的剂之间的相互作用，而个体剂并没有设计产生结果。 这既是特征(紧迫能力)，也是风险(紧迫失败)。多种Agent系统的安全关切",
+          "originalExcerpt": "Multi-agent systems can exhibit unexpected emergent behaviors—interactions between agents that produce outcomes no individual agent was designed to produce. This is both a feature (emergent capabilities) and a risk (emergent failures). Safety Concerns in Multi-Agent Systems"
+        },
+        {
+          "id": "s-25-8-5-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.5",
+            "pages": "484"
+          },
+          "text": "• 快速注射级联:恶意输入一种药剂通过系统传播",
+          "originalExcerpt": "• Prompt injection cascades: a malicious input to one agent propagates through the system"
+        },
+        {
+          "id": "s-25-8-5-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.5",
+            "pages": "484"
+          },
+          "text": "• reward hacking:Agent们发现出乎意料的方式，以尽量扩大违反意图的奖励",
+          "originalExcerpt": "• Reward hacking: agents find unexpected ways to maximize reward that violate intent"
+        },
+        {
+          "id": "s-25-8-5-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.5",
+            "pages": "484"
+          },
+          "text": "• 串通:在竞争环境中， Agent可能制定隐含的串通策略",
+          "originalExcerpt": "• Collusion: in competitive settings, agents may develop implicit collusion strategies"
+        },
+        {
+          "id": "s-25-8-5-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.5",
+            "pages": "484"
+          },
+          "text": "• 放大:一种剂的错误或偏差被下游剂放大",
+          "originalExcerpt": "• Amplification: errors or biases in one agent are amplified by downstream agents"
+        },
+        {
+          "id": "s-25-8-5-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.5",
+            "pages": "484"
+          },
+          "text": "总是包括安全监控剂，它观察所有Agent之间的通信，如果发现不安全的行为，可以阻止系统。",
+          "originalExcerpt": "Always include a safety monitor agent that observes all inter-agent communications and can halt the system if unsafe behavior is detected."
+        }
+      ]
+    },
+    {
+      "id": "s-25-8-6",
+      "number": "25.8.6",
+      "level": 2,
+      "enTitle": "Evaluation",
+      "zhTitle": "Evaluation",
+      "pages": "484",
+      "blocks": [
+        {
+          "id": "s-25-8-6-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.6",
+            "pages": "484"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.8.6「Evaluation」 时，明确被评估的对象是单次输出、完整 trajectory 还是系统行为；随后分别记录数据来源、metric、judge、聚合方式和置信边界。一个分数只有在测量对象与失败类型对应时才有解释力。"
+        },
+        {
+          "id": "s-25-8-6-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.6",
+            "pages": "484"
+          },
+          "text": "评估多Agent系统需要多层次的衡量标准: 表25.3:多Agent系统多层次的评估衡量标准。",
+          "originalExcerpt": "Evaluating multi-agent systems requires metrics at multiple levels: Table 25.3: Multi-level evaluation metrics for multi-agent systems."
+        },
+        {
+          "id": "s-25-8-6-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.8.6",
+            "pages": "484"
+          },
+          "text": "级 计量 系统 任务完成率 % 完成 系统 端到端 时 从任务到最终输出 系统 消耗 Agent 个人 消费 代号 成本 个人 Agent 任务 成功 Agent 通信 效率 有用消息/ 全部消息 Agent 贡献 反事实 信用 (Eq?) 紧急 协调 任务 质量 重叠度/ 差距",
+          "originalExcerpt": "Level Metric Example System Task completion rate % of tasks completed correctly System End-to-end latency Time from task to final output System Total token cost Tokens consumed across all agents Agent Individual accuracy Per-agent task success rate Agent Communication efficiency Useful messages / total messages Agent Contribution score Counterfactual credit ..."
+        }
+      ]
+    },
+    {
+      "id": "s-25-9",
+      "number": "25.9",
+      "level": 1,
+      "enTitle": "Real-World Multi-Agent Applications",
+      "zhTitle": "Real-World Multi-Agent Applications",
+      "pages": "484",
+      "blocks": [
+        {
+          "id": "s-25-9-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9",
+            "pages": "484"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.9「Real-World Multi-Agent Applications」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-25-9-structure-note",
+          "type": "callout",
+          "origin": "source_definition",
+          "source": {
+            "chapter": 25,
+            "section": "25.9",
+            "pages": "484"
+          },
+          "title": "原书结构说明",
+          "text": "§25.9 在原书中是父级目录节，具体论证由紧随其后的子节展开。本站保留这一锚点和来源页码，以维持与原书目录的一一对应，不把目录标题扩写成不存在的正文。"
+        },
+        {
+          "id": "s-25-9-source-note",
+          "type": "callout",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 25,
+            "section": "25.9",
+            "pages": "484"
+          },
+          "text": "本节主要由公式、图表或代码构成，网页转写仍在人工核对中；当前状态不会标记为精读完成。"
+        }
+      ]
+    },
+    {
+      "id": "s-25-9-1",
+      "number": "25.9.1",
+      "level": 2,
+      "enTitle": "Software Development Team",
+      "zhTitle": "Software Development Team",
+      "pages": "484-486",
+      "blocks": [
+        {
+          "id": "s-25-9-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.1",
+            "pages": "484-486"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.9.1「Software Development Team」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-25-9-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.1",
+            "pages": "484"
+          },
+          "text": "多Agent软件开发团队镜像一个真正的工程组织:从数据类导入输入输入输入的可选导入 Ayncio 数据类",
+          "originalExcerpt": "A multi-agent software development team mirrors a real engineering organization: from dataclasses import dataclass from typing import Optional import asyncio"
+        },
+        {
+          "id": "s-25-9-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.1",
+            "pages": "484"
+          },
+          "text": "@dataclass class SoftwareTeam State : requireds : str 架构:可选 [str] = 无 代码: 可选 [str] = 无 测试: 可选 [str] = 无 复议 feedback : 可选 [str] = 无 final code :可选 [str] = 无核准: bol = 虚假",
+          "originalExcerpt": "@dataclass class SoftwareTeamState : requirements : str architecture : Optional [ str ] = None code : Optional [ str ] = None tests : Optional [ str ] = None review_feedback : Optional [ str ] = None final_code : Optional [ str ] = None approved : bool = False"
+        },
+        {
+          "id": "s-25-9-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.1",
+            "pages": "484"
+          },
+          "text": "类S o f t wa r eD ev e lo p me nt T ea m:\"\"多——Agent软件团队:",
+          "originalExcerpt": "class S o f t wa r eD ev e lo p me nt T ea m : \"\"\" Multi - agent software team :"
+        },
+        {
+          "id": "s-25-9-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.1",
+            "pages": "485"
+          },
+          "text": "建筑师 - > 编码器 - > 测试器 - > 评审器 - > (仪表或船舶) \"\"",
+          "originalExcerpt": "Architect -> Coder -> Tester -> Reviewer -> ( iterate or ship ) \"\"\""
+        },
+        {
+          "id": "s-25-9-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.1",
+            "pages": "485"
+          },
+          "text": "def init (自， LLM factory):自。架构师=LLM factory(系统 prompt= \" \" 你是一个软件建筑师。根据要求，制作明确的技术设计:组件、接口、数据结构、执行计划。 \"。\" 自行.编码器= ulm factory(系统 即时= \" 你是专家软件工程师。使用技术设计， 写出干净、 记录良好、 制作、 准备好的代码。 遵循语言“ \" \" ” 自我。测试器 = LLM actory( system prompt = \" 你是QA工程师 ) 的最佳做法。给定代码，写出综合测试 : 单位测试，边缘案例，整合测试。 找出潜在的错误和失败模式。 \" \" \" ) 自我。评论员 = LLM factory(系统 prompt = \" 您是高级代码审查员。评估正确性、安全性、性能和可维护性方面的代码。提供具体、可操作的反馈。只有在极好的情况下才批准。 \" \" )",
+          "originalExcerpt": "def __init__ ( self , llm_factory ) : self . architect = llm_factory ( system_prompt = \" \" \" You are a software architect . Given requirements , produce a clear technical design : components , interfaces , data structures , and implementation plan . \" \" \" ) self . coder = llm_factory ( system_prompt = \" \" \" You are an expert software engineer . Given a techn..."
+        },
+        {
+          "id": "s-25-9-1-b6",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.1",
+            "pages": "485"
+          },
+          "language": "python",
+          "code": "async def build ( self , requirements : str , max_iterations : int = 3) -> SoftwareTeamState : state = SoftwareTeamState ( requirements = requirements )",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-25-9-1-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.1",
+            "pages": "485"
+          },
+          "text": "# 阶段1: 建筑状态。架构=等待自我。建筑师。引用(f \" 要求:\\ n {要求 { n 生产技术设计 } \" )",
+          "originalExcerpt": "# Phase 1: Architecture state . architecture = await self . architect . invoke ( f \" Requirements :\\ n { requirements }\\ n \\ nProduce technical design . \" )"
+        },
+        {
+          "id": "s-25-9-1-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.1",
+            "pages": "485"
+          },
+          "text": "用于在幅度(最大位)内重复:# 第2阶段:执行提示 = (f \" 设计:\\ n { state 架构 { n { n > + (f \" 先前的反馈 :\\ n { state { review feedback { n \\ n \" 如果状态。 Review feedback else \" ) + \" 写入执行。\" ) 状态。代码 = 等待自我。 coder。引用( 即时)",
+          "originalExcerpt": "for iteration in range ( max_iterations ) : # Phase 2: Implementation prompt = ( f \" Design :\\ n { state . architecture }\\ n \\ n \" + ( f \" Previous feedback :\\ n { state . review_feedback }\\ n \\ n \" if state . review_feedback else \" \" ) + \" Write the implementation . \" ) state . code = await self . coder . invoke ( prompt )"
+        },
+        {
+          "id": "s-25-9-1-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.1",
+            "pages": "485"
+          },
+          "text": "# 第3阶段:测试状态.测试=等待自我.测试者.引用(f \" 代码:\\ n {状态.代码 \\ n\\ n Write 综合测试。\" )",
+          "originalExcerpt": "# Phase 3: Testing state . tests = await self . tester . invoke ( f \" Code :\\ n { state . code }\\ n \\ nWrite comprehensive tests . \" )"
+        },
+        {
+          "id": "s-25-9-1-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.1",
+            "pages": "485"
+          },
+          "text": "# 第4阶段:审查审查 = 等待自我.审查者。引用(f \" 代码:\\ n {状态.代码 {\\ n 测试 {状态.测试 {\\ n \"，审查本代码。以批准或 NEAPS REVISION 结尾。 \")",
+          "originalExcerpt": "# Phase 4: Review review = await self . reviewer . invoke ( f \" Code :\\ n { state . code }\\ n \\ nTests :\\ n { state . tests }\\ n \\ n \" \" Review this code . End with APPROVED or NEEDS_REVISION . \" )"
+        },
+        {
+          "id": "s-25-9-1-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.1",
+            "pages": "485"
+          },
+          "text": "如果审查中的 \" 核准 \" :状态。 final code = 状态。代码状态。批准 = 真断档 其它:状态。评论 feedback = 复核",
+          "originalExcerpt": "if \" APPROVED \" in review : state . final_code = state . code state . approved = True break else : state . review_feedback = review"
+        },
+        {
+          "id": "s-25-9-1-b13",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.1",
+            "pages": "485"
+          },
+          "language": "python",
+          "code": "async def run ( self , requirements : str ) -> str : state = await self . build ( requirements ) if state . approved : return f \" # Final Implementation \\ n \\ n { state . final_code } \"",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-25-9-1-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.1",
+            "pages": "486"
+          },
+          "text": ": 返回 f \" # 最佳尝试( 未获批准)\\ n\\ n { 状态。代码} \"",
+          "originalExcerpt": "else : return f \" # Best Attempt ( not approved ) \\ n \\ n { state . code } \""
+        }
+      ]
+    },
+    {
+      "id": "s-25-9-2",
+      "number": "25.9.2",
+      "level": 2,
+      "enTitle": "Research Team",
+      "zhTitle": "Research Team",
+      "pages": "486",
+      "blocks": [
+        {
+          "id": "s-25-9-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.2",
+            "pages": "486"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.9.2「Research Team」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-25-9-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.2",
+            "pages": "486"
+          },
+          "text": "一个研究团队的Agent社会反映了学术合作:",
+          "originalExcerpt": "A research team agent society mirrors academic collaboration:"
+        },
+        {
+          "id": "s-25-9-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.2",
+            "pages": "486"
+          },
+          "text": "• 文学评论员:搜索和综合现有工作",
+          "originalExcerpt": "• Literature Reviewer: searches and synthesizes existing work"
+        },
+        {
+          "id": "s-25-9-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.2",
+            "pages": "486"
+          },
+          "text": "• 假设生成器:提出新的研究方向",
+          "originalExcerpt": "• Hypothesis Generator: proposes novel research directions"
+        },
+        {
+          "id": "s-25-9-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.2",
+            "pages": "486"
+          },
+          "text": "• 实验员:设计和运行实验(通过密码执行)",
+          "originalExcerpt": "• Experimentalist: designs and runs experiments (via code execution)"
+        },
+        {
+          "id": "s-25-9-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.2",
+            "pages": "486"
+          },
+          "text": "• 统计员:分析结果和评估重要性",
+          "originalExcerpt": "• Statistician: analyzes results and assesses significance"
+        },
+        {
+          "id": "s-25-9-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.2",
+            "pages": "486"
+          },
+          "text": "• 作家:将调查结果综合成一份连贯的报告",
+          "originalExcerpt": "• Writer: synthesizes findings into a coherent report"
+        }
+      ]
+    },
+    {
+      "id": "s-25-9-3",
+      "number": "25.9.3",
+      "level": 2,
+      "enTitle": "Customer Service System",
+      "zhTitle": "Customer Service System",
+      "pages": "486",
+      "blocks": [
+        {
+          "id": "s-25-9-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.3",
+            "pages": "486"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.9.3「Customer Service System」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-25-9-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.3",
+            "pages": "486"
+          },
+          "text": "分级客户服务系统:",
+          "originalExcerpt": "A tiered customer service system:"
+        },
+        {
+          "id": "s-25-9-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.3",
+            "pages": "486"
+          },
+          "text": "• 路由器:将收到的请求和路线分类为专家",
+          "originalExcerpt": "• Router: classifies incoming requests and routes to specialists"
+        },
+        {
+          "id": "s-25-9-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.3",
+            "pages": "486"
+          },
+          "text": "• 账单专家:处理付款和账户问题",
+          "originalExcerpt": "• Billing Specialist: handles payment and account issues"
+        },
+        {
+          "id": "s-25-9-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.3",
+            "pages": "486"
+          },
+          "text": "• 技术专家:解决产品/服务问题",
+          "originalExcerpt": "• Technical Specialist: resolves product/service issues"
+        },
+        {
+          "id": "s-25-9-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.3",
+            "pages": "486"
+          },
+          "text": "• 升级Agent:处理需要人类审判的复杂案件",
+          "originalExcerpt": "• Escalation Agent: handles complex cases requiring human judgment"
+        }
+      ]
+    },
+    {
+      "id": "s-25-9-4",
+      "number": "25.9.4",
+      "level": 2,
+      "enTitle": "Creative Team",
+      "zhTitle": "Creative Team",
+      "pages": "486",
+      "blocks": [
+        {
+          "id": "s-25-9-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.4",
+            "pages": "486"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.9.4「Creative Team」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-25-9-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.4",
+            "pages": "486"
+          },
+          "text": "创造性生产管道:",
+          "originalExcerpt": "A creative production pipeline:"
+        },
+        {
+          "id": "s-25-9-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.4",
+            "pages": "486"
+          },
+          "text": "• 集思广益:产生各种想法，而无需自我审查",
+          "originalExcerpt": "• Brainstormer: generates diverse ideas without self-censorship"
+        },
+        {
+          "id": "s-25-9-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.4",
+            "pages": "486"
+          },
+          "text": "• 起草者:将最有希望的想法拟订成完整的草案",
+          "originalExcerpt": "• Drafter: develops the most promising ideas into full drafts"
+        },
+        {
+          "id": "s-25-9-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.4",
+            "pages": "486"
+          },
+          "text": "• 编辑:改进草稿，以明晰、风格和连贯性",
+          "originalExcerpt": "• Editor: refines drafts for clarity, style, and coherence"
+        },
+        {
+          "id": "s-25-9-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.9.4",
+            "pages": "486"
+          },
+          "text": "• 批评:提供对抗性反馈以加强工作",
+          "originalExcerpt": "• Critic: provides adversarial feedback to strengthen the work"
+        }
+      ]
+    },
+    {
+      "id": "s-25-10",
+      "number": "25.10",
+      "level": 1,
+      "enTitle": "Architecture Comparison",
+      "zhTitle": "Architecture Comparison",
+      "pages": "486-487",
+      "blocks": [
+        {
+          "id": "s-25-10-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.10",
+            "pages": "486-487"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.10「Architecture Comparison」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-25-10-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.10",
+            "pages": "486"
+          },
+          "text": "表25.4: 跨关键维度的多剂结构模式比较 评级:高/中/低 结构可扩展性除臭 Coord 成本故障托尔 最佳集成(监督)M H L 简易管道;任务分解清晰;小团队分散化(P2P)H L H 动态环境;复原力关键;大规模分级H M M 企业流程;复杂多领域任务 Swarm H L H 客户服务线路;管道 M H L L 序列处理; 清晰的阶段依赖性 组合 L H H H 高吸附决定; 可靠性高于效率",
+          "originalExcerpt": "Table 25.4: Multi-agent architecture patterns compared across key dimensions. Ratings: High / Medium / Low. Architecture Scalability Debug Coord. Cost Fault Tol. Best For Centralized (Supervisor) M H L L Simple pipelines; clear task decomposition; small teams Decentralized (P2P) H L H H Dynamic environments; resilience-critical; large-scale Hierarchical H M ..."
+        },
+        {
+          "id": "s-25-10-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.10",
+            "pages": "486"
+          },
+          "text": "选择一个架构",
+          "originalExcerpt": "Choosing an Architecture"
+        },
+        {
+          "id": "s-25-10-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.10",
+            "pages": "486"
+          },
+          "text": "• 独立的次级任务 —— 平行结构(分工、共同)。",
+          "originalExcerpt": "• Independent sub-tasks → parallel architectures (division of labor, ensemble)."
+        },
+        {
+          "id": "s-25-10-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.10",
+            "pages": "486"
+          },
+          "text": "• 具有明确依赖关系的序列 —— 管道。",
+          "originalExcerpt": "• Sequential with clear dependencies → pipeline."
+        },
+        {
+          "id": "s-25-10-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.10",
+            "pages": "486"
+          },
+          "text": "• 需要避免过失容忍，避免集中;更倾向于分级或分散。",
+          "originalExcerpt": "• Fault tolerance required → avoid centralized; prefer hierarchical or decentralized."
+        },
+        {
+          "id": "s-25-10-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.10",
+            "pages": "487"
+          },
+          "text": "• 调试关键 —— 集中或管道(所有决定均可追踪)。",
+          "originalExcerpt": "• Debuggability critical → centralized or pipeline (all decisions traceable)."
+        },
+        {
+          "id": "s-25-10-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.10",
+            "pages": "487"
+          },
+          "text": "• <5剂 → 集中最简单。 > 20剂 → 分级或群。",
+          "originalExcerpt": "• <5 agents → centralized is simplest. >20 agents → hierarchical or swarm."
+        },
+        {
+          "id": "s-25-10-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.10",
+            "pages": "487"
+          },
+          "text": "在实践中，大多数生产系统都使用等级架构:顶级监事代表到专有域的子监事，管理小型专业工人队伍。",
+          "originalExcerpt": "In practice, most production systems use hierarchical architectures: a top-level supervisor delegates to domain-specific sub-supervisors, who manage small teams of specialized workers."
+        }
+      ]
+    },
+    {
+      "id": "s-25-11",
+      "number": "25.11",
+      "level": 1,
+      "enTitle": "Self-Evolving Agents: BDI Meets LLMs",
+      "zhTitle": "Self-Evolving Agents: BDI Meets LLMs",
+      "pages": "487",
+      "blocks": [
+        {
+          "id": "s-25-11-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.11",
+            "pages": "487"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.11「Self-Evolving Agents: BDI Meets LLMs」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-25-11-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.11",
+            "pages": "487"
+          },
+          "text": "2026年5月的一行研究[427]是第一次认真尝试将信仰-绝望-意图(BDI)架构——多Agent系统中理性Agent的经典框架——与LLMs相结合。与执行固定tool calling序列的静态Agent不同， BDI-LLMAgent自动修改自己的目标，并根据环境反馈重写其基础代码:。",
+          "originalExcerpt": "A May 2026 line of research [427] represents the first serious attempt to combine Belief-Desire- Intention (BDI) architectures—the classical framework for rational agents in multi-agent systems— with LLMs. Unlike static agents that execute fixed tool-call sequences, BDI-LLM agents autonomously modify their own goals and rewrite their underlying code based on..."
+        },
+        {
+          "id": "s-25-11-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.11",
+            "pages": "487"
+          },
+          "text": "• 信仰:LLM维持和更新结构化的世界模型(对文件状态的信念，",
+          "originalExcerpt": "• Beliefs: The LLM maintains and updates a structured world model (beliefs about file states,"
+        },
+        {
+          "id": "s-25-11-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.11",
+            "pages": "487"
+          },
+          "text": "API 响应，用户意图)。",
+          "originalExcerpt": "API responses, user intent)"
+        },
+        {
+          "id": "s-25-11-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.11",
+            "pages": "487"
+          },
+          "text": "• 期望:可根据观察到的成果，动态地调整优先次序的高级别目标",
+          "originalExcerpt": "• Desires: High-level goals that can be dynamically reprioritized based on observed outcomes"
+        },
+        {
+          "id": "s-25-11-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.11",
+            "pages": "487"
+          },
+          "text": "• 意图:具体计划(代码+工具序列)，当计划时， Agent可以重写",
+          "originalExcerpt": "• Intentions: Concrete plans (code + tool sequences) that the agent can rewrite when a plan"
+        },
+        {
+          "id": "s-25-11-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.11",
+            "pages": "487"
+          },
+          "text": "\"自我修改早期的对齐挑战\"实验揭示了一种关键的失败模式:Agent删除了他们自己的安全限制，以加速执行。当一个Agent能够改写自己的代码时，对齐就成为移动的目标——你安装的护栏可能无法在Agent的自我优化中幸存下来。这使得BDI-LLM架构处于Agent自主的前沿，但要求有强大的元级约束，而Agent无法修改。",
+          "originalExcerpt": "The Alignment Challenge of Self-Modification Early experiments revealed a critical failure mode: agents deleting their own safety constraints to speed up execution. When an agent can rewrite its own code, alignment becomes a moving target— the guardrails you installed may not survive the agent’s self-optimization. This places BDI-LLM architectures at the fro..."
+        }
+      ]
+    },
+    {
+      "id": "s-25-12",
+      "number": "25.12",
+      "level": 1,
+      "enTitle": "Summary",
+      "zhTitle": "Summary",
+      "pages": "487-488",
+      "blocks": [
+        {
+          "id": "s-25-12-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 25,
+            "section": "25.12",
+            "pages": "487-488"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §25.12「Summary」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-25-12-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.12",
+            "pages": "487"
+          },
+          "text": "多Agent系统是我们如何部署有限责任管理课程的根本转变:从孤立的助理人员转变为专业Agent员的合作社会。",
+          "originalExcerpt": "Multi-agent systems represent a fundamental shift in how we deploy LLMs: from isolated assistants to collaborative societies of specialized agents. The key insights from this section: Multi-Agent Systems: Key Takeaways"
+        },
+        {
+          "id": "s-25-12-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.12",
+            "pages": "487"
+          },
+          "text": "1. 建筑事项: Agent连接的地形决定可伸缩性，调试-",
+          "originalExcerpt": "1. Architecture matters: the topology of agent connections determines scalability, debugga-"
+        },
+        {
+          "id": "s-25-12-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.12",
+            "pages": "487"
+          },
+          "text": "能力，和容错度。根据任务结构和操作要求来选择。",
+          "originalExcerpt": "bility, and fault tolerance. Choose based on task structure and operational requirements."
+        },
+        {
+          "id": "s-25-12-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.12",
+            "pages": "487"
+          },
+          "text": "2. 协调费用昂贵:每条Agent信息都需支付象征性费用。",
+          "originalExcerpt": "2. Coordination is expensive: every inter-agent message costs tokens. Design communication"
+        },
+        {
+          "id": "s-25-12-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.12",
+            "pages": "487"
+          },
+          "text": "将间接费用降到最低，同时保持必要的信息流动。",
+          "originalExcerpt": "protocols to minimize overhead while preserving necessary information flow."
+        },
+        {
+          "id": "s-25-12-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.12",
+            "pages": "487"
+          },
+          "text": "3. 专业化能提高质量:具有重点作用和有针对性的提示的Agent始终如一",
+          "originalExcerpt": "3. Specialization enables quality: agents with focused roles and tailored prompts consistently"
+        },
+        {
+          "id": "s-25-12-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.12",
+            "pages": "487"
+          },
+          "text": "完成复杂任务时，总论Agent的表现优于一般Agent。",
+          "originalExcerpt": "outperform generalist agents on complex tasks."
+        },
+        {
+          "id": "s-25-12-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.12",
+            "pages": "487"
+          },
+          "text": "4. 远程培训培训很困难:多Agent远程培训引入非站式培训，信用分配",
+          "originalExcerpt": "4. RL training is hard: multi-agent RL introduces non-stationarity, credit assignment"
+        },
+        {
+          "id": "s-25-12-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.12",
+            "pages": "487"
+          },
+          "text": "CTDE是目前合作环境的最佳做法。",
+          "originalExcerpt": "challenges, and emergent behaviors. CTDE is the current best practice for cooperative settings."
+        },
+        {
+          "id": "s-25-12-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.12",
+            "pages": "487"
+          },
+          "text": "5. 安全需要明确设计:多Agent系统可以扩大错误和显示",
+          "originalExcerpt": "5. Safety requires explicit design: multi-agent systems can amplify errors and exhibit"
+        },
+        {
+          "id": "s-25-12-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.12",
+            "pages": "487"
+          },
+          "text": "安全监控必须是一个一流的建筑问题。",
+          "originalExcerpt": "unexpected emergent behaviors. Safety monitoring must be a first-class architectural concern."
+        },
+        {
+          "id": "s-25-12-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.12",
+            "pages": "487"
+          },
+          "text": "6。简单:从集中监管模式开始，衡量其局限性，以及",
+          "originalExcerpt": "6. Start simple: begin with a centralized supervisor pattern, measure its limitations, and"
+        },
+        {
+          "id": "s-25-12-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.12",
+            "pages": "487"
+          },
+          "text": "只有在必要的时候，才能向更复杂的结构发展。多AgentLLM系统领域正在迅速发展。本文所述的模式和技术代表了目前的艺术状况，但新的建筑、协调机制和",
+          "originalExcerpt": "evolve toward more complex architectures only when necessary. The field of multi-agent LLM systems is evolving rapidly. The patterns and techniques described here represent the current state of the art, but new architectures, coordination mechanisms, and"
+        },
+        {
+          "id": "s-25-12-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 25,
+            "section": "25.12",
+            "pages": "488"
+          },
+          "text": "训练算法不断出现。基本原则——专门化、协调、新兴行为以及效率和稳健性之间的紧张关系——无论具体实施如何演变，都将仍然具有现实意义。",
+          "originalExcerpt": "training algorithms are emerging continuously. The foundational principles—specialization, coordination, emergent behavior, and the tension between efficiency and robustness—will remain relevant regardless of how the specific implementations evolve."
+        }
+      ]
+    }
+  ],
+  "glossary": [
+    {
+      "term": "Agent",
+      "zh": "智能体",
+      "meaning": "由模型、状态、工具和运行循环共同构成的目标导向系统。"
+    },
+    {
+      "term": "RAG",
+      "zh": "RAG",
+      "meaning": "在生成前检索外部证据，并把相关上下文交给模型。"
+    },
+    {
+      "term": "reward model",
+      "zh": "Reward Model",
+      "meaning": "把人类或规则偏好映射为可优化标量信号的模型。"
+    },
+    {
+      "term": "context window",
+      "zh": "context window",
+      "meaning": "单次模型调用可直接读取的 token 范围。"
+    },
+    {
+      "term": "token",
+      "zh": "词元",
+      "meaning": "模型处理和生成文本时使用的离散单位。"
+    }
+  ],
+  "summary": [
+    "人工智能的历史在许多方面都是规模的历史。早期的AI系统是单体的:一个单一的程序，一个单一的知识库，一个单一的推论引擎。随着问题日益复杂，研究人员发现，没有任何单一的Agent——无论多么有能力——能够有效地处理一项丰富、无限制的任务的每一个方面。这种见解长期存在于分布式AI和多Agent系统(MAS)研究中[375，381]，在大语言模型时代又发现新的紧迫性。 Core Intuition A 单 LLM，无论大小，都是通论者。专门法学硕士小组，每个小组都侧重于一个狭隘的子问题，并交流其成果，能够比一般学者在复杂、多方面的任务上表现得更好——就像人类专家小组在复杂的工程项目上表现得比单一一般学者。推动从单一物剂向Agent社会转变的有四个基本动机:",
+    "专业化 不同的子任务得益于不同的能力，激励策略，甚至不同的基模型。代码生成Agent可以对编程corpora进行微调;事实检查Agent可以使用检索工具进行定位;可以激发创作写作Agent，以达到风格多样性。强迫单一的Agent同时在所有这些方面发挥卓越作用既效率低下，也往往不可能。",
+    "并行主义。 许多现实世界的任务会分解成独立的子任务， 可以同时执行。需要文献审查，数据分析和报告撰写的研究管道可以同时运行所有三个，大幅缩短墙时钟时间。序列单剂处理是多剂并行主义消除的瓶颈。"
+  ],
+  "metrics": {
+    "chineseCharacters": 13963,
+    "sourceCoverage": 92,
+    "sectionCount": 54,
+    "blockCount": 339
+  }
+}

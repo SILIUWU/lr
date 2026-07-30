@@ -2,56 +2,52 @@
 
 import Link from "next/link";
 import {
-  chapterMap,
   courseParts,
   labCount,
   lessons,
-  totalMinutes,
 } from "@/lib/course-data";
-import { chapterReadings, readingsForLesson } from "@/lib/reading-content";
+import {
+  catalogChapter,
+  catalogHref,
+  chapterCatalog,
+  readerMetrics,
+} from "@/lib/chapter-catalog";
 import { useCourse } from "./course-provider";
 
 function routeFor(state: ReturnType<typeof useCourse>["state"]) {
+  if (state.lastChapter) {
+    return catalogHref(state.lastChapter, state.lastSection);
+  }
   if (state.lastLesson) return `/learn/${state.lastLesson}`;
-  return "/learn/roadmap";
+  return "/read/ch-15";
 }
 
 export function HomePage() {
   const { state, hydrated } = useCourse();
   const completed = state.completedLessons.length;
   const percent = Math.round((completed / lessons.length) * 100);
-  const activeLesson =
-    lessons.find((lesson) => lesson.slug === state.lastLesson) ?? lessons[0];
-  const activeReadings = readingsForLesson(activeLesson.slug);
-  const previewReading = activeReadings[0];
-  const translatedParagraphs = chapterReadings.reduce(
-    (total, reading) =>
-      total +
-      reading.sections.reduce(
-        (sectionTotal, section) => sectionTotal + section.paragraphs.length,
-        0,
-      ),
-    0,
-  );
+  const previewReading = catalogChapter(state.lastChapter ?? 15);
 
   return (
     <div className="home-page">
       <section className="hero">
         <div className="hero-copy">
-          <div className="eyebrow">WEB READER · 30 CHAPTERS · BILINGUAL</div>
+          <div className="eyebrow">NATIVE WEB READER · 30 CHAPTERS · BILINGUAL</div>
           <h1>
             打开一章，
             <br />
             <span>直接开始读。</span>
           </h1>
           <p>
-            <em>The Hitchhiker&apos;s Guide to Agentic AI</em> 的 30 章内容已经
-            重组为适合网页阅读的中文忠实译述。保留关键 English terms、原文页码、
-            思考检查点与练习，不需要先打开 636 页 PDF。
+            Haggai Roitman 的 <em>The Hitchhiker&apos;s Guide to Agentic AI</em>{" "}
+            已按原书 section/subsection 建立站内网页正文。中文逐节译读、关键
+            English terms、公式、代码和具体页码直接在页面展开；PDF 只用于核对来源。
           </p>
           <div className="hero-actions">
             <Link className="primary-button" href={routeFor(state)}>
-              {hydrated && state.lastLesson ? "继续上次阅读" : "从导读开始"}
+              {hydrated && (state.lastChapter || state.lastLesson)
+                ? "继续上次阅读"
+                : "从 Ch.15 开始"}
               <span aria-hidden="true">→</span>
             </Link>
             <a className="secondary-button" href="#chapter-directory">
@@ -65,7 +61,7 @@ export function HomePage() {
             <header>
               <div>
                 <span className="live-dot" aria-hidden="true" />
-                {state.lastLesson ? "继续阅读" : "推荐起点"}
+                {state.lastChapter ? "继续阅读" : "推荐起点"}
               </div>
               <small>
                 {previewReading.chapter === 0
@@ -80,15 +76,22 @@ export function HomePage() {
                 <span>原书 pp. {previewReading.pages}</span>
                 <span>约 {previewReading.minutes} 分钟</span>
               </div>
-              <blockquote>{previewReading.overview}</blockquote>
+              <blockquote>
+                已映射 {previewReading.metrics.sectionCount} 个原书小节，
+                展开为 {previewReading.metrics.blockCount} 个原生阅读区块。
+                当前状态：逐句校订中。
+              </blockquote>
               <section>
-                <small>{previewReading.sections[0].english}</small>
-                <h3>{previewReading.sections[0].title}</h3>
-                <p>{previewReading.sections[0].paragraphs[0]}</p>
+                <small>READING STATUS</small>
+                <h3>结构完整上线，完成度如实标记</h3>
+                <p>
+                  已经写入正文的内容可直接阅读；尚未完成逐句校订的章节不会显示
+                  “精读完成”，也不会用 PDF 跳转替代正文。
+                </p>
               </section>
             </div>
             <footer>
-              <span>{activeLesson.title}</span>
+              <span>CH.{String(previewReading.chapter).padStart(2, "0")}</span>
               <Link href={routeFor(state)}>进入完整正文 →</Link>
             </footer>
           </aside>
@@ -97,11 +100,15 @@ export function HomePage() {
 
       <section className="metric-strip" aria-label="课程规模">
         {[
-          ["30", "章站内精读"],
-          [String(translatedParagraphs), "段译述正文"],
+          ["30", "章站内阅读"],
+          [String(readerMetrics.sections), "个原书小节"],
+          [String(readerMetrics.blocks), "个原生区块"],
+          [
+            `${Math.round(readerMetrics.chineseCharacters / 10000)}万`,
+            "中文正文字符",
+          ],
           ["60", "原创学习题"],
           [String(labCount), "交互实验"],
-          [`${Math.round(totalMinutes / 60)}h`, "预计精读时间"],
         ].map(([value, label]) => (
           <div key={label}>
             <strong>{value}</strong>
@@ -117,8 +124,8 @@ export function HomePage() {
             <h2>按原书章节，直接进入正文</h2>
           </div>
           <p>
-            这里不是 PDF 跳转目录。点击任一章会直接定位到本站译述正文；每章均保留
-            English title、中文标题、阅读时间与原书页码。
+            点击任一章会进入原生网页正文，而不是 PDF 列表。每章公开显示
+            section 数、正文区块数、页码和校订状态。
           </p>
         </div>
         <div className="chapter-shelves">
@@ -128,7 +135,7 @@ export function HomePage() {
               .split("–")
               .map(Number);
             const end = endValue || start;
-            const readings = chapterReadings.filter(
+            const readings = chapterCatalog.filter(
               (reading) => reading.chapter >= start && reading.chapter <= end,
             );
 
@@ -144,14 +151,9 @@ export function HomePage() {
                 </header>
                 <div>
                   {readings.map((reading) => {
-                    const mapping = chapterMap.find(
-                      (chapter) => chapter.chapter === reading.chapter,
-                    );
-                    if (!mapping) return null;
-
                     return (
                       <Link
-                        href={`/learn/${mapping.lessonSlug}#chapter-${reading.chapter}`}
+                        href={catalogHref(reading.chapter)}
                         key={reading.chapter}
                       >
                         <span>CH.{String(reading.chapter).padStart(2, "0")}</span>
@@ -159,7 +161,9 @@ export function HomePage() {
                           <small>{reading.title}</small>
                           <strong>{reading.zhTitle}</strong>
                         </div>
-                        <em>{reading.minutes} MIN →</em>
+                        <em>
+                          {reading.metrics.sectionCount} 节 · 校订中 →
+                        </em>
                       </Link>
                     );
                   })}
@@ -221,9 +225,9 @@ export function HomePage() {
           <span className="evidence unknown">原文未说明</span>
         </div>
         <p>
-          30 章均提供站内 Guided Translation。这不是机械逐句直译，而是面向工程
-          学习者的忠实译述：成熟术语保留 English，中文负责建立直觉、论证与逻辑；
-          PDF 只用于可选核对，所有改编内容沿用 CC BY-SA 4.0。
+          每个区块都标明“原文译述 / 编者解释 / 工程延伸”和具体 PDF 页码。
+          当前章节按实际完成情况显示“导读 / 校订中 / 精读完成”；只有逐句校订和
+          内容核验通过后才会切换为“精读完成”。所有改编内容沿用 CC BY-SA 4.0。
         </p>
       </section>
     </div>

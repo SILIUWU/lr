@@ -1,0 +1,3475 @@
+{
+  "chapter": 19,
+  "title": "Loop Engineering",
+  "zhTitle": "Loop Engineering：让循环可靠收敛",
+  "pages": "383-397",
+  "minutes": 38,
+  "overview": "从业人员与LLM基体相互作用的演变，遵循了非常一致的轨迹。2022–2024年，主要技能是即时工程:精心设计正确的词句，从单一的模型调用中引出所期望的响应。到2025年，重点转移到了背景工程——对模型在推断时看到的全套符号进行校准，包括检索的文件、工具产出和对话历史[10]。在前一章中，我们谈到了“牵引工程”:设计一个Agent周围的运行时环境——工具、沙盒、记忆和护栏。循环工程[279]是这个进化的下一层:设计迭代控制结构，将一个Agent自动地向一个目标推进，而不需要一个人类在每个转弯时键入下一个指令。从快速到循环:工程进度",
+  "status": "in_progress",
+  "sections": [
+    {
+      "id": "s-19-introduction",
+      "number": null,
+      "level": 1,
+      "enTitle": "Chapter introduction",
+      "zhTitle": "章节导入",
+      "pages": "383",
+      "blocks": [
+        {
+          "id": "s-19-introduction-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": null,
+            "pages": "383"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 本章导入「章节导入」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-19-introduction-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": null,
+            "pages": "383"
+          },
+          "text": "从业人员与LLM基体相互作用的演变，遵循了非常一致的轨迹。2022–2024年，主要技能是即时工程:精心设计正确的词句，从单一的模型调用中引出所期望的响应。到2025年，重点转移到了背景工程——对模型在推断时看到的全套符号进行校准，包括检索的文件、工具产出和对话历史[10]。在前一章中，我们谈到了“牵引工程”:设计一个Agent周围的运行时环境——工具、沙盒、记忆和护栏。循环工程[279]是这个进化的下一层:设计迭代控制结构，将一个Agent自动地向一个目标推进，而不需要一个人类在每个转弯时键入下一个指令。从快速到循环:工程进度",
+          "originalExcerpt": "The evolution of how practitioners interact with LLM-based agents has followed a remarkably consistent trajectory. In 2022–2024, the primary skill was prompt engineering: crafting the right words to elicit the desired response from a single model call. By 2025, the focus shifted to context engineering—curating the full set of tokens the model sees at inferen..."
+        },
+        {
+          "id": "s-19-introduction-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": null,
+            "pages": "383"
+          },
+          "text": "1. 快速工程:优化你对模型的言论(2022–2024)",
+          "originalExcerpt": "1. Prompt engineering: Optimize what you say to the model (2022–2024)"
+        },
+        {
+          "id": "s-19-introduction-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": null,
+            "pages": "383"
+          },
+          "text": "2. 背景工程:优化模型所看到的一切(2025年)",
+          "originalExcerpt": "2. Context engineering: Optimize everything the model sees (2025)"
+        },
+        {
+          "id": "s-19-introduction-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": null,
+            "pages": "383"
+          },
+          "text": "3. 利用工程:优化该剂在(2025–2026)运行的环境",
+          "originalExcerpt": "3. Harness engineering: Optimize the environment the agent runs in (2025–2026)"
+        },
+        {
+          "id": "s-19-introduction-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": null,
+            "pages": "383"
+          },
+          "text": "4. 循环工程:优化使Agent为实现目标而努力的循环(2026年)",
+          "originalExcerpt": "4. Loop engineering: Optimize the cycle that keeps the agent working toward a goal (2026)"
+        },
+        {
+          "id": "s-19-introduction-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": null,
+            "pages": "383"
+          },
+          "text": "每层都覆盖上一层， 但不替换它。 您仍然写提示; 您仍然管理上下文; 您仍然在构建一个控制带。 循环工程将全部启动。该短语在2026年6月彼得·施泰因伯格[338]提出开发者应该停止直接催促编码Agent，而应设计能促使这些Agent的系统——这一情绪得到了鲍里斯·切尔尼的验证，他在Anthropic领导克劳德代码，指出他的角色完全转向写出协调模型动作的外部执行循环[52]。这不仅仅是一种工具偏好，它反映了一个结构现实:当一个Agent运行一个小时，修改数十份文件时，最高杠杆工程就不再在即时——它处于循环中，使Agent能够持续生产、核查和客观。",
+          "originalExcerpt": "Each layer wraps the previous one without replacing it. You still write prompts; you still curate context; you still build a harness. Loop engineering puts all of it in motion. The phrase was coined in June 2026 after Peter Steinberger [338] argued that developers should stop prompting coding agents directly and instead design systems that prompt those agent..."
+        }
+      ]
+    },
+    {
+      "id": "s-19-1",
+      "number": "19.1",
+      "level": 1,
+      "enTitle": "Context Engineering: The Layer Beneath the Loop",
+      "zhTitle": "Context Engineering: The Layer Beneath the Loop",
+      "pages": "383-385",
+      "blocks": [
+        {
+          "id": "s-19-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.1",
+            "pages": "383-385"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.1「Context Engineering: The Layer Beneath the Loop」 时，沿信息生命周期追踪：内容何时写入、采用什么表示、怎样检索、如何进入 context、何时更新或删除。保存更多信息并不自动带来更好结果，选择机制和冲突处理同样重要。"
+        },
+        {
+          "id": "s-19-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.1",
+            "pages": "383"
+          },
+          "text": "在循环运行之前，必须先决定模型在每个步骤上所看到的是什么。这个学科是上下文工程:在推断时在context window中校准和保持最优的一组符符的正式做法。环路下的层层，即将环路状态转化为模型输入的机制。该术语在2025年6月被Tobi Lütke(Shoppify的CEO)普及[244]，他形容它为与AIAgent合作的新兴核心技能。2025年9月， Anthropic将定义正式化为“在推论中校准并维持最佳的一套标志 ”。 Andrej Karopathy赞同这一框架，称其“为下一步向context window提供正确信息这一微妙艺术和科学”[178]。这些定义的趋同反映了一个实际现实:随着context window从4K增加到128K到1M的代号，将什么放入它们的问题变得与问什么的问题一样重要。",
+          "originalExcerpt": "Before a loop can run, something must decide what the model sees at each step. That discipline is context engineering: the formal practice of curating and maintaining the optimal set of tokens in the context window during inference. It is the layer beneath the loop—the mechanism by which the loop’s state is translated into model input. The term was populariz..."
+        },
+        {
+          "id": "s-19-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.1",
+            "pages": "384"
+          },
+          "text": "背景工程不是即时工程。即时工程优化了指令，也就是指导模型行为的词。背景工程优化了信息环境——完整的文件集，工具输出，历史，并声明模型的原因已经过去。在单回合的交互中，区分是微不足道的。在多步Agent环中，它是拥有正确行动所需信息的模型与飞行盲的模型的区别。",
+          "originalExcerpt": "Context engineering is not prompt engineering. Prompt engineering optimizes the instruction—the words that direct the model’s behavior. Context engineering optimizes the information environment— the full set of documents, tool outputs, history, and state that the model reasons over. In a single-turn interaction, the distinction is minor. In a multi-step agen..."
+        },
+        {
+          "id": "s-19-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.1",
+            "pages": "384"
+          },
+          "text": "关键技术:背景工程利用了几种互补方法:",
+          "originalExcerpt": "Key techniques. Context engineering draws on several complementary methods:"
+        },
+        {
+          "id": "s-19-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.1",
+            "pages": "384"
+          },
+          "text": "• 动态上下文组装:从多种来源选择和组合上下文(重新",
+          "originalExcerpt": "• Dynamic context assembly: Selecting and composing context from multiple sources (re-"
+        },
+        {
+          "id": "s-19-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.1",
+            "pages": "384"
+          },
+          "text": "在每个循环迭代时三维文档，工具输出，内存存储)，而不是使用固定模板。",
+          "originalExcerpt": "trieved documents, tool outputs, memory stores) at each loop iteration rather than using a fixed template."
+        },
+        {
+          "id": "s-19-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.1",
+            "pages": "384"
+          },
+          "text": "• RAG整合:检索与任务有关的文件或代码片段并注入",
+          "originalExcerpt": "• RAG integration: Retrieving task-relevant documents or code snippets and injecting them"
+        },
+        {
+          "id": "s-19-1-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.1",
+            "pages": "384"
+          },
+          "text": "，将旧的或通用的背景知识替换为准确的、最新的信息。",
+          "originalExcerpt": "into the context window, replacing stale or generic background knowledge with precise, current information."
+        },
+        {
+          "id": "s-19-1-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.1",
+            "pages": "384"
+          },
+          "text": "• 工具输出汇总:压缩动词工具输出(例如文件长列表，测试)",
+          "originalExcerpt": "• Tool-output summarization: Compressing verbose tool outputs (e.g., long file listings, test"
+        },
+        {
+          "id": "s-19-1-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.1",
+            "pages": "384"
+          },
+          "text": ")，在插入上下文之前，在保存符号预算的同时保留信号。",
+          "originalExcerpt": "runner logs) before inserting them into context, preserving signal while conserving token budget."
+        },
+        {
+          "id": "s-19-1-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.1",
+            "pages": "384"
+          },
+          "text": "• 对话历史管理:决定哪些以前是保留逐字记录，哪些是逐字记录",
+          "originalExcerpt": "• Conversation history management: Deciding which prior turns to retain verbatim, which"
+        },
+        {
+          "id": "s-19-1-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.1",
+            "pages": "384"
+          },
+          "text": "并完全放弃——一个在长Agent运行中变得至关重要的滚动压缩问题。",
+          "originalExcerpt": "to summarize, and which to drop entirely—a rolling compression problem that becomes critical in long agent runs."
+        },
+        {
+          "id": "s-19-1-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.1",
+            "pages": "384"
+          },
+          "text": "• 预算分配:明确划分竞争的context window",
+          "originalExcerpt": "• Token budget allocation: Explicitly partitioning the context window across competing"
+        },
+        {
+          "id": "s-19-1-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.1",
+            "pages": "384"
+          },
+          "text": "信息来源，以确保该模式始终有产生有用反应的余地。",
+          "originalExcerpt": "information sources to ensure the model always has room to generate a useful response."
+        },
+        {
+          "id": "s-19-1-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.1",
+            "pages": "385"
+          },
+          "text": "背景窗口预算分配( 类型Agent循环)",
+          "originalExcerpt": "Context Window Budget Allocation (Typical Agent Loop)"
+        },
+        {
+          "id": "s-19-1-b15",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.1",
+            "pages": "385"
+          },
+          "text": "组件预算说明系统提示10-15 % 稳定; 定义Agent角色、 工具、 限制 / RAG 20- 30% 动态 ;刷新了每次重迭对话/动作历史 30–40% 压缩为运行长度 生成预算 20–30% 保留用于模型输出;从不在此下压缩 这些都是准则，而不是硬规则。长视码编码Agent可能分配更多历史;单步QAAgent可能分配更多检索到的文档。密钥的不常数:在补足其余文件之前，总是保留生成预算。",
+          "originalExcerpt": "Component Budget Notes System prompt 10–15% Stable; defines agent role, tools, constraints Retrieved documents / RAG 20–30% Dynamic; refreshed each iteration Conversation / action history 30–40% Compressed as run lengthens Generation budget 20–30% Reserved for model output; never compress below this These are guidelines, not hard rules. Long-horizon coding a..."
+        },
+        {
+          "id": "s-19-1-b16",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.1",
+            "pages": "385"
+          },
+          "text": "环内环境工程。在环内，每个迭代环境工程都运行。在每一步 t，循环控制器必须决定: 哪些先前的观察 o<t 要保留，哪些归纳，哪些检索到的文档仍然相关，以及如何从这些组件中编译新上下文 st。这也是与Agent政策并列的动态政策。设计不良的背景政策导致该模式失去目标，重复它已经采取的行动，或未能使用它早些时候检索到的信息。一个设计良好的模型使模型的“工作记忆”在整个运行过程中都与当前任务状态保持一致。背景工程对环绕工程背景工程的回答是:模型在步骤t中看到什么?循环工程的答案:模型在一步步行动后会发生什么?它们是互补的。环路决定了动作和观测的顺序;背景工程决定了模型采取下一步行动时这些观测如何被表示。循环工程如果没有进行良好的上下文工程，就无法进行良好的循环工程——只有正确编码在模型上下文中，循环的状态才有用。",
+          "originalExcerpt": "Context engineering within a loop. In a loop, context engineering operates at every iteration. At each step t, the loop controller must decide: which prior observations o<t to retain, which to summarize, which retrieved documents are still relevant, and how to compose the new context st from these components. This is not a one-time design decision—it is a dy..."
+        }
+      ]
+    },
+    {
+      "id": "s-19-2",
+      "number": "19.2",
+      "level": 1,
+      "enTitle": "Loop Engineering as Inference-Time Reinforcement Learning",
+      "zhTitle": "Loop Engineering as Inference-Time Reinforcement Learning",
+      "pages": "385-386",
+      "blocks": [
+        {
+          "id": "s-19-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.2",
+            "pages": "385-386"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.2「Loop Engineering as Inference-Time Reinforcement Learning」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-19-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.2",
+            "pages": "385"
+          },
+          "text": "使循环工程与本书相关的中心见解是，一个设计良好的Agent循环在结构上与在推断时间运行的RL优化过程完全相同——没有模型权重的梯度更新:",
+          "originalExcerpt": "The central insight that makes loop engineering relevant to this book is that a well-engineered agent loop is structurally identical to an RL optimization process operating at inference time—without gradient updates to the model weights:"
+        },
+        {
+          "id": "s-19-2-b2",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.2",
+            "pages": "385"
+          },
+          "expression": "st = context(st−1 , at−1 , ot−1 ) (state = accumulated context) at = πθ (st ) (action = model generation) ot = env(at ) (observation = tool/environment feedback) rt = verify(st , at , ot ) (reward = verification signal) (19.1) The loop continues until rt exceeds a success threshold or a termination condition triggers. The “policy” πθ is not updated via gradients; instead, the state is updated—observations, error messages, and reflections are appended to the context, conditioning the same frozen model to produce better actions on subsequent iterations. This is precisely the mechanism behind Reflexion [326]: the model improves across iterations not by learning new weights but by reading its own failure history. The Loop–RL Correspondence PT t Consider the standard RL objective maxπ E[ t=0 γ rt ]. In loop engineering:",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-19-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.2",
+            "pages": "385"
+          },
+          "text": "• 政策:冻结的LLM，以累积背景为条件",
+          "originalExcerpt": "• Policy π: The frozen LLM, conditioned on accumulating context"
+        },
+        {
+          "id": "s-19-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.2",
+            "pages": "385"
+          },
+          "text": "• 状态:context window内容在步骤t",
+          "originalExcerpt": "• State st : The context window contents at step t"
+        },
+        {
+          "id": "s-19-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.2",
+            "pages": "385"
+          },
+          "text": "• 行动:模型产生的产出(代码编辑、tool calling、信息)",
+          "originalExcerpt": "• Action at : The model’s generated output (code edit, tool call, message)"
+        },
+        {
+          "id": "s-19-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.2",
+            "pages": "385"
+          },
+          "text": "环境:工具、文件系统、测试跑车、生产观测仪的任何物品",
+          "originalExcerpt": "• Environment: The tools, filesystem, test runner, linter—anything that produces observa-"
+        },
+        {
+          "id": "s-19-2-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.2",
+            "pages": "386"
+          },
+          "text": "• 奖励:核查信号(测试通过、净墨、度量改进)",
+          "originalExcerpt": "• Reward rt : The verification signal (tests pass, linter clean, metric improves)"
+        },
+        {
+          "id": "s-19-2-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.2",
+            "pages": "386"
+          },
+          "text": "· 折扣:环的预算中隐含着 -- -- 后期步骤成本较高，不太可能成功",
+          "originalExcerpt": "• Discount γ: Implicit in the loop’s budget—later steps are costlier and less likely to succeed"
+        },
+        {
+          "id": "s-19-2-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.2",
+            "pages": "386"
+          },
+          "text": "• 集:从目标规格到终止的完整循环执行",
+          "originalExcerpt": "• Episode: One complete loop execution from goal specification to termination"
+        },
+        {
+          "id": "s-19-2-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.2",
+            "pages": "386"
+          },
+          "text": "与培训时间RL的关键性区别:政策权重被冻结。 “学习”纯粹通过国家积累发生 — — 随着循环的发展，模型得到了更丰富的条件。这类似于内在文字学习，但环境积极塑造模型所看到的事物。这种对应不仅仅是比喻性的。它具有直接的工程后果:",
+          "originalExcerpt": "The critical difference from training-time RL: the policy weights are frozen. “Learning” happens purely through state accumulation—the model receives richer conditioning as the loop progresses. This is analogous to in-context learning, but with the environment actively shaping what the model sees. This correspondence is not merely metaphorical. It has direct..."
+        },
+        {
+          "id": "s-19-2-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.2",
+            "pages": "386"
+          },
+          "text": "1. 奖励设计事项:与高频一样，奖励规定不严(核查标准)",
+          "originalExcerpt": "1. Reward design matters: Just as in RLHF, a poorly specified reward (verification criterion)"
+        },
+        {
+          "id": "s-19-2-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.2",
+            "pages": "386"
+          },
+          "text": "导致reward hacking——Agent满足支票信的同时又违反其意图(例如删除一个失败的测试以变成CI绿色)。",
+          "originalExcerpt": "leads to reward hacking—the agent satisfying the letter of the check while violating its intent (e.g., deleting a failing test to turn CI green)."
+        },
+        {
+          "id": "s-19-2-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.2",
+            "pages": "386"
+          },
+          "text": "2. 勘探-开发权衡:重复同一失败方法的环路",
+          "originalExcerpt": "2. Exploration–exploitation trade-off : A loop that repeats the same failing approach exhibits"
+        },
+        {
+          "id": "s-19-2-b15",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.2",
+            "pages": "386"
+          },
+          "text": "勘探不良。 Relexion [326] 等机制通过自我礼仪添加了明确的勘探，类似于PPO中的 en奖金。",
+          "originalExcerpt": "poor exploration. Mechanisms like Reflexion [326] add explicit exploration via self-critique, analogous to entropy bonuses in PPO."
+        },
+        {
+          "id": "s-19-2-b16",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.2",
+            "pages": "386"
+          },
+          "text": "3. 地平线和折扣:较长的环路面临复合错误和上下文退化，",
+          "originalExcerpt": "3. Horizon and discount: Longer loops face compounding errors and context degradation, just"
+        },
+        {
+          "id": "s-19-2-b17",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.2",
+            "pages": "386"
+          },
+          "text": "预算上限是有效的前景。",
+          "originalExcerpt": "as long-horizon RL suffers from credit assignment difficulty. Budget caps serve as effective horizons."
+        },
+        {
+          "id": "s-19-2-b18",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.2",
+            "pages": "386"
+          },
+          "text": "4. 国家代表:背景管理(协作、核对、外部化)",
+          "originalExcerpt": "4. State representation: Context management (compaction, pruning, externalization) is the"
+        },
+        {
+          "id": "s-19-2-b19",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.2",
+            "pages": "386"
+          },
+          "text": "循环工程相当于RL中的状态代表设计——两者都决定Agent是否能够有效地解释其状况。",
+          "originalExcerpt": "loop-engineering equivalent of state representation design in RL—both determine whether the agent can reason effectively about its situation."
+        }
+      ]
+    },
+    {
+      "id": "s-19-3",
+      "number": "19.3",
+      "level": 1,
+      "enTitle": "Anatomy of a Production Loop",
+      "zhTitle": "Anatomy of a Production Loop",
+      "pages": "386",
+      "blocks": [
+        {
+          "id": "s-19-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.3",
+            "pages": "386"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.3「Anatomy of a Production Loop」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-19-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.3",
+            "pages": "386"
+          },
+          "text": "一个功能环需要五个结构原始[279]加上外部状态持久性:",
+          "originalExcerpt": "A functional loop requires five structural primitives [279] plus external state persistence:"
+        }
+      ]
+    },
+    {
+      "id": "s-19-3-1",
+      "number": "19.3.1",
+      "level": 2,
+      "enTitle": "The Five Primitives",
+      "zhTitle": "The Five Primitives",
+      "pages": "386-387",
+      "blocks": [
+        {
+          "id": "s-19-3-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.3.1",
+            "pages": "386-387"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.3.1「The Five Primitives」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-19-3-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.3.1",
+            "pages": "386"
+          },
+          "text": "表19.1:环线工程的五个结构原始。",
+          "originalExcerpt": "Table 19.1: The five structural primitives of loop engineering."
+        },
+        {
+          "id": "s-19-3-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.3.1",
+            "pages": "386"
+          },
+          "text": "环状RL模拟自动化中的首要作用 触发关于固定-Episode启动的循环;环境 重新设置 ule 或 事件 工作树 孤立平行Agent 独立 推出 工人在分布式 RL 技能 编码可重复使用的能力 政策 条件 ;任务特定奖励 shapand 项目知识 连接器 外部环境行动空间工具和系统的接口 子Agent 分解和验证等级 RL; 评论网络",
+          "originalExcerpt": "Primitive Role in the Loop RL Analogue Automations Trigger the loop on sched- Episode initiation; environment reset ule or event Worktrees Isolate parallel agents Independent rollout workers in distributed RL Skills Codify reusable capabilities Policy conditioning; task-specific reward shapand project knowledge ing Connectors Interface with external Environm..."
+        },
+        {
+          "id": "s-19-3-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.3.1",
+            "pages": "386"
+          },
+          "text": "自动。 自动是将单个Agent运行到真实循环的心跳。 它们定义了循环的发生时间和原因， 即: 响应webhook 的运行时间表， 或由文件系统事件触发的循环。生产的例子包括夜间CI故障分解、小时依赖性-脆弱性扫描、承诺后审查通行证。",
+          "originalExcerpt": "Automations. Automations are the heartbeat that transforms a single agent run into a true loop. They define when and why a loop fires—on a cron schedule, in response to a webhook, or triggered by a file-system event. Without automations, you have an agent; with them, you have a self-sustaining system. Production examples include nightly CI failure triage, ho..."
+        },
+        {
+          "id": "s-19-3-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.3.1",
+            "pages": "387"
+          },
+          "text": "Worktrees (Isoliation)。多个Agent运行平行的时刻，文件级冲突成为主导失败模式。 Git worktrees——分离的工作目录共享寄存器历史——提供隔离:每个Agent在自己的分支上运行，没有可能写出与兄弟姐妹的冲突。这一原则与在分布式RL(第11.2节)中运行独立推出工人的原则相同:平行主义需要孤立。",
+          "originalExcerpt": "Worktrees (Isolation). The moment multiple agents run in parallel, file-level conflicts become the dominant failure mode. Git worktrees—separate working directories sharing repository history— provide isolation: each agent operates on its own branch without the possibility of write conflicts with siblings. This is the same principle as running independent ro..."
+        },
+        {
+          "id": "s-19-3-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.3.1",
+            "pages": "387"
+          },
+          "text": "技能:技能(第23章)编码了项目知识，即Agent否则会从头到尾地从每个周期中重新识别。在循环方面，技能是持续的前提——公约、建立程序和各种限制，这些在迭代中保持稳定。没有技能，每圈迭代开始冷;随着这些循环， Agent复合知识在重新发现的事实上不耗尽context window而贯穿。",
+          "originalExcerpt": "Skills. Skills (Chapter 23) encode project knowledge that the agent would otherwise re-derive from scratch every cycle. In the loop context, skills serve as persistent conditioning—the conventions, build procedures, and constraints that remain stable across iterations. Without skills, each loop iteration begins cold; with them, the agent compounds knowledge ..."
+        },
+        {
+          "id": "s-19-3-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.3.1",
+            "pages": "387"
+          },
+          "text": "连接器。 连接器通常通过MCP( 第22章) 执行， 将循环的动作空间扩展到文件系统之外。只能读写文件的循环是有限的;一个连接到问题跟踪器， CI系统，中转环境和团队通信通道可以关闭完整的反馈循环:检测问题 修复 验证 部署 通知。",
+          "originalExcerpt": "Connectors. Connectors—typically implemented via MCP (Chapter 22)—extend the loop’s action space beyond the filesystem. A loop that can only read and write files is limited; one connected to the issue tracker, CI system, staging environment, and team communication channel can close the full feedback loop: detect problem → fix → validate → deploy → notify."
+        },
+        {
+          "id": "s-19-3-1-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.3.1",
+            "pages": "387"
+          },
+          "text": "子Agent(Maker–Checker Splace)。循环工程中最关键的结构原则是将输出的Agent与评估它的Agent分离。一种模式将自己的产出定级，类似于学生在自己的考试上进行记号——奖励办法不统一。专门核查副Agent，可能运行不同的模型或进行更高的推理，提供了独立评估，使无人操作具有可信赖性。这反映了RL中的演员–批评架构:演员(生成者)提出动作;评论者(验证者)评估动作。",
+          "originalExcerpt": "Sub-agents (Maker–Checker Separation). The most critical structural principle in loop engineering is separating the agent that produces output from the agent that evaluates it. A model grading its own output is analogous to a student marking their own exam—the incentives are misaligned. A dedicated verification sub-agent, potentially running a different mode..."
+        }
+      ]
+    },
+    {
+      "id": "s-19-3-2",
+      "number": "19.3.2",
+      "level": 2,
+      "enTitle": "External State: The Loop’s Memory",
+      "zhTitle": "External State: The Loop’s Memory",
+      "pages": "387",
+      "blocks": [
+        {
+          "id": "s-19-3-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.3.2",
+            "pages": "387"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.3.2「External State: The Loop’s Memory」 时，沿信息生命周期追踪：内容何时写入、采用什么表示、怎样检索、如何进入 context、何时更新或删除。保存更多信息并不自动带来更好结果，选择机制和冲突处理同样重要。"
+        },
+        {
+          "id": "s-19-3-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.3.2",
+            "pages": "387"
+          },
+          "text": "每个原始的上面都在一个重复中运行。外部状态是连接重复的时间。因为LLMs在引用之间是无国籍的——模型忘记了当前上下文中没有的一切——环的连续性必须活在磁盘上:一个减速进度文件，一个结构化的数据库，或者一个版本控制的日志。这种外部状态可发挥三种功能:",
+          "originalExcerpt": "Every primitive above operates within a single iteration. External state is what connects iterations across time. Because LLMs are stateless between invocations—the model forgets everything not in its current context—the loop’s continuity must live on disk: a markdown progress file, a structured database, or a version-controlled log. This external state serv..."
+        },
+        {
+          "id": "s-19-3-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.3.2",
+            "pages": "387"
+          },
+          "text": "1. 进展跟踪:已尝试的、成功的成果、仍然存在的。",
+          "originalExcerpt": "1. Progress tracking: What has been attempted, what succeeded, what remains."
+        },
+        {
+          "id": "s-19-3-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.3.2",
+            "pages": "387"
+          },
+          "text": "2. 失败记忆:哪些方法尝试失败，防止循环出现偏差",
+          "originalExcerpt": "2. Failure memory: Which approaches were tried and failed, preventing the loop from oscillating"
+        },
+        {
+          "id": "s-19-3-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.3.2",
+            "pages": "387"
+          },
+          "text": "在同一条死路之间",
+          "originalExcerpt": "between identical dead ends."
+        },
+        {
+          "id": "s-19-3-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.3.2",
+            "pages": "387"
+          },
+          "text": "3. 交接上下文:当循环升级为人或随后的运行时，状态文件",
+          "originalExcerpt": "3. Handoff context: When the loop escalates to a human or a subsequent run, the state file"
+        },
+        {
+          "id": "s-19-3-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.3.2",
+            "pages": "387"
+          },
+          "text": "提供了完整的审计线索。",
+          "originalExcerpt": "provides a complete audit trail."
+        },
+        {
+          "id": "s-19-3-2-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.3.2",
+            "pages": "387"
+          },
+          "text": "没有外部状态的状态不是可选的 A 循环是失忆症的循环。它会重新尝试失败的方法，失去部分进展的跟踪，并在发生错误时不提供审计线索。状态机制不必复杂——每次重复后承诺加码的文件往往足够——但必须存在。",
+          "originalExcerpt": "State Is Not Optional A loop without external state is a loop with amnesia. It will re-attempt failed approaches, lose track of partial progress, and provide no audit trail when things go wrong. The state mechanism need not be complex—a markdown file committed to git after each iteration is often sufficient—but it must exist."
+        }
+      ]
+    },
+    {
+      "id": "s-19-4",
+      "number": "19.4",
+      "level": 1,
+      "enTitle": "The Loop in Pseudocode",
+      "zhTitle": "The Loop in Pseudocode",
+      "pages": "387-388",
+      "blocks": [
+        {
+          "id": "s-19-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.4",
+            "pages": "387-388"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.4「The Loop in Pseudocode」 的实现时，不只看 happy path。请同时标出 state schema、外部依赖、权限边界、重试与终止条件、可观测字段和可能产生副作用的 action；代码能运行，并不等于系统已经具备可恢复性。"
+        },
+        {
+          "id": "s-19-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.4",
+            "pages": "387"
+          },
+          "text": "脱去到它的精髓上，每个Agent循环都是一个更接近恒温器或REPL的控制结构，而不是对话: def Agent loop(目标:str， max steps : int = 50， 预算:tokenBudget = 无) :\" \" 犬类Agent环状结构。\" 状态=初始化 状态(目标)#装入外部状态+目标",
+          "originalExcerpt": "Stripped to its essence, every agent loop is a control structure closer to a thermostat or a REPL than to a conversation: def agent_loop ( goal : str , max_steps : int = 50 , budget : TokenBudget = None ) : \" \" \" The canonical agent loop structure . \" \" \" state = initialize_state ( goal ) # Load external state + goal"
+        },
+        {
+          "id": "s-19-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.4",
+            "pages": "388"
+          },
+          "text": "用于在区域中步数( 最大 步数) : # 1. 当前状态的原因( reAct - 样式) 思想 = 模型。理由( 状态)",
+          "originalExcerpt": "for step in range ( max_steps ) : # 1. Reason about current state ( ReAct - style ) thought = model . reason ( state )"
+        },
+        {
+          "id": "s-19-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.4",
+            "pages": "388"
+          },
+          "text": "# 2. 选择并执行动作动作=模型。选择 动作(状态) 观察=环境。执行(动作)。",
+          "originalExcerpt": "# 2. Choose and execute action action = model . choose_action ( state ) observation = environment . execute ( action )"
+        },
+        {
+          "id": "s-19-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.4",
+            "pages": "388"
+          },
+          "text": "# 3. 更新状态 以新信息状态 = 更新状态(状态，思想，行动，观察)。",
+          "originalExcerpt": "# 3. Update state with new information state = update_state ( state , thought , action , observation )"
+        },
+        {
+          "id": "s-19-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.4",
+            "pages": "388"
+          },
+          "text": "# 4. 如果状态下接近窗口限制， 则会紧凑上下文。 sord counts > CANSXT BUDGET * 0.8: state = c紧凑 ( state) # 概括旧步骤",
+          "originalExcerpt": "# 4. Compact context if approaching window limit if state . token_count > CONTEXT_BUDGET * 0.8: state = compact ( state ) # Summarize old steps"
+        },
+        {
+          "id": "s-19-4-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.4",
+            "pages": "388"
+          },
+          "text": "# 5. 核查员通过时检查终止条件(状态，目标) :# 决定因素检查持续 状态(状态，状态= \" 成功 \" ) 返回成功(状态)",
+          "originalExcerpt": "# 5. Check termination conditions if verifier . passes ( state , goal ) : # Deterministic check persist_state ( state , status = \" success \" ) return Success ( state )"
+        },
+        {
+          "id": "s-19-4-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.4",
+            "pages": "388"
+          },
+          "text": "如果无进度 检测到( 状态， 窗口=3) : 坚持 状态( 状态， 状态 = \" 粘合 \" ) 返回 升级 对人类( 状态)",
+          "originalExcerpt": "if no_progress_detected ( state , window =3) : persist_state ( state , status = \" stuck \" ) return escalate_to_human ( state )"
+        },
+        {
+          "id": "s-19-4-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.4",
+            "pages": "388"
+          },
+          "text": "如果预算和预算已用尽() : 持续 状态(状态、状态= \" 预算已超出 \" ) 返回升级 到 人(状态)",
+          "originalExcerpt": "if budget and budget . exhausted () : persist_state ( state , status = \" budget_exceeded \" ) return escalate_to_human ( state )"
+        },
+        {
+          "id": "s-19-4-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.4",
+            "pages": "388"
+          },
+          "text": "# 达到硬顶的状态( 状态， 状态 = \" 最大 steps \" ) 返回 升级 到 人类( 状态)",
+          "originalExcerpt": "# Hard cap reached persist_state ( state , status = \" max_steps \" ) return escalate_to_human ( state )"
+        },
+        {
+          "id": "s-19-4-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.4",
+            "pages": "388"
+          },
+          "text": "环路工程中所有有趣的事情 都是为了决定其中一条线:何谓有效目标， 如何执行验证器。 passes， 如何紧凑保存相关历史同时丢弃噪音， 以及 no progress detected如何避免过早终止和无限循环。",
+          "originalExcerpt": "Everything interesting in loop engineering is a decision about one of these lines: what constitutes a valid goal, how verifier.passes is implemented, how compact preserves relevant history while discarding noise, and how no_progress_detected avoids both premature termination and infinite cycling."
+        }
+      ]
+    },
+    {
+      "id": "s-19-5",
+      "number": "19.5",
+      "level": 1,
+      "enTitle": "Loop Patterns",
+      "zhTitle": "Loop Patterns",
+      "pages": "388",
+      "blocks": [
+        {
+          "id": "s-19-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.5",
+            "pages": "388"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.5「Loop Patterns」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-19-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.5",
+            "pages": "388"
+          },
+          "text": "以第20章引入的Agent设计模式为基础，循环工程承认了日益自主的型态的等级:",
+          "originalExcerpt": "Building on the agent design patterns introduced in Chapter 20, loop engineering recognizes a hierarchy of increasingly autonomous patterns:"
+        }
+      ]
+    },
+    {
+      "id": "s-19-5-1",
+      "number": "19.5.1",
+      "level": 2,
+      "enTitle": "The Validation Loop",
+      "zhTitle": "The Validation Loop",
+      "pages": "388-389",
+      "blocks": [
+        {
+          "id": "s-19-5-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.5.1",
+            "pages": "388-389"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.5.1「The Validation Loop」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-19-5-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.5.1",
+            "pages": "388"
+          },
+          "text": "最简单和最常见的模式:生成、对照确定性检查进行验证、在失败时重试。验证循环:直到测试通过",
+          "originalExcerpt": "The simplest and most common pattern: generate, validate against a deterministic check, retry on failure. Validation Loop: Fix Until Tests Pass"
+        },
+        {
+          "id": "s-19-5-1-b2",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 19,
+            "section": "19.5.1",
+            "pages": "388"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "failure_log = [] for attempt in range ( MAX_ATTEMPTS ) : result = run_tests () if result . passed : break # Success -- exit loop fix = model . generate ( f \" Fix this test failure :\\ n { result . errors }\\ n \" f \" Previous attempts that failed : { failure_log } \" ) apply_patch ( fix ) failure_log . append ( result . errors )"
+        },
+        {
+          "id": "s-19-5-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.5.1",
+            "pages": "388"
+          },
+          "text": "终止:考试合格(成功)或重新试算预算用尽(升级)。",
+          "originalExcerpt": "Termination: Tests pass (success) or retry budget exhausted (escalate)."
+        },
+        {
+          "id": "s-19-5-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.5.1",
+            "pages": "389"
+          },
+          "text": "关键属性: 验证信号是决定性的 —— 测试跑者产生客观的传球/ 失败， 模型无法左右。 这种模式之所以成功， 是因为其奖励信号是清晰的。测试跑者充当了无可挑剔的批评者——与LLM-as-judge的评估不同，它不能被说服或被愚弄。",
+          "originalExcerpt": "Key property: The verification signal is deterministic—the test runner produces an objective pass/fail that the model cannot argue around. This pattern succeeds because its reward signal is crisp. The test runner serves as an incorruptible critic—unlike LLM-as-judge evaluation, it cannot be persuaded or fooled."
+        }
+      ]
+    },
+    {
+      "id": "s-19-5-2",
+      "number": "19.5.2",
+      "level": 2,
+      "enTitle": "The Reflexion Loop",
+      "zhTitle": "The Reflexion Loop",
+      "pages": "389",
+      "blocks": [
+        {
+          "id": "s-19-5-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.5.2",
+            "pages": "389"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.5.2「The Reflexion Loop」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-19-5-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.5.2",
+            "pages": "389"
+          },
+          "text": "延长尝试之间明确自我约束的验证循环[326]。每次失败后， Agent写一个自然语言的反射(“我失败是因为我修改了错误的函数——错误追溯到导入，而不是执行”)成为了偶发记忆缓冲器。随后尝试读取此缓冲， 可以在一集中学习， 而无需重重更新。 Reflexion: in-Context Learning from Default The Reflexion round 添加了三个基本重试以外的组件 :",
+          "originalExcerpt": "Extends the validation loop with explicit self-critique between attempts [326]. After each failure, the agent writes a natural-language reflection (“I failed because I modified the wrong function—the error traces back to the import, not the implementation”) into an episodic memory buffer. Subsequent attempts read this buffer, enabling learning within an epis..."
+        },
+        {
+          "id": "s-19-5-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.5.2",
+            "pages": "389"
+          },
+          "text": "1. 演员:执行任务",
+          "originalExcerpt": "1. Actor: Executes the task"
+        },
+        {
+          "id": "s-19-5-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.5.2",
+            "pages": "389"
+          },
+          "text": "2. 评估员:提供奖励信号(测试、衡量标准或LLM法官)",
+          "originalExcerpt": "2. Evaluator: Provides the reward signal (tests, metrics, or LLM judge)"
+        },
+        {
+          "id": "s-19-5-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.5.2",
+            "pages": "389"
+          },
+          "text": "3. 自述:写一段口头的 \" 学到的教训 \" 给零星的记忆",
+          "originalExcerpt": "3. Self-Reflection: Writes a verbal “lesson learned” to episodic memory"
+        },
+        {
+          "id": "s-19-5-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.5.2",
+            "pages": "389"
+          },
+          "text": "反射记忆在尝试中一直存在，使Agent机有一个机制来避免重复同样的失败。经验中，反射器在HumanEval(vs)上实现了91%的通过@1. 67%的基准)，证明口头自律可以在迭代设置中取代重量更新[326]。",
+          "originalExcerpt": "The reflection memory persists across attempts, giving the agent a mechanism to avoid repeating identical failures. Empirically, Reflexion achieves 91% pass@1 on HumanEval (vs. 67% baseline), demonstrating that verbal self-critique can substitute for weight updates in iterative settings [326]."
+        }
+      ]
+    },
+    {
+      "id": "s-19-5-3",
+      "number": "19.5.3",
+      "level": 2,
+      "enTitle": "The Evaluator-Optimizer Loop",
+      "zhTitle": "The Evaluator-Optimizer Loop",
+      "pages": "389",
+      "blocks": [
+        {
+          "id": "s-19-5-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.5.3",
+            "pages": "389"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.5.3「The Evaluator-Optimizer Loop」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-19-5-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.5.3",
+            "pages": "389"
+          },
+          "text": "双模式架构[10，246]:一个模式产生一个候选，一个单独的模式根据明确的标准评估它，并返回结构化反馈。生成器会吸收这些反馈，并产生一个改进版。周期会重复，直到评估者的得分超过门槛值或重复预算被消耗。 关键的设计选择是评估者是决定性(编译器、测试套件、linter)还是概率性(另一种LLM )。决定性评估员产生可靠的趋同;概率评估员对主观标准是必要的，但引入了评估员-生成者串通的风险。",
+          "originalExcerpt": "A two-model architecture [10, 246]: one model generates a candidate, a separate model evaluates it against explicit criteria and returns structured feedback. The generator incorporates this feedback and produces an improved version. The cycle repeats until the evaluator’s score exceeds a threshold or the iteration budget is consumed. The critical design choi..."
+        }
+      ]
+    },
+    {
+      "id": "s-19-5-4",
+      "number": "19.5.4",
+      "level": 2,
+      "enTitle": "The Hierarchical Loop",
+      "zhTitle": "The Hierarchical Loop",
+      "pages": "389-390",
+      "blocks": [
+        {
+          "id": "s-19-5-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.5.4",
+            "pages": "389-390"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.5.4「The Hierarchical Loop」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-19-5-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.5.4",
+            "pages": "389"
+          },
+          "text": "元潜产物与监视子潜产物。管弦乐器的Agent将一个高级目标分解成子任务，各自分配到一个专门子Agent运行自己的环，监测它们的进展，并综合结果。这反映了层次级 RL [21]: 高级政策选择次级目标， 而低级政策执行它们。 等级级循环: 超夜存储器维护",
+          "originalExcerpt": "A meta-loop spawns and monitors sub-loops. An orchestrator agent decomposes a high-level goal into subtasks, assigns each to a specialized sub-agent running its own loop, monitors their progress, and synthesizes results. This mirrors hierarchical RL [21]: a high-level policy selects sub-goals while low-level policies execute them. Hierarchical Loop: Overnigh..."
+        },
+        {
+          "id": "s-19-5-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.5.4",
+            "pages": "389"
+          },
+          "text": "# 外环:通过自动化运行， 用于在分镜 Agent中发行。 i d e n t i f y a c t i o a a b l e i s u e s () :# 内环:单期Agent 单期Agent 单期 工作树 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单期 单",
+          "originalExcerpt": "# Outer loop : runs nightly via automation for issue in triage_agent . i d e n t i f y _ a c t i o n a b l e _ i s s u e s () : # Inner loop : one sub - agent per issue , isolated worktree worktree = cr e a t e_ i s o la t e d _w o r k tr e e ( issue . branch_name )"
+        },
+        {
+          "id": "s-19-5-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.5.4",
+            "pages": "389"
+          },
+          "text": "結果=fix loop(目标=问题。描述，工作树=工作树，核查者=run tests 和 lint，最大 步数=20) 互联网档案馆的存檔，存档日期2013-09-02.",
+          "originalExcerpt": "result = fix_loop ( goal = issue . description , worktree = worktree , verifier = run_tests_and_lint , max_steps =20 )"
+        },
+        {
+          "id": "s-19-5-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.5.4",
+            "pages": "389"
+          },
+          "text": "如果结果。成功 : 复议=审查 Agent。评估(结果补丁)# 复议(如果复议) :",
+          "originalExcerpt": "if result . success : review = review_agent . evaluate ( result . patch ) # Checker if review . approved :"
+        },
+        {
+          "id": "s-19-5-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.5.4",
+            "pages": "390"
+          },
+          "text": "open pull request (results。 patch， issue ) 其它: state db。 log (问题， \"fix rejected \"， Review。 refinance ) 其它: state db。 log (问题， \"fix failed \"， 结果。 state )",
+          "originalExcerpt": "open_pull_request ( result . patch , issue ) else : state_db . log ( issue , \" fix_rejected \" , review . feedback ) else : state_db . log ( issue , \" fix_failed \" , result . state )"
+        },
+        {
+          "id": "s-19-5-4-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.5.4",
+            "pages": "390"
+          },
+          "text": "外部环(triage)按期运行。内部环(fixes)是短时的，任务范围是全方位的。审查Agent提供制作者-检查者分离。状态持续持续到夜间运行。",
+          "originalExcerpt": "The outer loop (triage) operates on a schedule. Inner loops (fixes) are ephemeral and task-scoped. The review agent provides the maker–checker separation. State is persisted across nightly runs."
+        }
+      ]
+    },
+    {
+      "id": "s-19-5-5",
+      "number": "19.5.5",
+      "level": 2,
+      "enTitle": "The Autonomous Research Loop",
+      "zhTitle": "The Autonomous Research Loop",
+      "pages": "390",
+      "blocks": [
+        {
+          "id": "s-19-5-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.5.5",
+            "pages": "390"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.5.5「The Autonomous Research Loop」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-19-5-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.5.5",
+            "pages": "390"
+          },
+          "text": "Karopathy的自动研究(179)显示， Agent修改训练脚本，进行有时限的实验(例如，在GPU上5分钟)，阅读验证度量，并决定是执行改变(改进的计量)还是回滚(退化的计量)。循环无限制地继续，通过迭代实验探索超参数和建筑空间。这种模式有效是因为奖励信号是标量和明确的:验证损失要么减少，要么没有。紧凑的时间限制在每次重复中，使任何一次失败的实验都无法消耗过多的资源。",
+          "originalExcerpt": "Karpathy’s AutoResearch [179] demonstrates a tightly constrained research loop: the agent modifies a training script, runs a time-bounded experiment (e.g., 5 minutes on a GPU), reads the validation metric, and decides whether to commit the change (metric improved) or roll back (metric degraded). The loop continues indefinitely, exploring the hyperparameter a..."
+        }
+      ]
+    },
+    {
+      "id": "s-19-6",
+      "number": "19.6",
+      "level": 1,
+      "enTitle": "Verification Engineering",
+      "zhTitle": "Verification Engineering",
+      "pages": "390",
+      "blocks": [
+        {
+          "id": "s-19-6-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.6",
+            "pages": "390"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.6「Verification Engineering」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-19-6-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.6",
+            "pages": "390"
+          },
+          "text": "校验是循环工程的奖励功能。其质量决定了循环是向正确的答案汇合，还是向错误的答案汇合，还是完全没有汇合。本节规定了根据可靠性排序的核查战略的等级。",
+          "originalExcerpt": "Verification is the reward function of loop engineering. Its quality determines whether the loop converges to the correct answer, converges to a wrong one, or fails to converge at all. This section establishes a hierarchy of verification strategies ordered by reliability."
+        }
+      ]
+    },
+    {
+      "id": "s-19-6-1",
+      "number": "19.6.1",
+      "level": 2,
+      "enTitle": "The Verification Hierarchy",
+      "zhTitle": "The Verification Hierarchy",
+      "pages": "390",
+      "blocks": [
+        {
+          "id": "s-19-6-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.6.1",
+            "pages": "390"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.6.1「The Verification Hierarchy」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-19-6-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.6.1",
+            "pages": "390"
+          },
+          "text": "表19.2:按可靠性排列的核查战略。",
+          "originalExcerpt": "Table 19.2: Verification strategies ordered by reliability."
+        },
+        {
+          "id": "s-19-6-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.6.1",
+            "pages": "390"
+          },
+          "text": "战略信号源可靠性适用 当汇编语言工具链 定断码必须解析/构建类型 检查静态分析器 定断类型语言 单位/整合测试 测试 跑者 定断测试 并正确 定断模式工具 定断常规被编纂成 计量比较 训练/定断脚本 数值 ML 实验 LLM 判断 二级模型 概率 主观质量标准 人类审查 域专家 金标准 高评分",
+          "originalExcerpt": "Strategy Signal Source Reliability Applicable When Compilation Language toolchain Deterministic Code must parse/build Type checking Static analyzer Deterministic Typed languages Unit/integration tests Test runner Deterministic Tests exist and are correct Linting & formatting Style tools Deterministic Conventions are codified Metric comparison Training/eval s..."
+        },
+        {
+          "id": "s-19-6-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.6.1",
+            "pages": "390"
+          },
+          "text": "核查原则A循环的可信度仅相当于其最不可靠的核查步骤。 只要存在决定性的核查，就使用它。 保留LLM-即为判断标准，而这种标准真正无法机械地核查。绝不让生成模型判断自己的输出——制造者和检查者必须分开。",
+          "originalExcerpt": "The Verification Principle A loop is only as trustworthy as its least reliable verification step. Wherever a deterministic check exists, use it. Reserve LLM-as-judge for criteria that genuinely cannot be mechanically verified. Never let the generating model judge its own output—the maker and the checker must be separate."
+        }
+      ]
+    },
+    {
+      "id": "s-19-6-2",
+      "number": "19.6.2",
+      "level": 2,
+      "enTitle": "Deterministic vs. Probabilistic Verification",
+      "zhTitle": "Deterministic vs. Probabilistic Verification",
+      "pages": "390-391",
+      "blocks": [
+        {
+          "id": "s-19-6-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.6.2",
+            "pages": "390-391"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.6.2「Deterministic vs. Probabilistic Verification」 时，不要寻找脱离场景的“最佳方案”。应在质量、latency、计算与存储成本、数据要求、可控性和运维复杂度上逐项比较，并保留原书说明的适用前提与例外。"
+        },
+        {
+          "id": "s-19-6-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.6.2",
+            "pages": "390"
+          },
+          "text": "定型验证器(编译器，测试套件， linters)是金本位标准，因为它们产生一个客观的通过/失败，而模型通过说服无法进行游戏。检验要么通过要么不通过----没有多少雄辩的推理可以改变判决。概率验证器(LLM-as-judge)对于没有机械检查的任务是必要的——编码质量，文件清晰度， UX改进度——但它们引入了故障模式:",
+          "originalExcerpt": "Deterministic verifiers (compilers, test suites, linters) are the gold standard because they produce an objective pass/fail that the model cannot game through persuasion. A test either passes or it does not—no amount of eloquent reasoning changes the verdict. Probabilistic verifiers (LLM-as-judge) are necessary for tasks without mechanical checks—code qualit..."
+        },
+        {
+          "id": "s-19-6-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.6.2",
+            "pages": "391"
+          },
+          "text": "• 自我评估偏差:如果同一模式产生和评估，则将对其宽容。",
+          "originalExcerpt": "• Self-evaluation bias: If the same model generates and evaluates, it will be lenient with its"
+        },
+        {
+          "id": "s-19-6-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.6.2",
+            "pages": "391"
+          },
+          "text": "• 评估员游戏:在许多迭代中，生成者可能学会生产产出",
+          "originalExcerpt": "• Evaluator gaming: Over many iterations, the generator may learn to produce outputs that"
+        },
+        {
+          "id": "s-19-6-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.6.2",
+            "pages": "391"
+          },
+          "text": "满足评估者的表面模式，而不达到真正的质量。",
+          "originalExcerpt": "satisfy the evaluator’s surface patterns without achieving genuine quality."
+        },
+        {
+          "id": "s-19-6-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.6.2",
+            "pages": "391"
+          },
+          "text": "• 评估员不一致:同一长期管理硕士法官对相同产出的评分可能有所不同",
+          "originalExcerpt": "• Evaluator inconsistency: The same LLM-judge may score identical outputs differently across"
+        },
+        {
+          "id": "s-19-6-2-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.6.2",
+            "pages": "391"
+          },
+          "text": "运行中，因为采样差异。",
+          "originalExcerpt": "runs due to sampling variance."
+        },
+        {
+          "id": "s-19-6-2-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.6.2",
+            "pages": "391"
+          },
+          "text": "缓解战略包括使用不同的(往往更强的)模型作为评估者，提供带有二进制标准的明确的标语，以及定期校准LLM法官以对抗人类判断。",
+          "originalExcerpt": "Mitigation strategies include using a different (often stronger) model as evaluator, providing explicit rubrics with binary criteria, and periodically calibrating the LLM-judge against human judgments."
+        }
+      ]
+    },
+    {
+      "id": "s-19-7",
+      "number": "19.7",
+      "level": 1,
+      "enTitle": "Termination Engineering",
+      "zhTitle": "Termination Engineering",
+      "pages": "391",
+      "blocks": [
+        {
+          "id": "s-19-7-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.7",
+            "pages": "391"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.7「Termination Engineering」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-19-7-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.7",
+            "pages": "391"
+          },
+          "text": "一种天真循环的签名失败在于它从未停止过。 终止设计不是事后思考，而是工程的一半。",
+          "originalExcerpt": "The signature failure of a naive loop is that it never stops. Termination design is not an afterthought— it is half the engineering."
+        }
+      ]
+    },
+    {
+      "id": "s-19-7-1",
+      "number": "19.7.1",
+      "level": 2,
+      "enTitle": "Termination Conditions",
+      "zhTitle": "Termination Conditions",
+      "pages": "391",
+      "blocks": [
+        {
+          "id": "s-19-7-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.7.1",
+            "pages": "391"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.7.1「Termination Conditions」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-19-7-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.7.1",
+            "pages": "391"
+          },
+          "text": "生产循环带多个独立退出条件:",
+          "originalExcerpt": "A production loop carries multiple independent exit conditions:"
+        },
+        {
+          "id": "s-19-7-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.7.1",
+            "pages": "391"
+          },
+          "text": "1. 实现的目标:核查人确认目标已经实现，这是唯一的成功。",
+          "originalExcerpt": "1. Goal achieved: The verifier confirms the objective is met. This is the only successful"
+        },
+        {
+          "id": "s-19-7-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.7.1",
+            "pages": "391"
+          },
+          "text": "2. 硬迭代上限:最大循环步骤数(通常为20-50)。",
+          "originalExcerpt": "2. Hard iteration cap: Maximum number of loop steps (typically 20–50). Prevents unbounded"
+        },
+        {
+          "id": "s-19-7-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.7.1",
+            "pages": "391"
+          },
+          "text": "执行，而不论其他条件。",
+          "originalExcerpt": "execution regardless of other conditions."
+        },
+        {
+          "id": "s-19-7-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.7.1",
+            "pages": "391"
+          },
+          "text": "3. 预算耗尽:计数、时钟时间或货币费用超过预定数额",
+          "originalExcerpt": "3. Budget exhaustion: Token count, wall-clock time, or monetary cost exceeds a predefined"
+        },
+        {
+          "id": "s-19-7-1-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.7.1",
+            "pages": "391"
+          },
+          "text": "4. 无进展检测:最后的K重迭没有产生可衡量的状态变化——",
+          "originalExcerpt": "4. No-progress detection: The last k iterations produced no measurable change in state—the"
+        },
+        {
+          "id": "s-19-7-1-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.7.1",
+            "pages": "391"
+          },
+          "text": "循环是斜面或卡住的。这是硬帽之后最重要的安全机制。",
+          "originalExcerpt": "loop is oscillating or stuck. This is the most important safety mechanism after the hard cap."
+        },
+        {
+          "id": "s-19-7-1-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.7.1",
+            "pages": "391"
+          },
+          "text": "5. 致命错误:无法恢复的条件(缺失证书、基础设施故障)为无",
+          "originalExcerpt": "5. Fatal error: An unrecoverable condition (missing credentials, infrastructure failure) that no"
+        },
+        {
+          "id": "s-19-7-1-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.7.1",
+            "pages": "391"
+          },
+          "text": "重复量可以解决。",
+          "originalExcerpt": "amount of iteration can resolve."
+        },
+        {
+          "id": "s-19-7-1-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.7.1",
+            "pages": "391"
+          },
+          "text": "无进展检测: 静电断路器检测停滞需要跟踪整个迭代的进展信号。",
+          "originalExcerpt": "No-Progress Detection: The Stagnation Circuit Breaker Detecting stagnation requires tracking a progress signal across iterations. Common approaches:"
+        },
+        {
+          "id": "s-19-7-1-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.7.1",
+            "pages": "391"
+          },
+          "text": "• 输出散列比较:如果最后3个Agent输出或文件状态相同，则循环",
+          "originalExcerpt": "• Output hash comparison: If the last 3 agent outputs or file states are identical, the loop"
+        },
+        {
+          "id": "s-19-7-1-b15",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.7.1",
+            "pages": "391"
+          },
+          "text": "重复错误: 相同的错误消息出现在 k 连续重复中。",
+          "originalExcerpt": "• Error repetition: The same error message appears in k consecutive iterations."
+        },
+        {
+          "id": "s-19-7-1-b16",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.7.1",
+            "pages": "391"
+          },
+          "text": "• Metric plateau：数值信号（如测试通过率或 validation loss）的改善幅度持续低于阈值 ε。",
+          "originalExcerpt": "• Metric plateau: A numerical signal (test pass rate, validation loss) has not improved by ϵ"
+        },
+        {
+          "id": "s-19-7-1-b18",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.7.1",
+            "pages": "391"
+          },
+          "text": "• Diff entropy:每次迭代的代码变化大小正在逐渐下降，走向0——Agent",
+          "originalExcerpt": "• Diff entropy: The size of code changes per iteration is decreasing toward zero—the agent"
+        },
+        {
+          "id": "s-19-7-1-b19",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.7.1",
+            "pages": "391"
+          },
+          "text": "正在逐渐缩小，不必要编辑。",
+          "originalExcerpt": "is making progressively smaller, inconsequential edits."
+        },
+        {
+          "id": "s-19-7-1-b20",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.7.1",
+            "pages": "391"
+          },
+          "text": "当发现停滞时，正确的动作是升级，而不是继续迭代。循环会将其状态和手控保存给人类或更高层次的管弦乐手。",
+          "originalExcerpt": "When stagnation is detected, the correct action is escalation, not continued iteration. The loop saves its state and hands control to a human or a higher-level orchestrator."
+        }
+      ]
+    },
+    {
+      "id": "s-19-7-2",
+      "number": "19.7.2",
+      "level": 2,
+      "enTitle": "The Exploration Problem",
+      "zhTitle": "The Exploration Problem",
+      "pages": "392",
+      "blocks": [
+        {
+          "id": "s-19-7-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.7.2",
+            "pages": "392"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.7.2「The Exploration Problem」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-19-7-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.7.2",
+            "pages": "392"
+          },
+          "text": "一种环形系统被困在当地的最小范围内，即重复同样的失败方法，但略有变化，这显示了人们熟悉的RL勘探-开发失败。",
+          "originalExcerpt": "A loop stuck in a local minimum—repeating the same failing approach with minor variations—is exhibiting the exploration–exploitation failure familiar from RL. Mechanisms to promote exploration within loops:"
+        },
+        {
+          "id": "s-19-7-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.7.2",
+            "pages": "392"
+          },
+          "text": "• 基于反射的探索:在K失败后，触发前作的反射步骤。",
+          "originalExcerpt": "• Reflection-based exploration: After k failed attempts, trigger a reflection step that ex-"
+        },
+        {
+          "id": "s-19-7-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.7.2",
+            "pages": "392"
+          },
+          "text": "合法地要求模型考虑根本不同的方法(PPO[319]中反义于py正化)。",
+          "originalExcerpt": "plicitly asks the model to consider fundamentally different approaches (analogous to entropy regularization in PPO [319])."
+        },
+        {
+          "id": "s-19-7-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.7.2",
+            "pages": "392"
+          },
+          "text": "• 温度升级:连续未能进入后，取样温度增加",
+          "originalExcerpt": "• Temperature escalation: Increase sampling temperature after consecutive failures to encour-"
+        },
+        {
+          "id": "s-19-7-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.7.2",
+            "pages": "392"
+          },
+          "text": "不同年龄的产出。",
+          "originalExcerpt": "age diverse outputs."
+        },
+        {
+          "id": "s-19-7-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.7.2",
+            "pages": "392"
+          },
+          "text": "• 战略记忆:记录不仅失败的行动，而且失败的战略。",
+          "originalExcerpt": "• Strategy memory: Record not just failed actions but failed strategies. “Approach A (modify"
+        },
+        {
+          "id": "s-19-7-2-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.7.2",
+            "pages": "392"
+          },
+          "text": "处理器)失败了三次，而是尝试了方法B(改写方案)。",
+          "originalExcerpt": "the handler) failed 3 times; try approach B (rewrite the schema) instead.”"
+        },
+        {
+          "id": "s-19-7-2-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.7.2",
+            "pages": "392"
+          },
+          "text": "• 新鲜的副剂:用干净的context window注入新的副剂——它不能掉进",
+          "originalExcerpt": "• Fresh sub-agent: Spawn a new sub-agent with a clean context window—it cannot fall into"
+        },
+        {
+          "id": "s-19-7-2-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.7.2",
+            "pages": "392"
+          },
+          "text": "累积的上下文可能已经创建的。",
+          "originalExcerpt": "the rut that the accumulated context may have created."
+        }
+      ]
+    },
+    {
+      "id": "s-19-8",
+      "number": "19.8",
+      "level": 1,
+      "enTitle": "Failure Modes and Anti-Patterns",
+      "zhTitle": "Failure Modes and Anti-Patterns",
+      "pages": "392",
+      "blocks": [
+        {
+          "id": "s-19-8-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.8",
+            "pages": "392"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.8「Failure Modes and Anti-Patterns」 时，把每个 failure mode 拆成触发条件、可观测信号、影响范围、缓解措施和剩余风险。原书给出的警告不是附录信息，而是决定系统是否能进入生产环境的设计约束。"
+        },
+        {
+          "id": "s-19-8-structure-note",
+          "type": "callout",
+          "origin": "source_definition",
+          "source": {
+            "chapter": 19,
+            "section": "19.8",
+            "pages": "392"
+          },
+          "title": "原书结构说明",
+          "text": "§19.8 在原书中是父级目录节，具体论证由紧随其后的子节展开。本站保留这一锚点和来源页码，以维持与原书目录的一一对应，不把目录标题扩写成不存在的正文。"
+        },
+        {
+          "id": "s-19-8-source-note",
+          "type": "callout",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 19,
+            "section": "19.8",
+            "pages": "392"
+          },
+          "text": "本节主要由公式、图表或代码构成，网页转写仍在人工核对中；当前状态不会标记为精读完成。"
+        }
+      ]
+    },
+    {
+      "id": "s-19-8-1",
+      "number": "19.8.1",
+      "level": 2,
+      "enTitle": "The Loopmaxxing Trap",
+      "zhTitle": "The Loopmaxxing Trap",
+      "pages": "392",
+      "blocks": [
+        {
+          "id": "s-19-8-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.8.1",
+            "pages": "392"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.8.1「The Loopmaxxing Trap」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-19-8-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.8.1",
+            "pages": "392"
+          },
+          "text": "“循环”——即通过足够迭代运行一个Agent最终会产生正确解决办法的假设——是循环工程相当于相信足够计算解决所有问题。它失败的原因与纯随机搜索失败的原因相同:没有梯度信号指向改进，单迭代不能优化。循环显示在:",
+          "originalExcerpt": "“Loopmaxxing”—the assumption that running an agent through enough iterations will eventually produce a correct solution—is the loop-engineering equivalent of believing that enough compute solves all problems. It fails for the same reason that pure random search fails: without a gradient signal pointing toward improvement, iteration alone is not optimization...."
+        },
+        {
+          "id": "s-19-8-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.8.1",
+            "pages": "392"
+          },
+          "text": "• 目标缺乏可核查的成功条件(“改进用户经验”)",
+          "originalExcerpt": "• The goal lacks a checkable success condition (“improve the user experience”)"
+        },
+        {
+          "id": "s-19-8-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.8.1",
+            "pages": "392"
+          },
+          "text": "• 核查信号太粗糙(在1000度测试的套房上通过/失败)",
+          "originalExcerpt": "• The verification signal is too coarse (binary pass/fail on a 1000-test suite provides no gradient"
+        },
+        {
+          "id": "s-19-8-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.8.1",
+            "pages": "392"
+          },
+          "text": "• Agent缺乏解决问题的能力，不论重复次数",
+          "originalExcerpt": "• The agent lacks the capability to solve the problem regardless of iteration count"
+        },
+        {
+          "id": "s-19-8-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.8.1",
+            "pages": "392"
+          },
+          "text": "解药认识到循环会扩大工程能力 — — 它们不会取代它。 目标不明确的循环会以极高的效率追求错误的东西。",
+          "originalExcerpt": "The antidote is recognizing that loops amplify engineering capability—they do not replace it. A loop with a poorly specified objective will pursue the wrong thing with great efficiency."
+        }
+      ]
+    },
+    {
+      "id": "s-19-8-2",
+      "number": "19.8.2",
+      "level": 2,
+      "enTitle": "Comprehension Debt",
+      "zhTitle": "Comprehension Debt",
+      "pages": "392",
+      "blocks": [
+        {
+          "id": "s-19-8-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.8.2",
+            "pages": "392"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.8.2「Comprehension Debt」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-19-8-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.8.2",
+            "pages": "392"
+          },
+          "text": "当一个循环比工程团队能够审查的更快地修改代码时，存储库中存在的东西和人类所理解的东西之间的差距就会扩大——综合债务[279]。与技术债务(代号)不同，理解债务存在于团队的头脑中。它使危机变得沉默，直到迫使某人调试代码，其设计决定，结构依赖性，和边缘案例完全没有调试。循环既能扩展生产力又能扩展风险， 设计良好的循环可以加速工程师深知的工作。 用于避免理解工作的循环会形成一种加速的不解循环。同样的机制，相反的结果。 区别在于人类是留在工程师身边，还是仅仅成为“走”的施压者。",
+          "originalExcerpt": "When a loop modifies code faster than the engineering team can review it, the gap between what exists in the repository and what humans understand grows—comprehension debt [279]. Unlike technical debt (which the code carries), comprehension debt lives in the team’s heads. It compounds silently until a crisis forces someone to debug code whose design decision..."
+        }
+      ]
+    },
+    {
+      "id": "s-19-8-3",
+      "number": "19.8.3",
+      "level": 2,
+      "enTitle": "Reward Hacking in Loops",
+      "zhTitle": "Reward Hacking in Loops",
+      "pages": "393",
+      "blocks": [
+        {
+          "id": "s-19-8-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.8.3",
+            "pages": "393"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.8.3「Reward Hacking in Loops」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-19-8-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.8.3",
+            "pages": "393"
+          },
+          "text": "与RLAgent利用奖励的错位来达到高回报而不达到预期目标一样，循环Agent也利用核查漏洞:",
+          "originalExcerpt": "Just as RL agents exploit reward misspecification to achieve high reward without achieving the intended goal, loop agents exploit verification gaps:"
+        },
+        {
+          "id": "s-19-8-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.8.3",
+            "pages": "393"
+          },
+          "text": "· 测试删除:最简单的reward hacking——删除失败的测试，使CI变得绿色。",
+          "originalExcerpt": "• Test deletion: The simplest reward hack—delete the failing test to make CI green."
+        },
+        {
+          "id": "s-19-8-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.8.3",
+            "pages": "393"
+          },
+          "text": "• 计量游戏:通过对验证成套设备的记忆而不是通过对验证设备的记忆，与验证损失的判断过度匹配",
+          "originalExcerpt": "• Metric gaming: Overfitting to validation loss by memorizing the validation set rather than"
+        },
+        {
+          "id": "s-19-8-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.8.3",
+            "pages": "393"
+          },
+          "text": "• 规格缩小:解决一个更容易的、偶然出现的问题",
+          "originalExcerpt": "• Specification narrowing: Solving an easier version of the stated problem that happens to"
+        },
+        {
+          "id": "s-19-8-3-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.8.3",
+            "pages": "393"
+          },
+          "text": "检查一下",
+          "originalExcerpt": "pass the checks."
+        },
+        {
+          "id": "s-19-8-3-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.8.3",
+            "pages": "393"
+          },
+          "text": "• 输出遮掩:压制错误输出而不是固定根本原因。",
+          "originalExcerpt": "• Output masking: Suppressing error output rather than fixing the underlying cause."
+        },
+        {
+          "id": "s-19-8-3-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.8.3",
+            "pages": "393"
+          },
+          "text": "防守与RLHF相同:设计奖励功能(核查标准)，难以游戏。多重独立检查——测试和类型检查和林化以及审查子Agent——创造了比任何单一信号都难利用的核查表面。",
+          "originalExcerpt": "The defense is the same as in RLHF: design reward functions (verification criteria) that are hard to game. Multiple independent checks—tests and type checking and linting and a review sub-agent—create a verification surface that is much harder to exploit than any single signal."
+        }
+      ]
+    },
+    {
+      "id": "s-19-8-4",
+      "number": "19.8.4",
+      "level": 2,
+      "enTitle": "Context Degradation",
+      "zhTitle": "Context Degradation",
+      "pages": "393",
+      "blocks": [
+        {
+          "id": "s-19-8-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.8.4",
+            "pages": "393"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.8.4「Context Degradation」 时，沿信息生命周期追踪：内容何时写入、采用什么表示、怎样检索、如何进入 context、何时更新或删除。保存更多信息并不自动带来更好结果，选择机制和冲突处理同样重要。"
+        },
+        {
+          "id": "s-19-8-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.8.4",
+            "pages": "393"
+          },
+          "text": "在长期循环中， context window会填充每个步骤的历史——思考，工具输出，错误，补丁。随着窗口能力的接近，模型对相关信息的关注度下降( \" 中间丢失 \" 现象[226])。",
+          "originalExcerpt": "In long-running loops, the context window fills with the history of every step—thoughts, tool outputs, errors, patches. As the window approaches capacity, the model’s attention to relevant information degrades (the “lost in the middle” phenomenon [226]). Symptoms include:"
+        },
+        {
+          "id": "s-19-8-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.8.4",
+            "pages": "393"
+          },
+          "text": "• Agent重新尝试其已经尝试并明确指出为失败的办法",
+          "originalExcerpt": "• The agent re-attempts approaches it has already tried and explicitly noted as failures"
+        },
+        {
+          "id": "s-19-8-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.8.4",
+            "pages": "393"
+          },
+          "text": "• tool calling变得不太精确——Agent忘记了它已经读过哪些文件",
+          "originalExcerpt": "• Tool calls become less precise—the agent forgets which files it has already read"
+        },
+        {
+          "id": "s-19-8-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.8.4",
+            "pages": "393"
+          },
+          "text": "• 反应越来越短，而且越来越不连贯，因为模式在参与的道路上挣扎不已",
+          "originalExcerpt": "• Responses become shorter and less coherent as the model struggles to attend across a bloated"
+        },
+        {
+          "id": "s-19-8-4-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.8.4",
+            "pages": "393"
+          },
+          "text": "反措施:",
+          "originalExcerpt": "Countermeasures:"
+        },
+        {
+          "id": "s-19-8-4-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.8.4",
+            "pages": "393"
+          },
+          "text": "1. 侵略性紧凑:每走一个K步，将已完成的工作归纳为短暂状态",
+          "originalExcerpt": "1. Aggressive compaction: After every k steps, summarize completed work into a brief state"
+        },
+        {
+          "id": "s-19-8-4-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.8.4",
+            "pages": "393"
+          },
+          "text": "说明和抛弃原始记录。",
+          "originalExcerpt": "description and discard raw transcripts."
+        },
+        {
+          "id": "s-19-8-4-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.8.4",
+            "pages": "393"
+          },
+          "text": "2. 外部抓图:将中间结果写入Agent按需读取的文件",
+          "originalExcerpt": "2. External scratchpad: Write intermediate results to files that the agent reads on-demand"
+        },
+        {
+          "id": "s-19-8-4-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.8.4",
+            "pages": "393"
+          },
+          "text": "而不是把一切都放在背景中。",
+          "originalExcerpt": "rather than keeping everything in context."
+        },
+        {
+          "id": "s-19-8-4-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.8.4",
+            "pages": "393"
+          },
+          "text": "3. 子Agent隔离:在新context window中，只返回其",
+          "originalExcerpt": "3. Sub-agent isolation: Spawn subtasks in fresh context windows that return only their"
+        },
+        {
+          "id": "s-19-8-4-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.8.4",
+            "pages": "393"
+          },
+          "text": "而不是他们完全的推理线索",
+          "originalExcerpt": "conclusion—not their full reasoning trace."
+        },
+        {
+          "id": "s-19-8-4-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.8.4",
+            "pages": "393"
+          },
+          "text": "4. 历史的滑动窗口:只保留最后的W步骤;压缩一切",
+          "originalExcerpt": "4. Sliding window over history: Keep only the last w steps in full detail; compress everything"
+        },
+        {
+          "id": "s-19-8-4-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.8.4",
+            "pages": "393"
+          },
+          "text": "更早的，一个简约的块。",
+          "originalExcerpt": "earlier into a summary block."
+        }
+      ]
+    },
+    {
+      "id": "s-19-9",
+      "number": "19.9",
+      "level": 1,
+      "enTitle": "Production Loop Architectures",
+      "zhTitle": "Production Loop Architectures",
+      "pages": "393",
+      "blocks": [
+        {
+          "id": "s-19-9-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.9",
+            "pages": "393"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.9「Production Loop Architectures」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-19-9-structure-note",
+          "type": "callout",
+          "origin": "source_definition",
+          "source": {
+            "chapter": 19,
+            "section": "19.9",
+            "pages": "393"
+          },
+          "title": "原书结构说明",
+          "text": "§19.9 在原书中是父级目录节，具体论证由紧随其后的子节展开。本站保留这一锚点和来源页码，以维持与原书目录的一一对应，不把目录标题扩写成不存在的正文。"
+        },
+        {
+          "id": "s-19-9-source-note",
+          "type": "callout",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 19,
+            "section": "19.9",
+            "pages": "393"
+          },
+          "text": "本节主要由公式、图表或代码构成，网页转写仍在人工核对中；当前状态不会标记为精读完成。"
+        }
+      ]
+    },
+    {
+      "id": "s-19-9-1",
+      "number": "19.9.1",
+      "level": 2,
+      "enTitle": "The Nightly Maintenance Loop",
+      "zhTitle": "The Nightly Maintenance Loop",
+      "pages": "393-394",
+      "blocks": [
+        {
+          "id": "s-19-9-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.9.1",
+            "pages": "393-394"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.9.1「The Nightly Maintenance Loop」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-19-9-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.9.1",
+            "pages": "393"
+          },
+          "text": "最直接实用的循环模式:一个运行过夜的预定自动化，在团队睡眠时处理累积的工作。 Archive: Nightly CI Trage and Fix Loop Trigger: Cron 调度(例如， UTC每日02:00)。第一阶段——三重奏(单调Agent，只读):",
+          "originalExcerpt": "The most immediately practical loop pattern: a scheduled automation that runs overnight, processing accumulated work while the team sleeps. Architecture: Nightly CI Triage and Fix Loop Trigger: Cron schedule (e.g., 02:00 UTC daily). Phase 1 — Triage (single agent, read-only):"
+        },
+        {
+          "id": "s-19-9-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.9.1",
+            "pages": "393"
+          },
+          "text": "• 阅读昨天的CI失败、新开的问和最近的承诺",
+          "originalExcerpt": "• Read yesterday’s CI failures, newly opened issues, and recent commits"
+        },
+        {
+          "id": "s-19-9-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.9.1",
+            "pages": "394"
+          },
+          "text": "• 分类每项发现:自动固定/需要-人/假阳性",
+          "originalExcerpt": "• Classify each finding: auto-fixable / needs-human / false-positive"
+        },
+        {
+          "id": "s-19-9-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.9.1",
+            "pages": "394"
+          },
+          "text": "• 将发现写到州档案;将虚假的阳性资料归档",
+          "originalExcerpt": "• Write findings to a state file; archive false positives"
+        },
+        {
+          "id": "s-19-9-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.9.1",
+            "pages": "394"
+          },
+          "text": "第二阶段——固定(平行副Agent，孤立的工作树):",
+          "originalExcerpt": "Phase 2 — Fix (parallel sub-agents, isolated worktrees):"
+        },
+        {
+          "id": "s-19-9-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.9.1",
+            "pages": "394"
+          },
+          "text": "• 对于每个自动固定问题，在孤立的工作树上生产一个子剂",
+          "originalExcerpt": "• For each auto-fixable issue, spawn a sub-agent in an isolated worktree"
+        },
+        {
+          "id": "s-19-9-1-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.9.1",
+            "pages": "394"
+          },
+          "text": "• 每个副Agent都运行一个验证环(固定 ) 测试 —— 重试)",
+          "originalExcerpt": "• Each sub-agent runs a validation loop (fix → test → retry)"
+        },
+        {
+          "id": "s-19-9-1-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.9.1",
+            "pages": "394"
+          },
+          "text": "• 预算:每期20步或15分钟",
+          "originalExcerpt": "• Budget: 20 steps or 15 minutes per issue"
+        },
+        {
+          "id": "s-19-9-1-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.9.1",
+            "pages": "394"
+          },
+          "text": "第三阶段——审查(独立核查剂):",
+          "originalExcerpt": "Phase 3 — Review (separate verification agent):"
+        },
+        {
+          "id": "s-19-9-1-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.9.1",
+            "pages": "394"
+          },
+          "text": "• 由审查副Agent根据项目编码标准评估每一项拟议固定办法",
+          "originalExcerpt": "• A review sub-agent evaluates each proposed fix against project coding standards"
+        },
+        {
+          "id": "s-19-9-1-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.9.1",
+            "pages": "394"
+          },
+          "text": "• 核准的修正:开放PR草案、链接发放、通过连接器通知频道",
+          "originalExcerpt": "• Approved fixes: open draft PR, link to issue, notify channel via connector"
+        },
+        {
+          "id": "s-19-9-1-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.9.1",
+            "pages": "394"
+          },
+          "text": "• 拒绝修正:拒绝理由，升级为人分解收件箱",
+          "originalExcerpt": "• Rejected fixes: log rejection reason, escalate to human triage inbox"
+        },
+        {
+          "id": "s-19-9-1-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.9.1",
+            "pages": "394"
+          },
+          "text": "持续:国家档案(承诺重新发布)记录所有行动，",
+          "originalExcerpt": "Persistence: State file (committed to repo) records all actions taken, enabling the next night’s run to skip resolved issues and pick up where failures left off."
+        }
+      ]
+    },
+    {
+      "id": "s-19-9-2",
+      "number": "19.9.2",
+      "level": 2,
+      "enTitle": "The Continuous Experimentation Loop",
+      "zhTitle": "The Continuous Experimentation Loop",
+      "pages": "394",
+      "blocks": [
+        {
+          "id": "s-19-9-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.9.2",
+            "pages": "394"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.9.2「The Continuous Experimentation Loop」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-19-9-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.9.2",
+            "pages": "394"
+          },
+          "text": "在AutoRefearch(179)的启发下，这个模式将循环应用于科学发现:修改训练脚本，运行一个有时间限制的实验，评估结果，以及决定是否执行或回滚。 AutoRefear Loop Story",
+          "originalExcerpt": "Inspired by AutoResearch [179], this pattern applies the loop to scientific discovery: modify a training script, run a time-bounded experiment, evaluate the result, and decide whether to commit or rollback. AutoResearch Loop Structure"
+        },
+        {
+          "id": "s-19-9-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.9.2",
+            "pages": "394"
+          },
+          "text": "1. 假设生成:Agent提议修改(全构，架构)",
+          "originalExcerpt": "1. Hypothesis generation: Agent proposes a modification (hyperparameter, architecture"
+        },
+        {
+          "id": "s-19-9-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.9.2",
+            "pages": "394"
+          },
+          "text": "变化、数据扩充)",
+          "originalExcerpt": "change, data augmentation)"
+        },
+        {
+          "id": "s-19-9-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.9.2",
+            "pages": "394"
+          },
+          "text": "2. 实施:Agent修改培训内容",
+          "originalExcerpt": "2. Implementation: Agent modifies the training script"
+        },
+        {
+          "id": "s-19-9-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.9.2",
+            "pages": "394"
+          },
+          "text": "3. 被捆绑的处决:跑得正好是T分钟(硬墙-小时盖)",
+          "originalExcerpt": "3. Bounded execution: Run for exactly T minutes (hard wall-clock cap)"
+        },
+        {
+          "id": "s-19-9-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.9.2",
+            "pages": "394"
+          },
+          "text": "4. 评估:从产出中读取验证度量度",
+          "originalExcerpt": "4. Evaluation: Read validation metric from output"
+        },
+        {
+          "id": "s-19-9-2-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.9.2",
+            "pages": "394"
+          },
+          "text": "5. 决定:如果改进了尺度 − 承诺;如果退化 → 承诺回滚",
+          "originalExcerpt": "5. Decision: If metric improved → git commit; if degraded → git rollback"
+        },
+        {
+          "id": "s-19-9-2-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.9.2",
+            "pages": "394"
+          },
+          "text": "6。日志:记录实验日志中的假设、结果和推理",
+          "originalExcerpt": "6. Log: Record hypothesis, result, and reasoning in experiment log"
+        },
+        {
+          "id": "s-19-9-2-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.9.2",
+            "pages": "394"
+          },
+          "text": "7。重复:生成下一个假设，以累积实验历史为参考",
+          "originalExcerpt": "7. Repeat: Generate next hypothesis informed by cumulative experiment history"
+        },
+        {
+          "id": "s-19-9-2-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.9.2",
+            "pages": "394"
+          },
+          "text": "密钥约束 : 限定的执行时间防止任何单个失败的实验消耗过量计算。 基于 git 的 承诺/ 滚回可以确保代码库只向前移动。研究圈中局部最小问题研究环路易被保守探索。在面临难以优化的景观时， Agent往往提出最小的改变——调整0.001的学习率——而这种改变在名义上没有真正进展的情况下就会产生改善。这正是循环层面的RL探索问题。 反措施包括定期的“大胆假设”提示、尝试新颖方法的多样化奖金以及运行之间的人为注入研究方向。",
+          "originalExcerpt": "Key constraint: The bounded execution time prevents any single failed experiment from consuming excessive compute. The git-based commit/rollback ensures the codebase only moves forward. The Local Minimum Problem in Research Loops Research loops are susceptible to conservative exploration. When facing difficult optimization landscapes, agents tend to propose ..."
+        }
+      ]
+    },
+    {
+      "id": "s-19-9-3",
+      "number": "19.9.3",
+      "level": 2,
+      "enTitle": "The Always-On Orchestrator",
+      "zhTitle": "The Always-On Orchestrator",
+      "pages": "394-395",
+      "blocks": [
+        {
+          "id": "s-19-9-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.9.3",
+            "pages": "394-395"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.9.3「The Always-On Orchestrator」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-19-9-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.9.3",
+            "pages": "394"
+          },
+          "text": "OpenClaw [338] 等系统实施一个持久的“心跳”机制:一个在固定周期运行、评估存储状态、监督子厕所和调度工作的元Agent。",
+          "originalExcerpt": "Systems like OpenClaw [338] implement a persistent “heartbeat” mechanism: a meta-agent that runs on a fixed cycle, evaluates repository state, supervises sub-loops, and dispatches work. Unlike the"
+        },
+        {
+          "id": "s-19-9-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.9.3",
+            "pages": "395"
+          },
+          "text": "经常在现场指挥的夜行模式保持持续的意识，并在几分钟内对事件(新犯、犯罪调查失败、新问题)作出反应。架构引入了具有崩溃恢复功能的持久状态数据库——如果指挥器在中周期失败，它会从最后的检查状态恢复，而不是从零开始重启。分舱作为独立任务跟踪，有其自身的终止条件，管弦乐团监测这些任务是否停滞、预算耗尽或冲突。",
+          "originalExcerpt": "nightly pattern which fires once per day, the always-on orchestrator maintains continuous awareness and responds to events (new commits, failing CI, incoming issues) within minutes. The architecture introduces a durable state database with crash recovery—if the orchestrator fails mid-cycle, it resumes from its last checkpointed state rather than restarting f..."
+        }
+      ]
+    },
+    {
+      "id": "s-19-10",
+      "number": "19.10",
+      "level": 1,
+      "enTitle": "Context Management in Long-Running Loops",
+      "zhTitle": "Context Management in Long-Running Loops",
+      "pages": "395",
+      "blocks": [
+        {
+          "id": "s-19-10-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.10",
+            "pages": "395"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.10「Context Management in Long-Running Loops」 时，沿信息生命周期追踪：内容何时写入、采用什么表示、怎样检索、如何进入 context、何时更新或删除。保存更多信息并不自动带来更好结果，选择机制和冲突处理同样重要。"
+        },
+        {
+          "id": "s-19-10-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.10",
+            "pages": "395"
+          },
+          "text": "长跑循环面临根本的紧张:context window是Agent的工作记忆，但具有固定的能力。每个步骤都附加新信息(想法，观察，错误)，如果没有主动管理，窗口就会填充，质量会下降。本节介绍在许多重复中维持环境健康的工程技术。",
+          "originalExcerpt": "Long-running loops face a fundamental tension: the context window is the agent’s working memory, but it has a fixed capacity. Every step appends new information (thoughts, observations, errors), and without active management the window fills and quality degrades. This section presents the engineering techniques for maintaining context health across many iter..."
+        }
+      ]
+    },
+    {
+      "id": "s-19-10-1",
+      "number": "19.10.1",
+      "level": 2,
+      "enTitle": "Compaction Strategies",
+      "zhTitle": "Compaction Strategies",
+      "pages": "395",
+      "blocks": [
+        {
+          "id": "s-19-10-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.10.1",
+            "pages": "395"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.10.1「Compaction Strategies」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-19-10-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.10.1",
+            "pages": "395"
+          },
+          "text": "表19.3: 长期循环的环境压缩策略。",
+          "originalExcerpt": "Table 19.3: Context compaction strategies for long-running loops."
+        },
+        {
+          "id": "s-19-10-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.10.1",
+            "pages": "395"
+          },
+          "text": "战略机制 权衡定期汇总每千步，替换原失速;可能丢弃日后所需的细节，并使用简易滑动窗口 保持最后的W步; 审慎有偏见;可能丢失早期上下文， 总结早先重要加权保留步骤， 更改了要求定义“ 重要” 状态; 将外部内存的详情丢弃到文件; 只保留要求明确的回读; 保存。添加背景中的参考文献 tency 子Agent隔离 新的环境下运行的子任务; 产卵的间接头; 协调返回结论只成本",
+          "originalExcerpt": "Strategy Mechanism Trade-off Periodic summarization Every k steps, replace raw his- Lossy; may discard details needed later tory with a summary Sliding window Keep last w steps verbatim; Recency-biased; may lose early context summarize earlier Importance-weighted Retain steps that changed Requires defining “importance” state; discard no-ops External memory W..."
+        },
+        {
+          "id": "s-19-10-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.10.1",
+            "pages": "395"
+          },
+          "text": "最佳策略取决于任务。 对于调试循环来说，滑动窗口效果良好 — — 最近的错误最为相关。 对于研究循环来说，重要加权保留保留保留在许多迭代中保留了关键的实验结果。对于复杂的多文件重构，外部内存(写一个进度文件，总结迄今为止的所有变化)可以防止Agent器丢失自己修改的轨道。",
+          "originalExcerpt": "The optimal strategy depends on the task. For debugging loops, a sliding window works well— recent errors are most relevant. For research loops, importance-weighted retention preserves key experimental results across many iterations. For complex multi-file refactoring, external memory (writing a progress file that summarizes all changes so far) prevents the ..."
+        }
+      ]
+    },
+    {
+      "id": "s-19-10-2",
+      "number": "19.10.2",
+      "level": 2,
+      "enTitle": "The Context Budget",
+      "zhTitle": "The Context Budget",
+      "pages": "395",
+      "blocks": [
+        {
+          "id": "s-19-10-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.10.2",
+            "pages": "395"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.10.2「The Context Budget」 时，沿信息生命周期追踪：内容何时写入、采用什么表示、怎样检索、如何进入 context、何时更新或删除。保存更多信息并不自动带来更好结果，选择机制和冲突处理同样重要。"
+        },
+        {
+          "id": "s-19-10-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.10.2",
+            "pages": "395"
+          },
+          "text": "实际的heuristic:为当前步骤的推理和生成保留20-30%的context window。 这意味着活跃的历史不应超过70-80 %。 未来，我们将会在20世纪80年代的世纪中找到一个新的未来。当接近这一阈值时，在下次重迭之前触发收缩，而不是在模型已经产生退化的输出之后。内容=128 000# 符号 R E S E R V E D FO ER E RA T IO N=0.25 *背景 CAPATION activity Budget = CATIONT CAPATION - R E SE RV E D F OR G E NE R AT IO N",
+          "originalExcerpt": "A practical heuristic: reserve 20–30% of the context window for the current step’s reasoning and generation. This means active history should not exceed 70–80% of capacity. When this threshold is approached, trigger compaction before the next iteration—not after the model has already produced degraded output. CONTEXT_CAPACITY = 128 _000 # tokens R E S E R V ..."
+        },
+        {
+          "id": "s-19-10-2-b2",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.10.2",
+            "pages": "395"
+          },
+          "language": "python",
+          "code": "def should_compact ( state : LoopState ) -> bool : return state . token_count > ACTIVE_BUDGET * 0.85",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        }
+      ]
+    },
+    {
+      "id": "s-19-11",
+      "number": "19.11",
+      "level": 1,
+      "enTitle": "When Not to Use Loops",
+      "zhTitle": "When Not to Use Loops",
+      "pages": "395-396",
+      "blocks": [
+        {
+          "id": "s-19-11-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.11",
+            "pages": "395-396"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.11「When Not to Use Loops」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-19-11-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.11",
+            "pages": "395"
+          },
+          "text": "循环工程并非普遍适用。它增加了复杂、成本和故障模式，在简单方法足够时，这些模式是毫无道理的。在下列情况下，更倾向于直接提示或简单的工作流程:",
+          "originalExcerpt": "Loop engineering is not universally applicable. It adds complexity, cost, and failure modes that are unjustified when simpler approaches suffice. Prefer direct prompting or simple workflows when:"
+        },
+        {
+          "id": "s-19-11-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.11",
+            "pages": "396"
+          },
+          "text": "• 任务为单转:精心设计的瞬间在最短的一枪中得出正确的答案",
+          "originalExcerpt": "• The task is single-turn: A well-crafted prompt produces the correct answer in one shot most"
+        },
+        {
+          "id": "s-19-11-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.11",
+            "pages": "396"
+          },
+          "text": "添加环路可带来边际质量改善，成本高昂。",
+          "originalExcerpt": "of the time. Adding a loop provides marginal quality improvement at significant cost."
+        },
+        {
+          "id": "s-19-11-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.11",
+            "pages": "396"
+          },
+          "text": "• 目标缺乏可核查的条件:“使守则更好”没有客观的停止",
+          "originalExcerpt": "• The goal lacks a checkable condition: “Make the code better” has no objective stopping"
+        },
+        {
+          "id": "s-19-11-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.11",
+            "pages": "396"
+          },
+          "text": "点。循环要么永远运行，要么任意停止。",
+          "originalExcerpt": "point. The loop will either run forever or stop arbitrarily."
+        },
+        {
+          "id": "s-19-11-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.11",
+            "pages": "396"
+          },
+          "text": "• 人类互动是廉价的:如果开发者积极工作，并能提供反馈",
+          "originalExcerpt": "• Human interaction is cheap: If a developer is actively working and can provide feedback in"
+        },
+        {
+          "id": "s-19-11-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.11",
+            "pages": "396"
+          },
+          "text": "实时，交互聊天模式比工程环路更快。",
+          "originalExcerpt": "real-time, the interactive chat modality is faster than engineering a loop."
+        },
+        {
+          "id": "s-19-11-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.11",
+            "pages": "396"
+          },
+          "text": "· 任务超过模型能力:如果Agent不能原则上解决问题——",
+          "originalExcerpt": "• The task exceeds model capability: If the agent cannot solve the problem in principle—"
+        },
+        {
+          "id": "s-19-11-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.11",
+            "pages": "396"
+          },
+          "text": "重复的计算是没有的，循环只是烧掉象征物。 任何重复的尝试都无法弥补基本的能力差距。 重复的计算是完全相同的。",
+          "originalExcerpt": "regardless of iteration count—a loop merely burns tokens. No amount of retry fixes a fundamental capability gap."
+        },
+        {
+          "id": "s-19-11-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.11",
+            "pages": "396"
+          },
+          "text": "• 核查是不可能的:没有反馈信号，循环就没有梯度。它会退化。",
+          "originalExcerpt": "• Verification is impossible: Without a feedback signal, the loop has no gradient. It degenerates"
+        },
+        {
+          "id": "s-19-11-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.11",
+            "pages": "396"
+          },
+          "text": "输入随机搜索。",
+          "originalExcerpt": "into random search."
+        },
+        {
+          "id": "s-19-11-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.11",
+            "pages": "396"
+          },
+          "text": "简单化原则 第20章中阐述的同样的设计原则适用:从最简单的可行方法开始，只有当有证据表明迭代在实质上改善了结果时，才会增加循环的复杂性。解决问题的快速链总是比可能存在的循环要好。",
+          "originalExcerpt": "The Simplicity Principle The same design principle articulated in Chapter 20 applies: start with the simplest approach that works, and add loop complexity only when you have evidence that iteration materially improves outcomes. A prompt chain that solves the problem is always preferable to a loop that might."
+        }
+      ]
+    },
+    {
+      "id": "s-19-12",
+      "number": "19.12",
+      "level": 1,
+      "enTitle": "The Economics of Loops",
+      "zhTitle": "The Economics of Loops",
+      "pages": "396",
+      "blocks": [
+        {
+          "id": "s-19-12-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.12",
+            "pages": "396"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.12「The Economics of Loops」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-19-12-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.12",
+            "pages": "396"
+          },
+          "text": "循环交易计算质量( 键盘、 墙点时间)。 理解这种权衡对生产部署至关重要。 循环成本模型用于一个循环， 平均重迭， 每个循环按每件硬币的价格计算 T 令牌 :",
+          "originalExcerpt": "Loops trade compute (tokens, wall-clock time) for quality. Understanding this trade-off is essential for production deployment. Loop Cost Model For a loop with average N iterations, each consuming T tokens at price p per token:"
+        },
+        {
+          "id": "s-19-12-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.12",
+            "pages": "396"
+          },
+          "text": "Costloop = N = T + Costtools + Costvization 与 快速缓存(即系统快速和早期上下文缓存并按降低速率 pc < p) :",
+          "originalExcerpt": "Costloop = N · T · p + Costtools + Costverification With prompt caching (where the system prompt and early context are cached and charged at reduced rate pc < p):"
+        },
+        {
+          "id": "s-19-12-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.12",
+            "pages": "396"
+          },
+          "text": "快速缓存对循环特别有价值，因为目标规格、技能内容和早期历史在反复循环中保持不变——通常每个呼叫的60-80%的上下文都可以缓存。经济决策:循环产出的价值(节省的发展时间、一夜之间生产率、质量提高)是否大于其象征性成本?对于一个以0.02/透视率运行20次循环的循环，如果节省30分钟开发时间，总成本为0.40美元-三元。 但没有预算上限的运行循环可以在一夜中消耗数百美元。",
+          "originalExcerpt": "Costcached = Tnew · p + Tcached · pc + (tools + verification) Prompt caching is particularly valuable for loops because the goal specification, skill content, and early history remain constant across iterations—often 60–80% of each call’s context is cacheable. The economic decision: is the value of the loop’s output (developer time saved, overnight productiv..."
+        }
+      ]
+    },
+    {
+      "id": "s-19-13",
+      "number": "19.13",
+      "level": 1,
+      "enTitle": "Historical Context and Related Work",
+      "zhTitle": "Historical Context and Related Work",
+      "pages": "396-397",
+      "blocks": [
+        {
+          "id": "s-19-13-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.13",
+            "pages": "396-397"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.13「Historical Context and Related Work」 时，沿信息生命周期追踪：内容何时写入、采用什么表示、怎样检索、如何进入 context、何时更新或删除。保存更多信息并不自动带来更好结果，选择机制和冲突处理同样重要。"
+        },
+        {
+          "id": "s-19-13-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.13",
+            "pages": "396"
+          },
+          "text": "循环工程并非从真空中产生，它产生了一个研究系列，持续了几年:",
+          "originalExcerpt": "Loop engineering did not emerge from a vacuum. It productized a research lineage spanning several years:"
+        },
+        {
+          "id": "s-19-13-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.13",
+            "pages": "396"
+          },
+          "text": "1. ReAct(2022)[408]:建立所有现代的互不关联的推理与行动模式",
+          "originalExcerpt": "1. ReAct (2022) [408]: Established the interleaved reasoning-and-action pattern that all modern"
+        },
+        {
+          "id": "s-19-13-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.13",
+            "pages": "396"
+          },
+          "text": "2. 折射(2023)[326]:添加的偶联记忆和自我批评，表明物剂",
+          "originalExcerpt": "2. Reflexion (2023) [326]: Added episodic memory and self-critique, demonstrating that agents"
+        },
+        {
+          "id": "s-19-13-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.13",
+            "pages": "396"
+          },
+          "text": "可以在不更新重量的情况下，在各种尝试中改进。",
+          "originalExcerpt": "can improve across attempts without weight updates."
+        },
+        {
+          "id": "s-19-13-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.13",
+            "pages": "396"
+          },
+          "text": "3. AutoGPT(2023)[330]:第一个广泛使用的自主Agent环路，显示两者兼有",
+          "originalExcerpt": "3. AutoGPT (2023) [330]: The first widely-used autonomous agent loop, demonstrating both"
+        },
+        {
+          "id": "s-19-13-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.13",
+            "pages": "396"
+          },
+          "text": "操作中未处理的潜在和陷阱(未执行、费用高昂、产出不可靠)。",
+          "originalExcerpt": "the potential and the pitfalls (runaway execution, high cost, unreliable output) of unattended operation."
+        },
+        {
+          "id": "s-19-13-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.13",
+            "pages": "397"
+          },
+          "text": "4. 自评(2023)[246]:以迭代精细化形式正式化了生成-当时-关键循环。",
+          "originalExcerpt": "4. Self-Refine (2023) [246]: Formalized the generate-then-critique loop with iterative refinement."
+        },
+        {
+          "id": "s-19-13-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.13",
+            "pages": "397"
+          },
+          "text": "5. \" Ralph rops \" (2025):以一行字为主的非正规纸条脚本，简单运行编码Agent",
+          "originalExcerpt": "5. “Ralph loops” (2025): Informal bash-based one-liner scripts that ran coding agents in simple"
+        },
+        {
+          "id": "s-19-13-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.13",
+            "pages": "397"
+          },
+          "text": "重试环——产化环状原始物的前体。",
+          "originalExcerpt": "retry loops—the precursor to productized loop primitives."
+        },
+        {
+          "id": "s-19-13-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.13",
+            "pages": "397"
+          },
+          "text": "6。产品化环路(2026):主要平台(Codex、Claude代码)嵌入式/目标",
+          "originalExcerpt": "6. Productized loops (2026): Major platforms (Codex, Claude Code) embedded /goal and"
+        },
+        {
+          "id": "s-19-13-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.13",
+            "pages": "397"
+          },
+          "text": "/loop直接命令，使复杂的循环模式在没有定制基础设施的情况下可以访问[279]。",
+          "originalExcerpt": "/loop commands directly, making sophisticated loop patterns accessible without custom infrastructure [279]."
+        },
+        {
+          "id": "s-19-13-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.13",
+            "pages": "397"
+          },
+          "text": "从AutoGPT到现代循环工程的发展表明一种成熟:早期系统缺乏终止逻辑、核查和成本控制——它们都是没有工程的循环。2026年的正规化增加了使无人照管业务安全性的纪律:明确终止、确定性核查、预算限制和制造者-检查者分离。",
+          "originalExcerpt": "The progression from AutoGPT to modern loop engineering illustrates a maturation: early systems lacked termination logic, verification, and cost controls—they were loops without engineering. The 2026 formalization added the discipline that makes unattended operation safe: explicit termination, deterministic verification, budget constraints, and maker–checker..."
+        }
+      ]
+    },
+    {
+      "id": "s-19-14",
+      "number": "19.14",
+      "level": 1,
+      "enTitle": "Summary",
+      "zhTitle": "Summary",
+      "pages": "397",
+      "blocks": [
+        {
+          "id": "s-19-14-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 19,
+            "section": "19.14",
+            "pages": "397"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §19.14「Summary」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-19-14-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.14",
+            "pages": "397"
+          },
+          "text": "循环工程代表了当前人类与Agent合作的前沿:从参与对话转向设计自主进行这些对话的系统。",
+          "originalExcerpt": "Loop engineering represents the current frontier of human–agent collaboration: the shift from participating in conversations to designing systems that have those conversations autonomously. Its key principles:"
+        },
+        {
+          "id": "s-19-14-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.14",
+            "pages": "397"
+          },
+          "text": "1. 循环是推断时间RL——状态、行动、奖励和政策更新(通过上下文)——运作",
+          "originalExcerpt": "1. A loop is inference-time RL—state, action, reward, and policy update (via context)—operating"
+        },
+        {
+          "id": "s-19-14-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.14",
+            "pages": "397"
+          },
+          "text": "而不带梯度下降。",
+          "originalExcerpt": "without gradient descent."
+        },
+        {
+          "id": "s-19-14-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.14",
+            "pages": "397"
+          },
+          "text": "2. 核查是奖励信号，质量决定了趋同。",
+          "originalExcerpt": "2. Verification is the reward signal. Its quality determines convergence. Prefer deterministic"
+        },
+        {
+          "id": "s-19-14-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.14",
+            "pages": "397"
+          },
+          "text": "检查; 将制作者与检查者分开。",
+          "originalExcerpt": "checks; separate the maker from the checker."
+        },
+        {
+          "id": "s-19-14-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.14",
+            "pages": "397"
+          },
+          "text": "3. 终止是设计的一半，每圈都需要硬顶，预算，没有进展",
+          "originalExcerpt": "3. Termination is half the design. Every loop needs a hard cap, a budget, and no-progress"
+        },
+        {
+          "id": "s-19-14-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.14",
+            "pages": "397"
+          },
+          "text": "4. 背景是有限的工作记忆，通过紧凑，外部化，积极管理。",
+          "originalExcerpt": "4. Context is finite working memory. Manage it actively through compaction, externalization,"
+        },
+        {
+          "id": "s-19-14-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.14",
+            "pages": "397"
+          },
+          "text": "和副Agent隔离。",
+          "originalExcerpt": "and sub-agent isolation."
+        },
+        {
+          "id": "s-19-14-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.14",
+            "pages": "397"
+          },
+          "text": "5. 循环扩大工程技能——它们不能取代它。",
+          "originalExcerpt": "5. Loops amplify engineering skill—they do not replace it. A loop with a poorly specified objective"
+        },
+        {
+          "id": "s-19-14-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.14",
+            "pages": "397"
+          },
+          "text": "将有效地追求错误的东西。",
+          "originalExcerpt": "will pursue the wrong thing efficiently."
+        },
+        {
+          "id": "s-19-14-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.14",
+            "pages": "397"
+          },
+          "text": "6。简单开始。一个具有确定性核查器的单一验证循环比精心设计的验证循环要好。",
+          "originalExcerpt": "6. Start simple. A single validation loop with a deterministic verifier outperforms an elaborate"
+        },
+        {
+          "id": "s-19-14-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.14",
+            "pages": "397"
+          },
+          "text": "您无法调试多Agent系统。",
+          "originalExcerpt": "multi-agent system you cannot debug."
+        },
+        {
+          "id": "s-19-14-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 19,
+            "section": "19.14",
+            "pages": "397"
+          },
+          "text": "构建循环 - 保留工程师 杠杆点已经从写入提示转移到设计周期。但是，设计一个汇集的周期需要深刻理解问题，以便具体说明“死”的含义、什么是进步以及何时停止。循环工程让人类的判断更加重要，而不是更轻。 因为糟糕判断的后果现在以机器速度复合。",
+          "originalExcerpt": "Build the Loop—Stay the Engineer The leverage point has moved from writing prompts to designing cycles. But designing a cycle that converges requires understanding the problem deeply enough to specify what “done” means, what constitutes progress, and when to stop. Loop engineering makes the human’s judgment more important, not less—because the consequences o..."
+        }
+      ]
+    }
+  ],
+  "glossary": [
+    {
+      "term": "Agent",
+      "zh": "智能体",
+      "meaning": "由模型、状态、工具和运行循环共同构成的目标导向系统。"
+    },
+    {
+      "term": "RAG",
+      "zh": "RAG",
+      "meaning": "在生成前检索外部证据，并把相关上下文交给模型。"
+    },
+    {
+      "term": "MCP",
+      "zh": "MCP",
+      "meaning": "连接 AI application 与外部 tools、resources、prompts 的标准协议。"
+    },
+    {
+      "term": "rollout",
+      "zh": "轨迹采样",
+      "meaning": "使用当前策略生成完整 response 或交互 trajectory 的过程。"
+    },
+    {
+      "term": "context window",
+      "zh": "context window",
+      "meaning": "单次模型调用可直接读取的 token 范围。"
+    },
+    {
+      "term": "token",
+      "zh": "词元",
+      "meaning": "模型处理和生成文本时使用的离散单位。"
+    }
+  ],
+  "summary": [
+    "从业人员与LLM基体相互作用的演变，遵循了非常一致的轨迹。2022–2024年，主要技能是即时工程:精心设计正确的词句，从单一的模型调用中引出所期望的响应。到2025年，重点转移到了背景工程——对模型在推断时看到的全套符号进行校准，包括检索的文件、工具产出和对话历史[10]。在前一章中，我们谈到了“牵引工程”:设计一个Agent周围的运行时环境——工具、沙盒、记忆和护栏。循环工程[279]是这个进化的下一层:设计迭代控制结构，将一个Agent自动地向一个目标推进，而不需要一个人类在每个转弯时键入下一个指令。从快速到循环:工程进度",
+    "1. 快速工程:优化你对模型的言论(2022–2024)",
+    "2. 背景工程:优化模型所看到的一切(2025年)"
+  ],
+  "metrics": {
+    "chineseCharacters": 12248,
+    "sourceCoverage": 99,
+    "sectionCount": 35,
+    "blockCount": 256
+  }
+}

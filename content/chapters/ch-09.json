@@ -1,0 +1,1706 @@
+{
+  "chapter": 9,
+  "title": "Reward Model Training",
+  "zhTitle": "Reward Model 训练",
+  "pages": "188-195",
+  "minutes": 22,
+  "overview": "奖励模式是人类偏好与RL训练信号之间的桥梁。 训练有素的奖励模式对成功的RLHF至关重要;训练有素的奖励模式会导致对黑客和错位行为的奖励。本节涵盖理论基础，实用培训技术和Reward Model的建筑选择。",
+  "status": "in_progress",
+  "sections": [
+    {
+      "id": "s-9-introduction",
+      "number": null,
+      "level": 1,
+      "enTitle": "Chapter introduction",
+      "zhTitle": "章节导入",
+      "pages": "188",
+      "blocks": [
+        {
+          "id": "s-9-introduction-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 9,
+            "section": null,
+            "pages": "188"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 本章导入「章节导入」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-9-introduction-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": null,
+            "pages": "188"
+          },
+          "text": "奖励模式是人类偏好与RL训练信号之间的桥梁。 训练有素的奖励模式对成功的RLHF至关重要;训练有素的奖励模式会导致对黑客和错位行为的奖励。本节涵盖理论基础，实用培训技术和Reward Model的建筑选择。",
+          "originalExcerpt": "Reward models are the bridge between human preferences and the RL training signal. A well-trained reward model is essential for successful RLHF; a poorly trained one leads to reward hacking and misaligned behaviour. This section covers the theoretical foundations, practical training techniques, and architectural choices for reward models."
+        }
+      ]
+    },
+    {
+      "id": "s-9-1",
+      "number": "9.1",
+      "level": 1,
+      "enTitle": "Bradley-Terry Model – Full Derivation",
+      "zhTitle": "布拉德利-泰瑞模型 — Full Deliveration( 完全衍生)",
+      "pages": "188",
+      "blocks": [
+        {
+          "id": "s-9-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 9,
+            "section": "9.1",
+            "pages": "188"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §9.1「布拉德利-泰瑞模型 — Full Deliveration( 完全衍生)」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-9-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.1",
+            "pages": "188"
+          },
+          "text": "Bradley-Terry模型[29]是双向偏好学习的标准概率框架。鉴于两个响应y1和y2到一个快速q，模型假设:",
+          "originalExcerpt": "The Bradley-Terry model [29] is the standard probabilistic framework for pairwise preference learning. Given two responses y1 and y2 to a prompt q, the model assumes:"
+        },
+        {
+          "id": "s-9-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.1",
+            "pages": "188"
+          },
+          "text": "er(y1， q) P(y1， y2， q) = σ(r(y1， q) −) er， er(y1， q) +， er， q， q， q， q， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， ×， ×， ×， ×， ×， ×， ×， ×， →， →， →， →， →， →， →， →， →， →， →， →， →， →， →， →，",
+          "originalExcerpt": "er(y1 ,q) P (y1 ≻ y2 | q) = σ(r(y1 , q) − r(y2 , q)) = , er(y1 ,q) + er(y2 ,q) where r : Y × Q → R is the scalar reward function and σ is the sigmoid function."
+        },
+        {
+          "id": "s-9-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.1",
+            "pages": "188"
+          },
+          "text": "最大概率估计值(k)(k) 鉴于数据集D={(q(k)， yw， yl)}N k=1的首选对， MLE的目标是:",
+          "originalExcerpt": "Maximum Likelihood Estimation (k) (k) Given a dataset D = {(q (k) , yw , yl )}N k=1 of preference pairs, the MLE objective is:"
+        },
+        {
+          "id": "s-9-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.1",
+            "pages": "188"
+          },
+          "text": "N 1 X (k) (k) (k)， q − r → (yl， q (k))， → LBT (φ) = − − − − − σ σ σ σ σ σ σ σ σ σ σ σ w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w",
+          "originalExcerpt": "N 1 X (k) (k) (k) , q ) − rϕ (yl , q (k) ) , \u0001 LBT (ϕ) = − log σ rϕ (yw N k=1"
+        },
+        {
+          "id": "s-9-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.1",
+            "pages": "188"
+          },
+          "text": "rφ是一个神经网络参数，由 \\ \\ 表示。这是二进制的跨内向损失， “ 阳性” 类是首选的响应。 Bradley- Terry 假设",
+          "originalExcerpt": "where rϕ is a neural network parameterised by ϕ. This is a binary cross-entropy loss where the “positive” class is the preferred response. Bradley-Terry Assumptions"
+        },
+        {
+          "id": "s-9-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.1",
+            "pages": "188"
+          },
+          "text": "1. 首选是过渡性的:如果y1 + y2和y2 → y3，那么y1 → y3.",
+          "originalExcerpt": "1. Preferences are transitive: if y1 ≻ y2 and y2 ≻ y3 , then y1 ≻ y3 ."
+        },
+        {
+          "id": "s-9-1-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.1",
+            "pages": "188"
+          },
+          "text": "2. 优惠由奖励(无多维优惠)决定。",
+          "originalExcerpt": "2. Preferences are determined by a scalar reward (no multi-dimensional preferences)."
+        },
+        {
+          "id": "s-9-1-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.1",
+            "pages": "188"
+          },
+          "text": "3. 优惠概率仅取决于奖励的差异。",
+          "originalExcerpt": "3. The preference probability depends only on the difference in rewards."
+        },
+        {
+          "id": "s-9-1-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.1",
+            "pages": "188"
+          },
+          "text": "4. 首选是独立的对对(无注释效果)。",
+          "originalExcerpt": "4. Preferences are independent across pairs (no annotator effects)."
+        },
+        {
+          "id": "s-9-1-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.1",
+            "pages": "188"
+          },
+          "text": "这些假设在实践中经常被违反，激发了诸如Plackett-Luce模型等用于排名和多维Reward Model的扩展。",
+          "originalExcerpt": "These assumptions are often violated in practice, motivating extensions like Plackett-Luce models for ranking and multi-dimensional reward models."
+        },
+        {
+          "id": "s-9-1-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.1",
+            "pages": "188"
+          },
+          "text": "边际损失扩展 A 常见扩展 增加了 m 的比值，以确保赢与输的回报之间的最小差距 :",
+          "originalExcerpt": "Margin Loss Extension A common extension adds a margin m to ensure a minimum gap between winning and losing rewards:"
+        },
+        {
+          "id": "s-9-1-b12",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 9,
+            "section": "9.1",
+            "pages": "188"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "N 1 X (k) , q ) − rϕ (yl , q (k) ) − m . (k) (k) \u0001 Lmargin = − log σ rϕ (yw N k=1"
+        }
+      ]
+    },
+    {
+      "id": "s-9-2",
+      "number": "9.2",
+      "level": 1,
+      "enTitle": "Reward Model Architectures",
+      "zhTitle": "Reward Model建筑",
+      "pages": "189",
+      "blocks": [
+        {
+          "id": "s-9-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 9,
+            "section": "9.2",
+            "pages": "189"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §9.2「Reward Model建筑」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-9-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.2",
+            "pages": "189"
+          },
+          "text": "分类头在LLM上 标准Reward Model架构采用一个预选的LLM，并用一个scalar回归头(将最终隐藏状态映射为单一奖励值)取代语言建模头(将隐藏状态映射为词汇日志)。建筑结构为:",
+          "originalExcerpt": "Classification Head on LLM The standard reward model architecture takes a pretrained LLM and replaces the language modelling head (which maps hidden states to vocabulary logits) with a scalar regression head (which maps the final hidden state to a single reward value). The architecture is:"
+        },
+        {
+          "id": "s-9-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.2",
+            "pages": "189"
+          },
+          "text": "1. 后骨:一种预加训练的LLM(如Llama， Mistral)，编码对即时反应的对",
+          "originalExcerpt": "1. Backbone: a pretrained LLM (e.g., Llama, Mistral) that encodes the prompt-response pair"
+        },
+        {
+          "id": "s-9-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.2",
+            "pages": "189"
+          },
+          "text": "进入一系列隐藏状态",
+          "originalExcerpt": "into a sequence of hidden states."
+        },
+        {
+          "id": "s-9-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.2",
+            "pages": "189"
+          },
+          "text": "2. 集合:提取最后一个符号位置(用于解码器唯一的模型)或",
+          "originalExcerpt": "2. Pooling: extract the hidden state at the last token position (for decoder-only models) or the"
+        },
+        {
+          "id": "s-9-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.2",
+            "pages": "189"
+          },
+          "text": "[CLS] 符号(用于编码器模型)。",
+          "originalExcerpt": "[CLS] token (for encoder models)."
+        },
+        {
+          "id": "s-9-2-b6",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 9,
+            "section": "9.2",
+            "pages": "189"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "3. Regression head: a linear layer W ∈ Rd×1 that maps the pooled hidden state to a scalar"
+        },
+        {
+          "id": "s-9-2-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.2",
+            "pages": "189"
+          },
+          "text": "TRL的奖励模式培训",
+          "originalExcerpt": "Reward Model Training in TRL"
+        },
+        {
+          "id": "s-9-2-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.2",
+            "pages": "189"
+          },
+          "text": "从 trl 导入 RewardConfig， 从Transformer导入 Au t o M → d → F → r S → q → e → c → a s → i → i → i → i → i → i → i → i → i → i → → i → → i → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → + + + +",
+          "originalExcerpt": "from trl import RewardConfig , RewardTrainer from transformers import A u t o M o d e l F o r S e q u e n c e C l a s s i f i c a t i o n"
+        },
+        {
+          "id": "s-9-2-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.2",
+            "pages": "189"
+          },
+          "text": "# 装载带有scalar头的模型( numm labels=1) 模型 = Au t o M o d e e e F e e e e e C l a s i f i i i i o n 由 pressurected ( \" meta - lama - / Llama - 3.1 - 8 B - 指令 \"， num labels = 1，)",
+          "originalExcerpt": "# Load model with scalar head ( num_labels =1) model = A u t o M o d e l F o r S e q u e n c e C l a s s i f i c a t i o n . from_pretrained ( \" meta - llama / Llama -3.1 -8 B - Instruct \" , num_labels =1 , )"
+        },
+        {
+          "id": "s-9-2-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.2",
+            "pages": "189"
+          },
+          "text": "配置= 奖励 = 奖励 = (输出=dir= \" 奖励 模型 \"， p e r = i e = i c e = i e = i e = i = 4， g = i e = 4 = 4 = 4 = = 4 = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =",
+          "originalExcerpt": "config = RewardConfig ( output_dir = \" reward_model \" , p e r _ d e v i c e _ t r a i n _ b a t c h _ s i z e =4 , g r a d i e n t _ a c c u m u l a t i o n _ s t e p s =4 , learning_rate =1 e -5 , num_train_epochs =1 , # Margin loss c e n t e r _ r e w a r d s _ c o e f f i c i e n t =0.01 , )"
+        },
+        {
+          "id": "s-9-2-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.2",
+            "pages": "189"
+          },
+          "text": "教练员=奖励 教练员(型号=模型， args=配置，列车 数据集=数据集，#必须选择/拒绝列) 教练员()。列车()",
+          "originalExcerpt": "trainer = RewardTrainer ( model = model , args = config , train_dataset = dataset , # must have chosen / rejected columns ) trainer . train ()"
+        }
+      ]
+    },
+    {
+      "id": "s-9-3",
+      "number": "9.3",
+      "level": 1,
+      "enTitle": "Reward Model Training Tricks",
+      "zhTitle": "奖励模式培训技巧",
+      "pages": "189-190",
+      "blocks": [
+        {
+          "id": "s-9-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 9,
+            "section": "9.3",
+            "pages": "189-190"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §9.3「奖励模式培训技巧」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-9-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.3",
+            "pages": "189"
+          },
+          "text": "奖励居中",
+          "originalExcerpt": "Reward Centering"
+        },
+        {
+          "id": "s-9-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.3",
+            "pages": "189"
+          },
+          "text": "原始奖励模式输出可以任意进行规模和抵消。将奖励(减去平均)稳定RL培训集中:",
+          "originalExcerpt": "Raw reward model outputs can have arbitrary scale and offset. Centering the rewards (subtracting the mean) stabilises RL training:"
+        },
+        {
+          "id": "s-9-3-b3",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.3",
+            "pages": "189"
+          },
+          "expression": "rcentered (y, q) = rϕ (y, q) − Ey′ ∼πθ [rϕ (y ′ , q)].",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-9-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.3",
+            "pages": "189"
+          },
+          "text": "在TRL中，通过中奖 奖励 coecutive参数执行，在奖励模式损失中增加了一个规范化术语，惩罚非零平均奖励。",
+          "originalExcerpt": "In TRL, this is implemented via the center_rewards_coefficient parameter, which adds a regularisation term to the reward model loss that penalises non-zero mean rewards."
+        },
+        {
+          "id": "s-9-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.3",
+            "pages": "190"
+          },
+          "text": "长比亚斯校正Reward Model已知显示长度偏差:它们往往给较长的响应以更高的奖励，而无论质量如何。这可以通过下列方法纠正:",
+          "originalExcerpt": "Length Bias Correction Reward models are known to exhibit length bias: they tend to assign higher rewards to longer responses, regardless of quality. This can be corrected by:"
+        },
+        {
+          "id": "s-9-3-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.3",
+            "pages": "190"
+          },
+          "text": "1. 长度正常化:将奖励除以响应长度。",
+          "originalExcerpt": "1. Length normalisation: divide the reward by the response length."
+        },
+        {
+          "id": "s-9-3-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.3",
+            "pages": "190"
+          },
+          "text": "2. 长度控制培训:将长度列为一项特征，并培训该模式为长度。",
+          "originalExcerpt": "2. Length-controlled training: include length as a feature and train the model to be length-"
+        },
+        {
+          "id": "s-9-3-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.3",
+            "pages": "190"
+          },
+          "text": "3.校准:后热回归，去除长度效应。",
+          "originalExcerpt": "3. Calibration: post-hoc regression to remove the length effect."
+        },
+        {
+          "id": "s-9-3-b10",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 9,
+            "section": "9.3",
+            "pages": "190"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "Margin Losses Adding a margin m to the Bradley-Terry loss ensures the reward model assigns meaningfully different scores to preferred and dispreferred responses: \u0001 Lmargin = max 0, m − (rw − rl ) ."
+        }
+      ]
+    },
+    {
+      "id": "s-9-4",
+      "number": "9.4",
+      "level": 1,
+      "enTitle": "Process Reward Models vs Outcome Reward Models",
+      "zhTitle": "过程奖励模式 vs 结果奖励模式",
+      "pages": "190-191",
+      "blocks": [
+        {
+          "id": "s-9-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 9,
+            "section": "9.4",
+            "pages": "190-191"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §9.4「过程奖励模式 vs 结果奖励模式」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-9-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.4",
+            "pages": "190"
+          },
+          "text": "PRM 比较 ORM 比较",
+          "originalExcerpt": "PRM vs ORM Comparison"
+        },
+        {
+          "id": "s-9-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.4",
+            "pages": "190"
+          },
+          "text": "Property ORM PRM Reward sign Final answer only every except research step Training data (protest， answer， apprect， appree， appree?) (protest， spends， step， step lags?) 注释成本低高信用分配 Sparse Dense Reward 黑客 硬客 黑客 黑客 简单任务最佳 多步骤推理推论成本低高(每一步分)",
+          "originalExcerpt": "Property ORM PRM Reward signal Final answer only Each reasoning step Training data (prompt, answer, correct?) (prompt, steps, step labels) Annotation cost Low High Credit assignment Sparse Dense Reward hacking Easier to hack Harder to hack Best for Simple tasks Multi-step reasoning Inference cost Low High (score each step)"
+        },
+        {
+          "id": "s-9-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.4",
+            "pages": "190"
+          },
+          "text": "当使用 PRM 进程Reward Model时， 值值最高 :",
+          "originalExcerpt": "When to Use PRMs Process Reward Models are most valuable when:"
+        },
+        {
+          "id": "s-9-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.4",
+            "pages": "190"
+          },
+          "text": "• 任务需要多步骤推理(math，代码，逻辑)。",
+          "originalExcerpt": "• The task requires multi-step reasoning (math, code, logic)."
+        },
+        {
+          "id": "s-9-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.4",
+            "pages": "190"
+          },
+          "text": "• 最后答案是二进制(正确/不正确)，但中间步骤的质量不同。",
+          "originalExcerpt": "• The final answer is binary (correct/incorrect) but intermediate steps vary in quality."
+        },
+        {
+          "id": "s-9-4-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.4",
+            "pages": "190"
+          },
+          "text": "^ 您想要使用奖励模式进行搜索(例如有步分的梁搜索)。",
+          "originalExcerpt": "• You want to use the reward model for search (e.g., beam search with step scores)."
+        },
+        {
+          "id": "s-9-4-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.4",
+            "pages": "190"
+          },
+          "text": "• 可以获得阶梯级说明(或可自动生成)。",
+          "originalExcerpt": "• You have access to step-level annotations (or can generate them automatically)."
+        },
+        {
+          "id": "s-9-4-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.4",
+            "pages": "190"
+          },
+          "text": "对于简单的任务(质感、毒性、事实性)，静电磁共振是足够和便宜的。",
+          "originalExcerpt": "For simple tasks (sentiment, toxicity, factuality), ORMs are sufficient and much cheaper."
+        },
+        {
+          "id": "s-9-4-b9",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 9,
+            "section": "9.4",
+            "pages": "190"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "PBRS in RLHF for LLMs Original reward: Binary correctness (1 if final answer is right, 0 otherwise) — extremely sparse for multi-step reasoning. Potential function: Φ(s) = partial credit from a verifier (e.g., fraction of intermediate reasoning steps that are logically valid). Shaped reward: Agent gets incremental signal for each valid reasoning step while p..."
+        },
+        {
+          "id": "s-9-4-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.4",
+            "pages": "190"
+          },
+          "text": "• 过程奖励模式，在思考链中每一步评分",
+          "originalExcerpt": "• Process reward models (PRMs) that score each step in a chain-of-thought"
+        },
+        {
+          "id": "s-9-4-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.4",
+            "pages": "190"
+          },
+          "text": "• 编码生成的中间汇编检查",
+          "originalExcerpt": "• Intermediate compilation checks in code generation"
+        },
+        {
+          "id": "s-9-4-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.4",
+            "pages": "191"
+          },
+          "text": "• 多部分答案部分对应分数",
+          "originalExcerpt": "• Partial match scores for multi-part answers"
+        },
+        {
+          "id": "s-9-4-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.4",
+            "pages": "191"
+          },
+          "text": "这是对LLM设置的直接应用基于潜在奖励的设定[PBRS][265]——塑造奖励的理论保障保持了最佳政策，使得PRMs成为了在推理任务中密集奖励的原则性方法。",
+          "originalExcerpt": "This is a direct application of Potential-Based Reward Shaping (PBRS) [265] to the LLM setting— the theoretical guarantee that shaped rewards preserve the optimal policy makes PRMs a principled approach to dense reward in reasoning tasks."
+        },
+        {
+          "id": "s-9-4-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.4",
+            "pages": "191"
+          },
+          "text": "自动 PRM 注释级注释可以使用 :",
+          "originalExcerpt": "Automatic PRM Annotation Step-level annotations can be generated automatically using:"
+        },
+        {
+          "id": "s-9-4-b15",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.4",
+            "pages": "191"
+          },
+          "text": "1. 蒙特卡洛推出:对每个中间步骤，抽样进行多次完成，并使用",
+          "originalExcerpt": "1. Monte Carlo rollouts: for each intermediate step, sample multiple completions and use the"
+        },
+        {
+          "id": "s-9-4-b16",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.4",
+            "pages": "191"
+          },
+          "text": "分数，以正确答案作为步骤奖励。",
+          "originalExcerpt": "fraction that reach the correct answer as the step reward."
+        },
+        {
+          "id": "s-9-4-b17",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.4",
+            "pages": "191"
+          },
+          "text": "2. 法学硕士-现职法官:使用强有力的法学硕士来评估每一步骤。",
+          "originalExcerpt": "2. LLM-as-judge: use a strong LLM to evaluate each step."
+        },
+        {
+          "id": "s-9-4-b18",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.4",
+            "pages": "191"
+          },
+          "text": "3. 正式核查:对于数学/代码，使用一个核查器检查每一步骤。",
+          "originalExcerpt": "3. Formal verification: for math/code, use a verifier to check each step."
+        }
+      ]
+    },
+    {
+      "id": "s-9-5",
+      "number": "9.5",
+      "level": 1,
+      "enTitle": "Rule-Based Rewards for RLVR",
+      "zhTitle": "以规则为基础的RLVR奖励",
+      "pages": "191-192",
+      "blocks": [
+        {
+          "id": "s-9-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 9,
+            "section": "9.5",
+            "pages": "191-192"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §9.5「以规则为基础的RLVR奖励」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-9-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.5",
+            "pages": "191"
+          },
+          "text": "从可验证奖励(RLVR)中强化学习，使用定型的，基于规则的奖励功能，而不是学习的奖励模式。这大大减少了reward hacking(虽然模型仍然可以利用格式诡计、边缘案例或测试记忆)，也是DeepSeek-R1[72]中使用的方法。",
+          "originalExcerpt": "Reinforcement Learning from Verifiable Rewards (RLVR) uses deterministic, rule-based reward functions instead of learned reward models. This substantially reduces reward hacking (though models can still exploit format tricks, edge cases, or test memorization) and is the approach used in DeepSeek-R1 [72]. Rule-Based Reward Functions in TRL"
+        },
+        {
+          "id": "s-9-5-b3",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.5",
+            "pages": "191"
+          },
+          "language": "python",
+          "code": "def format_reward ( completions , ** kwargs ) : \" \" \" Reward for using < think >... </ think > < answer >... </ answer > format . \" \" \" rewards = [] pattern = r \" < think >.*? </ think >\\ s * < answer >.*? </ answer > \" for completion in completions : text = completion [0][ \" content \" ] rewards . append (1.0 if re . fullmatch ( pattern , text , re . DOTALL ) else 0.0) return rewards",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-9-5-b4",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.5",
+            "pages": "191"
+          },
+          "language": "python",
+          "code": "def co rr ectness_reward ( completions , ground_truth , ** kwargs ) : \" \" \" Reward for correct final answer . \" \" \" rewards = [] for completion , gt in zip ( completions , ground_truth ) : text = completion [0][ \" content \" ] match = re . search ( r \" < answer >(.*?) </ answer > \" , text , re . DOTALL ) if match : answer = match . group (1) . strip () rewards . append (1.0 if answer == gt else 0.0) else : rewards . append (0.0) return rewards",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-9-5-b5",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.5",
+            "pages": "191"
+          },
+          "language": "python",
+          "code": "def c o d e _ exec ution _rew ard ( completions , test_cases , ** kwargs ) : \" \" \" Reward for code that passes test cases . \" \" \" import subprocess , tempfile , os rewards = [] for completion , tests in zip ( completions , test_cases ) : code = completion [0][ \" content \" ] passed = 0 for test in tests : with tempfile . NamedTemporaryFile ( mode = \" w \" , suffix = \" . py \" , delete = False ) as f : f . write ( code + \" \\ n \" + test ) fname = f . name",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-9-5-b6",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 9,
+            "section": "9.5",
+            "pages": "192"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "try : result = subprocess . run ( [ \" python \" , fname ] , capture_output = True , timeout =5 , text = True ) passed += int ( result . returncode == 0) except Exception : pass finally : os . unlink ( fname ) rewards . append ( passed / len ( tests ) ) return rewards"
+        },
+        {
+          "id": "s-9-5-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.5",
+            "pages": "192"
+          },
+          "text": "规则奖励陷阱",
+          "originalExcerpt": "Rule-Based Reward Pitfalls"
+        },
+        {
+          "id": "s-9-5-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.5",
+            "pages": "192"
+          },
+          "text": "· 格式游戏:模型学习生成正确格式而不正确内容。",
+          "originalExcerpt": "• Format gaming: models learn to produce the correct format without correct content."
+        },
+        {
+          "id": "s-9-5-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.5",
+            "pages": "192"
+          },
+          "text": "始终将格式与正确性奖励结合起来。",
+          "originalExcerpt": "Always combine format and correctness rewards."
+        },
+        {
+          "id": "s-9-5-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.5",
+            "pages": "192"
+          },
+          "text": "• 试验个案漏泄:如果试验个案在训练数据中，模型会记起这些个案。",
+          "originalExcerpt": "• Test case leakage: if test cases are in the training data, the model memorises them."
+        },
+        {
+          "id": "s-9-5-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.5",
+            "pages": "192"
+          },
+          "text": "• 超时开发:模型可能生成时断时断的代码(避免失败)。",
+          "originalExcerpt": "• Timeout exploitation: models may generate code that times out (avoiding failure). Use"
+        },
+        {
+          "id": "s-9-5-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.5",
+            "pages": "192"
+          },
+          "text": "严格暂停，并明确惩罚暂停。",
+          "originalExcerpt": "strict timeouts and penalise timeouts explicitly."
+        },
+        {
+          "id": "s-9-5-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.5",
+            "pages": "192"
+          },
+          "text": "• 奖励垃圾:二进制奖励(0/1)可能太少，无法完成复杂的任务。",
+          "originalExcerpt": "• Reward sparsity: binary rewards (0/1) can be too sparse for complex tasks. Consider"
+        },
+        {
+          "id": "s-9-5-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.5",
+            "pages": "192"
+          },
+          "text": "部分信贷或中等报酬。",
+          "originalExcerpt": "partial credit or intermediate rewards."
+        }
+      ]
+    },
+    {
+      "id": "s-9-6",
+      "number": "9.6",
+      "level": 1,
+      "enTitle": "Multi-Objective Rewards – Combination Strategies",
+      "zhTitle": "多目标奖励-组合战略",
+      "pages": "192-193",
+      "blocks": [
+        {
+          "id": "s-9-6-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 9,
+            "section": "9.6",
+            "pages": "192-193"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §9.6「多目标奖励-组合战略」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-9-6-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.6",
+            "pages": "192"
+          },
+          "text": "当培训带有多种奖励信号时，组合策略会显著影响最终政策。多奖励组合策略 P",
+          "originalExcerpt": "When training with multiple reward signals, the combination strategy significantly affects the final policy. Multi-Reward Combination Strategies P"
+        },
+        {
+          "id": "s-9-6-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.6",
+            "pages": "192"
+          },
+          "text": "1. 加权和数:r=n wn n。简单但对尺度敏感。",
+          "originalExcerpt": "1. Weighted sum: r = n wn rn . Simple but sensitive to scale."
+        },
+        {
+          "id": "s-9-6-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.6",
+            "pages": "192"
+          },
+          "text": "2. 将总和(GDPO):将每项奖励改为零平均值和单位差异",
+          "originalExcerpt": "2. Normalise then sum (GDPO): normalise each reward to zero mean and unit variance"
+        },
+        {
+          "id": "s-9-6-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.6",
+            "pages": "192"
+          },
+          "text": "以重量表示总和。",
+          "originalExcerpt": "within the group, then sum with weights. Scale-invariant."
+        },
+        {
+          "id": "s-9-6-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.6",
+            "pages": "192"
+          },
+          "text": "3. 地理学:按优先顺序优化奖励;只考虑低优先奖励",
+          "originalExcerpt": "3. Lexicographic: optimise rewards in priority order; only consider lower-priority rewards"
+        },
+        {
+          "id": "s-9-6-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.6",
+            "pages": "192"
+          },
+          "text": "当高优先级的被绑起来时",
+          "originalExcerpt": "when higher-priority ones are tied."
+        },
+        {
+          "id": "s-9-6-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.6",
+            "pages": "192"
+          },
+          "text": "4. 限制:在限制次级奖励的情况下，尽量扩大初级奖励。",
+          "originalExcerpt": "4. Constrained: maximise primary reward subject to constraints on secondary rewards."
+        },
+        {
+          "id": "s-9-6-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.6",
+            "pages": "192"
+          },
+          "text": "5. 帕雷托:在政策中保留帕雷托，并根据偏好进行选择。",
+          "originalExcerpt": "5. Pareto: maintain a Pareto front of policies and select based on preference."
+        },
+        {
+          "id": "s-9-6-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.6",
+            "pages": "192"
+          },
+          "text": "TRL多奖培训",
+          "originalExcerpt": "Multi-Reward Training in TRL"
+        },
+        {
+          "id": "s-9-6-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.6",
+            "pages": "192"
+          },
+          "text": "导入 GRPOConfig 时， 输入 GRPOTrainer",
+          "originalExcerpt": "from trl import GRPOConfig , GRPOTrainer"
+        },
+        {
+          "id": "s-9-6-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.6",
+            "pages": "192"
+          },
+          "text": "配置=GRPOCONFig(# GDPO: 将每次奖励独立化 m u l t i o b j e i v e a g r e i o n = \" 正常化 当时 sum \"，奖励 重量= [1.0， 0.3， 0.1]，#正确性，格式，长度=8，)",
+          "originalExcerpt": "config = GRPOConfig ( # GDPO : normalise each reward independently m u l t i _ o b j e c t i v e _ a g g r e g a t i o n = \" normalize_then_sum \" , reward_weights =[1.0 , 0.3 , 0.1] , # correctness , format , length num_generations =8 , )"
+        },
+        {
+          "id": "s-9-6-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.6",
+            "pages": "192"
+          },
+          "text": "教练 = GRPOTrainer(型号=型号，奖励 富士=[正确 奖励]，格式=，长度= 惩罚 奖励]，",
+          "originalExcerpt": "trainer = GRPOTrainer ( model = model , reward_funcs =[ correctness_reward , format_reward , length_penalty_reward , ],"
+        },
+        {
+          "id": "s-9-6-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.6",
+            "pages": "193"
+          },
+          "text": "args = 配置， train dataset = 数据集， )",
+          "originalExcerpt": "args = config , train_dataset = dataset , )"
+        }
+      ]
+    },
+    {
+      "id": "s-9-7",
+      "number": "9.7",
+      "level": 1,
+      "enTitle": "Listwise Rank-Based Rewards",
+      "zhTitle": "排名奖励",
+      "pages": "193-195",
+      "blocks": [
+        {
+          "id": "s-9-7-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "193-195"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §9.7「排名奖励」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-9-7-b1",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "193"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "While the Bradley-Terry model handles pairwise preferences (yw ≻ yl ), many practical scenarios involve ranking multiple responses simultaneously. Listwise reward models learn from complete orderings, providing richer training signal and enabling better calibration."
+        },
+        {
+          "id": "s-9-7-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "193"
+          },
+          "text": "动机: 超越对等",
+          "originalExcerpt": "Motivation: Beyond Pairwise"
+        },
+        {
+          "id": "s-9-7-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "193"
+          },
+          "text": "• 更丰富的信号:K响应的排序包含K2隐含的对比比较，但",
+          "originalExcerpt": "• Richer signal: A ranking of K responses contains K2 implicit pairwise comparisons, but"
+        },
+        {
+          "id": "s-9-7-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "193"
+          },
+          "text": "并捕捉相对边距(第1级比第3级好得多)。",
+          "originalExcerpt": "also captures relative margins (how much better rank 1 is vs. rank 3)."
+        },
+        {
+          "id": "s-9-7-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "193"
+          },
+          "text": "• 更好的校准:对等BT模型只学习奖励差异;按清单模型",
+          "originalExcerpt": "• Better calibration: Pairwise BT models only learn differences in reward; listwise models"
+        },
+        {
+          "id": "s-9-7-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "193"
+          },
+          "text": "学习绝对的奖励尺度。",
+          "originalExcerpt": "learn absolute reward scale."
+        },
+        {
+          "id": "s-9-7-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "193"
+          },
+          "text": "• 自然适合全球资源采购组织:全球资源采购组织每分钟生成N级答复，并排出它们的等级。",
+          "originalExcerpt": "• Natural fit for GRPO: GRPO generates N responses per prompt and ranks them —"
+        },
+        {
+          "id": "s-9-7-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "193"
+          },
+          "text": "列表奖励直接与此工作流程保持一致。",
+          "originalExcerpt": "listwise rewards align directly with this workflow."
+        },
+        {
+          "id": "s-9-7-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "193"
+          },
+          "text": "• 注释员效率:5个答复的排名比所有10个可能的对的标签快",
+          "originalExcerpt": "• Annotator efficiency: Ranking 5 responses is faster than labeling all 10 possible pairs"
+        },
+        {
+          "id": "s-9-7-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "193"
+          },
+          "text": "普拉克特-卢斯模型",
+          "originalExcerpt": "Plackett-Luce Model"
+        },
+        {
+          "id": "s-9-7-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "193"
+          },
+          "text": "普拉克特-吕斯(PL)型号[291]是布拉德利-泰瑞向全排名的标准延伸。鉴于K响应y1， .， yK排名 +(其中 +(1)为最佳): Plackett-Luce Likelihood K Y ER → (yπ(i)， q) P(π) → PK rφ(yπ(j)， q) i=1 j=i e",
+          "originalExcerpt": "The Plackett-Luce (PL) model [291] is the standard extension of Bradley-Terry to full rankings. Given K responses y1 , . . . , yK with ranking π (where π(1) is the best): Plackett-Luce Likelihood K Y erϕ (yπ(i) ,q) P (π | q) = PK rϕ (yπ(j) ,q) i=1 j=i e"
+        },
+        {
+          "id": "s-9-7-b15",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "193"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "Intuition: Sequentially select the best remaining item. At each step, the probability of selecting item π(i) is softmax over the remaining items. Loss function:   1 X K−1 X XK LPL (ϕ) = − rϕ (yπ(i) , q) − log erϕ (yπ(j) ,q)  |D| (q,π)∈D i=1 j=i"
+        },
+        {
+          "id": "s-9-7-b16",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "193"
+          },
+          "text": "Plackett-Luce Reductions to Bradley-Terry r(y) for K = 2， PL模型给出: P(y1 ≻ y2) = er(ye1) +e1r(y2) = σ(r(y1) → r(y2)) – 准确的Bradley-Terry模型。 PL是一个严格的概括。",
+          "originalExcerpt": "Plackett-Luce Reduces to Bradley-Terry r(y ) For K = 2, the PL model gives: P (y1 ≻ y2 ) = er(ye1 ) +e1r(y2 ) = σ(r(y1 ) − r(y2 )) — exactly the Bradley-Terry model. PL is a strict generalization."
+        },
+        {
+          "id": "s-9-7-b17",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "193"
+          },
+          "text": "ListMLE 和 排名损失 列表损失函数",
+          "originalExcerpt": "ListMLE and Rank-Based Losses Listwise Loss Functions"
+        },
+        {
+          "id": "s-9-7-b18",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "193"
+          },
+          "text": "• ListMLE [391]:直接最大限度地提高PL地面真实排名的可能性。",
+          "originalExcerpt": "• ListMLE [391]: Directly maximizes the PL likelihood of the ground-truth ranking. Simple"
+        },
+        {
+          "id": "s-9-7-b20",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "193"
+          },
+          "text": "· ListNet [38]:尽量减少模型最高-1概率分布之间的KL差异",
+          "originalExcerpt": "• ListNet [38]: Minimizes KL divergence between the model’s top-1 probability distribution"
+        },
+        {
+          "id": "s-9-7-b21",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "194"
+          },
+          "text": "和地面实况: K X LListNet = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =",
+          "originalExcerpt": "and the ground-truth: K X LListNet = − Ptrue (yi is best) · log Pmodel (yi is best) i=1"
+        },
+        {
+          "id": "s-9-7-b22",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "194"
+          },
+          "text": "rφ(yi) 模范(yi是最佳)= Pe rφ(yj)。 j e model = = yi yi yi φ yi φ yi φ φ yi j yi yi φ yi yi yi j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j j",
+          "originalExcerpt": "rϕ (yi ) where Pmodel (yi is best) = Pe rϕ (yj ) . j e"
+        },
+        {
+          "id": "s-9-7-b23",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "194"
+          },
+          "text": "• LambdaRank [34]:通过排名度量的变化而得出加权对等梯度(例如，",
+          "originalExcerpt": "• LambdaRank [34]: Weights pairwise gradients by the change in ranking metric (e.g.,"
+        },
+        {
+          "id": "s-9-7-b24",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "194"
+          },
+          "text": "NDCG：当排序列表顶部的质量比尾部更重要时，适合使用这一指标。",
+          "originalExcerpt": "NDCG). Useful when ranking quality matters more at the top. K\u0001"
+        },
+        {
+          "id": "s-9-7-b25",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "194"
+          },
+          "text": "• RankNet [33]:对等横跨双双的对等组合——相当于BT对全部双双的对等组合",
+          "originalExcerpt": "• RankNet [33]: Pairwise cross-entropy summed over all pairs — equivalent to BT on all 2"
+        },
+        {
+          "id": "s-9-7-b26",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "194"
+          },
+          "text": "排名中提取的对数。",
+          "originalExcerpt": "pairs extracted from the ranking."
+        },
+        {
+          "id": "s-9-7-b27",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "194"
+          },
+          "text": "GRPO 和拒绝抽样的 列表奖励",
+          "originalExcerpt": "Listwise Rewards for GRPO and Rejection Sampling"
+        },
+        {
+          "id": "s-9-7-b28",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "194"
+          },
+          "text": "与 GPRO GPRO 整合自然产生排名组:对于每个即时， N的回复会得到分数和排名。列表奖励模式可以直接对这些排名进行培训:",
+          "originalExcerpt": "Integration with GRPO GRPO naturally produces ranked groups: for each prompt, N responses are scored and ranked. A listwise reward model can be trained directly on these rankings:"
+        },
+        {
+          "id": "s-9-7-b29",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "194"
+          },
+          "text": "1. 生成:抽样N=政策每批8份答复。",
+          "originalExcerpt": "1. Generate: Sample N = 8 responses per prompt from the policy."
+        },
+        {
+          "id": "s-9-7-b30",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "194"
+          },
+          "text": "2. 排名:使用现有的奖励模式(或人类注释员)来制作排行榜。",
+          "originalExcerpt": "2. Rank: Use an existing reward model (or human annotators) to produce a full ranking π."
+        },
+        {
+          "id": "s-9-7-b31",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "194"
+          },
+          "text": "3. 列车列表 RM:优化(q， )拖曳式PL损失。",
+          "originalExcerpt": "3. Train listwise RM: Optimize the PL loss on (q, π) tuples."
+        },
+        {
+          "id": "s-9-7-b32",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "194"
+          },
+          "text": "4. 在GRPO中使用:按列表RM为每项答复分配scalar奖r(yi， q);",
+          "originalExcerpt": "4. Use in GRPO: The listwise RM assigns scalar rewards r(yi , q) to each response; GRPO"
+        },
+        {
+          "id": "s-9-7-b33",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "194"
+          },
+          "expression": "computes advantages as Âi = (ri − µ)/σ.",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-9-7-b34",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "194"
+          },
+          "text": "优于对称:列表RM同时看到所有N级响应，了解到1级的奖励应该比N级高得多(不仅仅是“略优于其他反应”)。",
+          "originalExcerpt": "Advantage over pairwise: The listwise RM sees all N responses simultaneously, learning that rank-1 should have much higher reward than rank-N (not just “slightly better than one other response”)."
+        },
+        {
+          "id": "s-9-7-b35",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "194"
+          },
+          "text": "实际考虑",
+          "originalExcerpt": "Practical Considerations Listwise Training Challenges"
+        },
+        {
+          "id": "s-9-7-b36",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "194"
+          },
+          "text": "• 注释成本:完全排名昂贵，部分排名(8分中排第3位)减少",
+          "originalExcerpt": "• Annotation cost: Full rankings are expensive. Partial rankings (top-3 out of 8) reduce"
+        },
+        {
+          "id": "s-9-7-b37",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "194"
+          },
+          "text": "成本，质量损失最小。",
+          "originalExcerpt": "cost with minimal quality loss."
+        },
+        {
+          "id": "s-9-7-b38",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "194"
+          },
+          "text": "^ 绑定: 真正的排名往往有关系。 使用 Plackett- Luce 扩展链接: 指定等号",
+          "originalExcerpt": "• Ties: Real rankings often have ties. Use the Plackett-Luce extension for ties: assign equal"
+        },
+        {
+          "id": "s-9-7-b39",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "194"
+          },
+          "text": "绑定项的概率质量。",
+          "originalExcerpt": "probability mass to tied items."
+        },
+        {
+          "id": "s-9-7-b40",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "194"
+          },
+          "text": "• 位置偏差:注释者倾向于先显示的项目。随机排列演示文稿顺序",
+          "originalExcerpt": "• Position bias: Annotators tend to prefer items shown first. Randomize presentation order"
+        },
+        {
+          "id": "s-9-7-b41",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "194"
+          },
+          "text": "并训练脱衣舞步。",
+          "originalExcerpt": "and train debiasing."
+        },
+        {
+          "id": "s-9-7-b42",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "194"
+          },
+          "text": "• 名单长度:关于K=4-8的培训很典型。",
+          "originalExcerpt": "• List length: Training on K = 4–8 is typical. Longer lists (K > 16) add noise without much"
+        },
+        {
+          "id": "s-9-7-b44",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "194"
+          },
+          "text": "• 一致性:不同注释者的排名可能不同。",
+          "originalExcerpt": "• Consistency: Rankings from different annotators may disagree. Use inter-annotator"
+        },
+        {
+          "id": "s-9-7-b45",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "194"
+          },
+          "text": "协议(ob > 0.6)作为质量过滤器。",
+          "originalExcerpt": "agreement (κ > 0.6) as a quality filter."
+        },
+        {
+          "id": "s-9-7-b46",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "194"
+          },
+          "text": "普拉克特-吕斯培训法",
+          "originalExcerpt": "Plackett-Luce Training Code"
+        },
+        {
+          "id": "s-9-7-b47",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "194"
+          },
+          "text": "导入火炬导入火炬。 nn。功能为 F",
+          "originalExcerpt": "import torch import torch . nn . functional as F"
+        },
+        {
+          "id": "s-9-7-b48",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "194"
+          },
+          "text": "e) ============================================================================================================================================================================================================================================================",
+          "originalExcerpt": "def pl ac kett_luce_loss ( rewards , rankings ) : \"\"\""
+        },
+        {
+          "id": "s-9-7-b49",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "195"
+          },
+          "text": "args:奖励 : (批， K ) - K响应排名的预估scalar奖励 : (批， K ) - 地面 - 真相排名指数 (0 = 最好) 回报 :scalar损失 批号 大小， K=奖励 形状#按地排序奖励 - 真相排名顺序排序 奖励=火炬。收集(奖励，1，排名)#(批号， K)。",
+          "originalExcerpt": "Args : rewards : ( batch , K ) - predicted scalar rewards for K responses rankings : ( batch , K ) - ground - truth ranking indices (0 = best ) Returns : scalar loss \"\"\" batch_size , K = rewards . shape # Sort rewards by ground - truth ranking order sorted_rewards = torch . gather ( rewards , 1 , rankings ) # ( batch , K )"
+        },
+        {
+          "id": "s-9-7-b50",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "195"
+          },
+          "text": "# PL 日志 - 概率: 位置损失的和数= 0.0， i在范围(K-1)中:# Log - 剩余项目(位置i至K)的软马克值=排序 奖励 [:， i:] #(批次， K-i) log probs=剩余[:， 0) - 火炬。 logsumexp(剩余， dim=1) 损失 - =log probs。 mean ()",
+          "originalExcerpt": "# PL log - likelihood : sum over positions loss = 0.0 for i in range ( K - 1) : # Log - softmax over remaining items ( position i to K ) remaining = sorted_rewards [: , i :] # ( batch , K - i ) log_probs = remaining [: , 0] - torch . logsumexp ( remaining , dim =1) loss -= log_probs . mean ()"
+        },
+        {
+          "id": "s-9-7-b51",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "195"
+          },
+          "text": "返回损失 / (K-1)",
+          "originalExcerpt": "return loss / ( K - 1)"
+        },
+        {
+          "id": "s-9-7-b52",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 9,
+            "section": "9.7",
+            "pages": "195"
+          },
+          "text": "# 实例:每时8回，按注解奖励=奖励 模式(回应)#(批，8)排名=火炬。 argsort(人-分数，降=真)#最佳首输=pnocett luce loss(奖励，排名) 亏损(落后)。",
+          "originalExcerpt": "# Example : 8 responses per prompt , ranked by annotator rewards = reward_model ( responses ) # ( batch , 8) rankings = torch . argsort ( human_scores , descending = True ) # best first loss = p lackett_luce_loss ( rewards , rankings ) loss . backward ()"
+        }
+      ]
+    }
+  ],
+  "glossary": [
+    {
+      "term": "Agent",
+      "zh": "智能体",
+      "meaning": "由模型、状态、工具和运行循环共同构成的目标导向系统。"
+    },
+    {
+      "term": "reward model",
+      "zh": "Reward Model",
+      "meaning": "把人类或规则偏好映射为可优化标量信号的模型。"
+    },
+    {
+      "term": "token",
+      "zh": "词元",
+      "meaning": "模型处理和生成文本时使用的离散单位。"
+    }
+  ],
+  "summary": [
+    "奖励模式是人类偏好与RL训练信号之间的桥梁。 训练有素的奖励模式对成功的RLHF至关重要;训练有素的奖励模式会导致对黑客和错位行为的奖励。本节涵盖理论基础，实用培训技术和Reward Model的建筑选择。",
+    "Bradley-Terry模型[29]是双向偏好学习的标准概率框架。鉴于两个响应y1和y2到一个快速q，模型假设:",
+    "er(y1， q) P(y1， y2， q) = σ(r(y1， q) −) er， er(y1， q) +， er， q， q， q， q， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， r， ×， ×， ×， ×， ×， ×， ×， ×， →， →， →， →， →， →， →， →， →， →， →， →， →， →， →， →，"
+  ],
+  "metrics": {
+    "chineseCharacters": 3836,
+    "sourceCoverage": 96,
+    "sectionCount": 8,
+    "blockCount": 132
+  }
+}

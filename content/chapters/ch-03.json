@@ -1,0 +1,2825 @@
+{
+  "chapter": 3,
+  "title": "Introduction to Reinforcement Learning",
+  "zhTitle": "强化学习入门",
+  "pages": "125-138",
+  "minutes": 30,
+  "overview": "强化学习(RL)是一种范例，即Agent通过与环境互动，获得反馈奖励，优化政策，以在一定时间内最大限度地增加累积奖励[347]，学习做出顺序决定。与监督学习不同(需要标签输入输出对)， RL通过试运行和错误发现最佳行为。",
+  "status": "in_progress",
+  "sections": [
+    {
+      "id": "s-3-introduction",
+      "number": null,
+      "level": 1,
+      "enTitle": "Chapter introduction",
+      "zhTitle": "章节导入",
+      "pages": "125",
+      "blocks": [
+        {
+          "id": "s-3-introduction-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 3,
+            "section": null,
+            "pages": "125"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 本章导入「章节导入」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-3-introduction-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": null,
+            "pages": "125"
+          },
+          "text": "强化学习(RL)是一种范例，即Agent通过与环境互动，获得反馈奖励，优化政策，以在一定时间内最大限度地增加累积奖励[347]，学习做出顺序决定。与监督学习不同(需要标签输入输出对)， RL通过试运行和错误发现最佳行为。",
+          "originalExcerpt": "Reinforcement Learning (RL) is a paradigm where an agent learns to make sequential decisions by interacting with an environment, receiving rewards as feedback, and optimizing its policy to maximize cumulative reward over time [347]. Unlike supervised learning (which requires labeled input-output pairs), RL discovers optimal behavior through trial and error."
+        },
+        {
+          "id": "s-3-introduction-b3",
+          "type": "figure",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": null,
+            "pages": "125",
+            "figure": "Figure 3.1"
+          },
+          "src": null,
+          "alt": "图3.1:强化学习概览:一个Agent与环境互动，通过试运行和错误来获得反馈和刷新其政策。与从标签对子中学习的有监督的学习不同， RL通过经验来获得最大的奖励来学习该做什么。",
+          "caption": "图3.1:强化学习概览:一个Agent与环境互动，通过试运行和错误来获得反馈和刷新其政策。与从标签对子中学习的有监督的学习不同， RL通过经验来获得最大的奖励来学习该做什么。",
+          "adapted": false
+        }
+      ]
+    },
+    {
+      "id": "s-3-1",
+      "number": "3.1",
+      "level": 1,
+      "enTitle": "The Markov Decision Process (MDP)",
+      "zhTitle": "马可夫决策进程(MDP)",
+      "pages": "125-126",
+      "blocks": [
+        {
+          "id": "s-3-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 3,
+            "section": "3.1",
+            "pages": "125-126"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §3.1「马可夫决策进程(MDP)」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-3-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.1",
+            "pages": "125"
+          },
+          "text": "混合发展方案是5个图(S、A、P、R、γ):",
+          "originalExcerpt": "An MDP is a 5-tuple (S, A, P, R, γ):"
+        },
+        {
+          "id": "s-3-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.1",
+            "pages": "125"
+          },
+          "text": "• S:国家空间——环境的所有可能配置",
+          "originalExcerpt": "• S: State space — all possible configurations of the environment"
+        },
+        {
+          "id": "s-3-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.1",
+            "pages": "125"
+          },
+          "text": "• A:行动空间——Agent可以利用的所有行动",
+          "originalExcerpt": "• A: Action space — all actions available to the agent"
+        },
+        {
+          "id": "s-3-1-b4",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.1",
+            "pages": "125"
+          },
+          "language": "text",
+          "code": "• P (s′ |s, a): Transition function — probability of reaching state s′ from state s after taking",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-3-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.1",
+            "pages": "125"
+          },
+          "text": "• R(s， a， s ' ):奖励功能——过渡时的即时分级反馈",
+          "originalExcerpt": "• R(s, a, s′ ): Reward function — immediate scalar feedback for a transition"
+        },
+        {
+          "id": "s-3-1-b7",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 3,
+            "section": "3.1",
+            "pages": "125"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "• γ ∈ [0, 1]: Discount factor — how much future rewards are valued relative to immediate ones"
+        },
+        {
+          "id": "s-3-1-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.1",
+            "pages": "125"
+          },
+          "text": "马尔科夫地产:未来仅取决于现状，而非历史:",
+          "originalExcerpt": "The Markov Property: The future depends only on the current state, not the history:"
+        },
+        {
+          "id": "s-3-1-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.1",
+            "pages": "125"
+          },
+          "text": "P(st+1 |， at， st−1， at −1， )=P(st+1 |， at ) P − | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | |",
+          "originalExcerpt": "P (st+1 |st , at , st−1 , at−1 , . . .) = P (st+1 |st , at )"
+        },
+        {
+          "id": "s-3-1-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.1",
+            "pages": "125"
+          },
+          "text": "这使得问题可以被引导。",
+          "originalExcerpt": "This makes the problem tractable."
+        },
+        {
+          "id": "s-3-1-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.1",
+            "pages": "126"
+          },
+          "text": "Agent-环境相互作用循环，每一步 t:",
+          "originalExcerpt": "Agent-Environment Interaction Loop At each time step t:"
+        },
+        {
+          "id": "s-3-1-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.1",
+            "pages": "126"
+          },
+          "text": "1. Agent观察状态",
+          "originalExcerpt": "1. Agent observes state st"
+        },
+        {
+          "id": "s-3-1-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.1",
+            "pages": "126"
+          },
+          "text": "2. Agent根据政策选择行动",
+          "originalExcerpt": "2. Agent selects action at according to policy π(a|s)"
+        },
+        {
+          "id": "s-3-1-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.1",
+            "pages": "126"
+          },
+          "text": "3. 环境向st+1 + + P (·|st， at )的过渡",
+          "originalExcerpt": "3. Environment transitions to st+1 ∼ P (·|st , at )"
+        },
+        {
+          "id": "s-3-1-b15",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.1",
+            "pages": "126"
+          },
+          "text": "4. Agent获得奖励rt=R(st， at， st+1)",
+          "originalExcerpt": "4. Agent receives reward rt = R(st , at , st+1 )"
+        },
+        {
+          "id": "s-3-1-b16",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.1",
+            "pages": "126"
+          },
+          "text": "5. 重复到终端状态或地平线 T",
+          "originalExcerpt": "5. Repeat until terminal state or horizon T"
+        }
+      ]
+    },
+    {
+      "id": "s-3-2",
+      "number": "3.2",
+      "level": 1,
+      "enTitle": "Core Concepts and Definitions",
+      "zhTitle": "核心概念和定义",
+      "pages": "126",
+      "blocks": [
+        {
+          "id": "s-3-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 3,
+            "section": "3.2",
+            "pages": "126"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §3.2「核心概念和定义」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-3-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.2",
+            "pages": "126"
+          },
+          "text": "政策 Q(a) : 从各州到行动概率的映射。 定点: a = Q(s)。 Stochastic: a Q(s)。返回(累计折扣奖励): X Gt = γ k rt+k = rt + γ t+1 + γ 2 rt+2 + → (3.1) k= 0",
+          "originalExcerpt": "Policy π(a|s): A mapping from states to action probabilities. Deterministic: a = π(s). Stochastic: a ∼ π(·|s). Return (cumulative discounted reward): ∞ X Gt = γ k rt+k = rt + γrt+1 + γ 2 rt+2 + · · · (3.1) k=0"
+        },
+        {
+          "id": "s-3-2-b2",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.2",
+            "pages": "126"
+          },
+          "language": "text",
+          "code": "Value Function (expected return from state s under policy π): \"∞ # X π k V (s) = Eπ [Gt | st = s] = Eπ γ rt+k | st = s (3.2) k=0",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-3-2-b3",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.2",
+            "pages": "126"
+          },
+          "language": "text",
+          "code": "Action-Value Function (expected return from state s, taking action a, then following π):",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-3-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.2",
+            "pages": "126"
+          },
+          "text": "Qπ(s， a) = Eπ [Gt | st = s， at = a] (3.3) (s， a) π(s) π(s) π(s) π(s) π(s) π(s) π(s) π(s) π(s) π(s) π(s) π(s) π(s) π(s) π(s) π(s) π(s) π(s) π(s) π(s) π(s) π(s) π(s， a) =(s) π(s) π(s) π(s) =(s) =(s) =(s) =(s) =(s) =(s) =(s) =(s)",
+          "originalExcerpt": "Qπ (s, a) = Eπ [Gt | st = s, at = a] (3.3)"
+        },
+        {
+          "id": "s-3-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.2",
+            "pages": "126"
+          },
+          "text": "优势函数(与平均值相比，一个动作有多好):",
+          "originalExcerpt": "Advantage Function (how much better action a is compared to average):"
+        },
+        {
+          "id": "s-3-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.2",
+            "pages": "126"
+          },
+          "text": "Aá(s， a) = Qπ(s， a) = V π(s)(3.4)",
+          "originalExcerpt": "Aπ (s, a) = Qπ (s, a) − V π (s) (3.4)"
+        },
+        {
+          "id": "s-3-2-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.2",
+            "pages": "126"
+          },
+          "text": "贝尔曼方程( 重复关系 ):",
+          "originalExcerpt": "Bellman Equations (recursive relationship):"
+        },
+        {
+          "id": "s-3-2-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.2",
+            "pages": "126"
+          },
+          "text": "P(s ' |， a)R(s， a， s)+QV +(s)X V(s)X V(s)=(a)3.5(3.5) a(s)#(s)#(s， a)|(s)|(s， a)|(s)|(s， a)γ(a)γ(a)γ(a)γ(a)γ(a)γ(a).6(a).6(a) s(a).6(a) s(a) s(a) s(a) s(a)\u0003(a) s(a) s(a)\u0003(a)γ(a) s(a) s(a)\u0003(a)\u0003(a)π(a)\u0003(a)\u0003(a)\u0003(a)γ(a)\u0003(a)\u0003(a)\u0003)\u0002(a)\u0003(a)\u0003)\u0002(a)\u0002(a)\u0002(a)\u0003)\u0002(a)\u0002(a)\u0002(a)\u0002)\u0003(a)\u0002)\u0003)\u0002(a)\u0002(a)\u0003",
+          "originalExcerpt": "P (s′ |s, a) R(s, a, s′ ) + γV π (s′ ) X X V π (s) = \u0002 \u0003 π(a|s) (3.5) a s′ \" # ′ ′ ′ ′ ′ ′ X X π π Q (s, a) = P (s |s, a) R(s, a, s ) + γ π(a |s )Q (s , a ) (3.6) s′ a′"
+        },
+        {
+          "id": "s-3-2-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.2",
+            "pages": "126"
+          },
+          "text": "最佳政策和贝尔曼优化政策 最佳政策 满足:",
+          "originalExcerpt": "Optimal Policy and Bellman Optimality The optimal policy π ∗ satisfies:"
+        },
+        {
+          "id": "s-3-2-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.2",
+            "pages": "126"
+          },
+          "text": "V*(s)=最大 P(s '， a)R(s， a， s)+Q*(s)X(s)X(3.7)=Q(s， a)=P(s， a)R(s， a)+Q(s， a)+X(s， a)+Q(s，3.8)X(s)。",
+          "originalExcerpt": "V ∗ (s) = max P (s′ |s, a) R(s, a, s′ ) + γV ∗ (s′ ) X \u0002 \u0003 (3.7) a s′ \u0014 \u0015 ∗ ′ ′ ∗ ′ ′ X Q (s, a) = P (s |s, a) R(s, a, s ) + γ max ′ Q (s , a ) (3.8) a s′"
+        },
+        {
+          "id": "s-3-2-b11",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 3,
+            "section": "3.2",
+            "pages": "126"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "Once Q∗ is known, the optimal policy is simply: π ∗ (s) = arg maxa Q∗ (s, a)."
+        }
+      ]
+    },
+    {
+      "id": "s-3-3",
+      "number": "3.3",
+      "level": 1,
+      "enTitle": "Taxonomy of RL Methods",
+      "zhTitle": "RL方法分类",
+      "pages": "127",
+      "blocks": [
+        {
+          "id": "s-3-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 3,
+            "section": "3.3",
+            "pages": "127"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §3.3「RL方法分类」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-3-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.3",
+            "pages": "127"
+          },
+          "text": "强化学习算法可以沿着几个轴进行分类。理解这个分类法有助于选择一个特定问题的正确方法。",
+          "originalExcerpt": "Reinforcement learning algorithms can be classified along several axes. Understanding this taxonomy helps select the right approach for a given problem."
+        },
+        {
+          "id": "s-3-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.3",
+            "pages": "127"
+          },
+          "text": "键分类区分模型-无模型对模型-基于模型:",
+          "originalExcerpt": "Key Taxonomy Distinctions Model-Free vs Model-Based:"
+        },
+        {
+          "id": "s-3-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.3",
+            "pages": "127"
+          },
+          "text": "· 模式无拘:直接从经验中学习政策或价值功能。",
+          "originalExcerpt": "• Model-Free: Learn policy or value function directly from experience. No knowledge of"
+        },
+        {
+          "id": "s-3-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.3",
+            "pages": "127"
+          },
+          "text": "语言动态对于模型来说是难以解决的。",
+          "originalExcerpt": "environment dynamics. Most practical for LLMs (language dynamics are intractable to model)."
+        },
+        {
+          "id": "s-3-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.3",
+            "pages": "127"
+          },
+          "text": "· 基于模型:学习或使用环境过渡模型P(s ' |s， a)，可以提前规划。",
+          "originalExcerpt": "• Model-Based: Learn or use a model of environment transitions P (s′ |s, a). Can plan ahead."
+        },
+        {
+          "id": "s-3-3-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.3",
+            "pages": "127"
+          },
+          "text": "样本效率更高，但需要准确的模型。",
+          "originalExcerpt": "More sample-efficient but requires accurate model."
+        },
+        {
+          "id": "s-3-3-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.3",
+            "pages": "127"
+          },
+          "text": "基于价值与基于政策:",
+          "originalExcerpt": "Value-Based vs Policy-Based:"
+        },
+        {
+          "id": "s-3-3-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.3",
+            "pages": "127"
+          },
+          "text": "• 基于价值:学习Q(s， a)或V(s)，得出政策作为最大Q(s， a)的参数。",
+          "originalExcerpt": "• Value-Based: Learn Q(s, a) or V (s), derive policy as arg maxa Q(s, a). Works well for"
+        },
+        {
+          "id": "s-3-3-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.3",
+            "pages": "127"
+          },
+          "text": "离散，小的动作空间(如Atari)。具有连续/大动作空间的奋斗。",
+          "originalExcerpt": "discrete, small action spaces (e.g., Atari). Struggles with continuous/large action spaces."
+        },
+        {
+          "id": "s-3-3-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.3",
+            "pages": "127"
+          },
+          "text": "• Policy-Based 方法：直接参数化并优化策略 πθ(a|s)，更自然地适用于连续或高维动作空间。",
+          "originalExcerpt": "• Policy-Based: Directly parameterize and optimize πθ (a|s). Natural for continuous/high-"
+        },
+        {
+          "id": "s-3-3-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.3",
+            "pages": "127"
+          },
+          "text": "维元动作空间。 必需的 LLMs( vocabulary = 32K– 128K 动作)。",
+          "originalExcerpt": "dimensional action spaces. Essential for LLMs (vocabulary = 32K–128K actions)."
+        },
+        {
+          "id": "s-3-3-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.3",
+            "pages": "127"
+          },
+          "text": "• 演员-批评:将两者结合起来——政策(行动者)提议行动、价值功能(批评)",
+          "originalExcerpt": "• Actor-Critic: Combine both — policy (actor) proposes actions, value function (critic)"
+        },
+        {
+          "id": "s-3-3-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.3",
+            "pages": "127"
+          },
+          "text": "评估它们。",
+          "originalExcerpt": "evaluates them. PPO for LLMs is actor-critic."
+        },
+        {
+          "id": "s-3-3-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.3",
+            "pages": "127"
+          },
+          "text": "政策与非政策:",
+          "originalExcerpt": "On-Policy vs Off-Policy:"
+        },
+        {
+          "id": "s-3-3-b15",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.3",
+            "pages": "127"
+          },
+          "text": "• 政策上:学习现行政策产生的数据。",
+          "originalExcerpt": "• On-Policy: Learn from data generated by the current policy. Must regenerate data after"
+        },
+        {
+          "id": "s-3-3-b16",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.3",
+            "pages": "127"
+          },
+          "text": "实例:REINFORCE、PPO、A2C。比较稳定但比较不高效的样本。",
+          "originalExcerpt": "each update. Examples: REINFORCE, PPO, A2C. More stable but less sample-efficient."
+        },
+        {
+          "id": "s-3-3-b17",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.3",
+            "pages": "127"
+          },
+          "text": "• 非政策:从任何政策(包括旧版本或其他Agent)产生的数据中学习。",
+          "originalExcerpt": "• Off-Policy: Learn from data generated by any policy (including old versions or other agents)."
+        },
+        {
+          "id": "s-3-3-b18",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.3",
+            "pages": "127"
+          },
+          "text": "可以重复过去的经验，例如:Q-学习、DQN、SAC。样本效率更高，但更难稳定。",
+          "originalExcerpt": "Can reuse past experience. Examples: Q-Learning, DQN, SAC. More sample-efficient but harder to stabilize."
+        }
+      ]
+    },
+    {
+      "id": "s-3-4",
+      "number": "3.4",
+      "level": 1,
+      "enTitle": "Temporal Difference (TD) Learning",
+      "zhTitle": "时间差异(TD) 学习",
+      "pages": "127",
+      "blocks": [
+        {
+          "id": "s-3-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 3,
+            "section": "3.4",
+            "pages": "127"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §3.4「时间差异(TD) 学习」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-3-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.4",
+            "pages": "127"
+          },
+          "text": "TD学习[346] 靴子——它利用其他值估计来更新值估计，而不用等待整集结束。",
+          "originalExcerpt": "TD learning [346] bootstraps — it updates value estimates using other value estimates, without waiting for the full episode to end."
+        }
+      ]
+    },
+    {
+      "id": "s-3-4-1",
+      "number": "3.4.1",
+      "level": 2,
+      "enTitle": "Understanding TD Error: “Surprise” as a Learning Signal",
+      "zhTitle": "理解 TD 错误: “ 突起” 是一个学习信号",
+      "pages": "127-128",
+      "blocks": [
+        {
+          "id": "s-3-4-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 3,
+            "section": "3.4.1",
+            "pages": "127-128"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §3.4.1「理解 TD 错误: “ 突起” 是一个学习信号」 时，把每个 failure mode 拆成触发条件、可观测信号、影响范围、缓解措施和剩余风险。原书给出的警告不是附录信息，而是决定系统是否能进入生产环境的设计约束。"
+        },
+        {
+          "id": "s-3-4-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.4.1",
+            "pages": "127"
+          },
+          "text": "TD错误衡量Agent对未来奖励的当前估计与采取一步后更新的估计数之间的差异。简言之，这是Agent对报酬的当前估计与新估计之间的差别。",
+          "originalExcerpt": "TD error measures the discrepancy between an agent’s current estimate of future reward and a newly updated estimate after taking one step. Put simply, it is the difference between what the"
+        },
+        {
+          "id": "s-3-4-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.4.1",
+            "pages": "128"
+          },
+          "text": "探险家认为会发生什么，以及接下来会发生什么。 它代表着探险家的“惊奇 ”。 探险家:驾驶自觉的想象中你正在开车回家，预计开车需要30分钟。",
+          "originalExcerpt": "agent thought would happen and what actually happened plus what it expects next. It represents the agent’s “surprise.” Intuition: The Driving Analogy Imagine you are driving home and expect the drive to take 30 minutes."
+        },
+        {
+          "id": "s-3-4-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.4.1",
+            "pages": "128"
+          },
+          "text": "• 预测:共计30分钟。",
+          "originalExcerpt": "• The prediction: 30 minutes total."
+        },
+        {
+          "id": "s-3-4-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.4.1",
+            "pages": "128"
+          },
+          "text": "• 现实转变:十分钟后，你撞上了意想不到的公路建设。",
+          "originalExcerpt": "• The reality shift: After 10 minutes, you hit unexpected road construction. Your GPS"
+        },
+        {
+          "id": "s-3-4-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.4.1",
+            "pages": "128"
+          },
+          "text": "更新，说你现在还有35分钟",
+          "originalExcerpt": "updates, saying you now have 35 minutes left."
+        },
+        {
+          "id": "s-3-4-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.4.1",
+            "pages": "128"
+          },
+          "text": "• TD错误:预计时间总数现在为45分钟(10天+35天)。",
+          "originalExcerpt": "• The TD Error: Total expected time is now 45 minutes (10 elapsed + 35 remaining). The"
+        },
+        {
+          "id": "s-3-4-1-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.4.1",
+            "pages": "128"
+          },
+          "text": "新估计(45分钟)和旧估计(30分钟)之间的差值是+15分钟TD错误。您下次使用这个“突兀”来改变您的路线。",
+          "originalExcerpt": "difference between new estimate (45 min) and old estimate (30 min) is a +15 minute TD error. You use this “surprise” to change your route next time."
+        },
+        {
+          "id": "s-3-4-1-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.4.1",
+            "pages": "128"
+          },
+          "text": "积极的TD错误意味着结果比预期的好 – 提升了这个状态的价值。",
+          "originalExcerpt": "A positive TD error means the outcome was better than expected → boost this state’s value."
+        },
+        {
+          "id": "s-3-4-1-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.4.1",
+            "pages": "128"
+          },
+          "text": "负的TD错误意味着它比预期的还要糟糕 – 降低这个状态的值。",
+          "originalExcerpt": "A negative TD error means it was worse than expected → lower this state’s value."
+        }
+      ]
+    },
+    {
+      "id": "s-3-4-2",
+      "number": "3.4.2",
+      "level": 2,
+      "enTitle": "The TD Error Formula",
+      "zhTitle": "TD 错误公式",
+      "pages": "128",
+      "blocks": [
+        {
+          "id": "s-3-4-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 3,
+            "section": "3.4.2",
+            "pages": "128"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §3.4.2「TD 错误公式」 时，把每个 failure mode 拆成触发条件、可观测信号、影响范围、缓解措施和剩余风险。原书给出的警告不是附录信息，而是决定系统是否能进入生产环境的设计约束。"
+        },
+        {
+          "id": "s-3-4-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.4.2",
+            "pages": "128"
+          },
+          "text": "δt = Rt+1 + γV(St+1) → V(St)(3.9)",
+          "originalExcerpt": "δt = Rt+1 + γV (St+1 ) − V (St ) (3.9)"
+        },
+        {
+          "id": "s-3-4-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.4.2",
+            "pages": "128"
+          },
+          "text": "• Rt+1:采取行动后立即得到的奖励。",
+          "originalExcerpt": "• Rt+1 : The immediate reward received after taking an action."
+        },
+        {
+          "id": "s-3-4-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.4.2",
+            "pages": "128"
+          },
+          "text": "• γV(St+1):下一个状态的估计折扣值(Agent预期得到的)",
+          "originalExcerpt": "• γV (St+1 ): The estimated discounted value of the next state (what the agent expects to get"
+        },
+        {
+          "id": "s-3-4-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.4.2",
+            "pages": "128"
+          },
+          "text": "乘以折扣系数 )",
+          "originalExcerpt": "from the next state onward, scaled by discount factor γ)."
+        },
+        {
+          "id": "s-3-4-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.4.2",
+            "pages": "128"
+          },
+          "text": "· 五(圣):目前状态值的原始估计。",
+          "originalExcerpt": "• V (St ): The original estimate of the current state’s value."
+        },
+        {
+          "id": "s-3-4-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.4.2",
+            "pages": "128"
+          },
+          "text": "合并术语(Rt+1 + γV(St+1))称为TD目标。",
+          "originalExcerpt": "The combined term (Rt+1 + γV (St+1 )) is called the TD Target. Therefore:"
+        },
+        {
+          "id": "s-3-4-2-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.4.2",
+            "pages": "128"
+          },
+          "text": "TD 错误=TD 目标 − 旧估计(3.10)",
+          "originalExcerpt": "TD Error = TD Target − Old Estimate (3.10)"
+        }
+      ]
+    },
+    {
+      "id": "s-3-4-3",
+      "number": "3.4.3",
+      "level": 2,
+      "enTitle": "How the Agent Uses TD Error",
+      "zhTitle": "Agent如何使用 TD 错误",
+      "pages": "128",
+      "blocks": [
+        {
+          "id": "s-3-4-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 3,
+            "section": "3.4.3",
+            "pages": "128"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §3.4.3「Agent如何使用 TD 错误」 时，把每个 failure mode 拆成触发条件、可观测信号、影响范围、缓解措施和剩余风险。原书给出的警告不是附录信息，而是决定系统是否能进入生产环境的设计约束。"
+        },
+        {
+          "id": "s-3-4-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.4.3",
+            "pages": "128"
+          },
+          "text": "Agent调整其值函数，将TD错误驱动为零:",
+          "originalExcerpt": "The agent adjusts its value function to drive TD error toward zero:"
+        },
+        {
+          "id": "s-3-4-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.4.3",
+            "pages": "128"
+          },
+          "text": "V(圣) + α → tt(3.11)",
+          "originalExcerpt": "V (St ) ← V (St ) + α · δt (3.11)"
+        },
+        {
+          "id": "s-3-4-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.4.3",
+            "pages": "128"
+          },
+          "text": "• 如果 t > 0:结果比预测的好 增加 V(St)，那么Agent寻求这种状态。",
+          "originalExcerpt": "• If δt > 0: outcome was better than predicted → increase V (St ) so the agent seeks this state."
+        },
+        {
+          "id": "s-3-4-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.4.3",
+            "pages": "128"
+          },
+          "text": "• 如果 < 0.:结果比预测的坏",
+          "originalExcerpt": "• If δt < 0: outcome was worse than predicted → decrease V (St ) so the agent avoids this state."
+        },
+        {
+          "id": "s-3-4-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.4.3",
+            "pages": "128"
+          },
+          "text": "• 如果 = 0:预测是完美的——不需要更新(汇合)。",
+          "originalExcerpt": "• If δt = 0: prediction was perfect → no update needed (convergence)."
+        },
+        {
+          "id": "s-3-4-3-b6",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 3,
+            "section": "3.4.3",
+            "pages": "128"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "TD vs Monte Carlo Monte Carlo: Wait until episode ends, use actual return Gt . Unbiased but high variance (one full trajectory may be unrepresentative). TD: Update after every step using estimated future value γV (st+1 ). Biased (depends on V accuracy) but much lower variance (one-step updates, doesn’t compound noise). TD(λ): Interpolate between TD(0) and Mo..."
+        }
+      ]
+    },
+    {
+      "id": "s-3-5",
+      "number": "3.5",
+      "level": 1,
+      "enTitle": "Q-Learning",
+      "zhTitle": "Q-学习",
+      "pages": "129",
+      "blocks": [
+        {
+          "id": "s-3-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 3,
+            "section": "3.5",
+            "pages": "129"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §3.5「Q-学习」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-3-5-b1",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 3,
+            "section": "3.5",
+            "pages": "129"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "Q-Learning [373] is the foundational off-policy, value-based algorithm. It learns the optimal Q∗ directly, regardless of the policy being followed. Update rule: \u0014 \u0015 Q(st , at ) ← Q(st , at ) + α rt + γ max ′ Q(st+1 , a′ ) − Q(st , at ) (3.13) a"
+        },
+        {
+          "id": "s-3-5-b2",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 3,
+            "section": "3.5",
+            "pages": "129"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "Why Q-Learning is Off-Policy The update uses maxa′ Q(st+1 , a′ ) — the value of the best action at the next state, regardless of which action the agent actually took. This means the target is always computed under the optimal policy, even if the behavior policy explores randomly (ϵ-greedy). This is why Q-Learning can learn from replay buffers, demonstrations..."
+        },
+        {
+          "id": "s-3-5-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.5",
+            "pages": "129"
+          },
+          "text": "Q(st， at ) Q(st， at ) + α [r + + + + + + 1] − Q(st， at ) (3. 14) + + + + + + + + + + + 1 + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + Q(st， + + + + + + + + + + + + + + + + + + + + + Q( + + + + + + + + + + + + + + + + + + + + + + + + + + + + + +",
+          "originalExcerpt": "Q(st , at ) ← Q(st , at ) + α [rt + γQ(st+1 , at+1 ) − Q(st , at )] (3.14)"
+        },
+        {
+          "id": "s-3-5-b4",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 3,
+            "section": "3.5",
+            "pages": "129"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "Deep Q-Networks (DQN) [258]: Replace tabular Q(s, a) with a neural network Qθ (s, a). Key innovations: experience replay buffer (off-policy data reuse), target network (stability), ϵ-greedy exploration. DQN Loss Function: The network is trained to minimize the mean squared TD error over mini-batches sampled from the replay buffer: \"\u0012 \u00132 # ′ ′ L(θ) = E(s,a,r,..."
+        },
+        {
+          "id": "s-3-5-b5",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 3,
+            "section": "3.5",
+            "pages": "129"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "where Qθ̄ is the target network — a frozen copy of Qθ updated only every C steps (e.g., C = 10,000). This prevents the moving target problem: without it, both the prediction and the target shift simultaneously, causing divergence. Gradient update: Taking the gradient of the loss w.r.t. θ (note: the target y is treated as a constant — no gradient flows throug..."
+        },
+        {
+          "id": "s-3-5-b7",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 3,
+            "section": "3.5",
+            "pages": "129"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "1. Act: Select action via ϵ-greedy: with probability ϵ take random action, otherwise a ="
+        },
+        {
+          "id": "s-3-5-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.5",
+            "pages": "129"
+          },
+          "text": "最大值(s， a)。 Anneal = 1.0 = 0.01 位居前 1M 级。",
+          "originalExcerpt": "arg maxa Qθ (s, a). Anneal ϵ from 1.0 → 0.01 over first 1M steps."
+        },
+        {
+          "id": "s-3-5-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.5",
+            "pages": "129"
+          },
+          "text": "2. 存储:在重播缓冲B(容量为X%1M)中保存过渡(s， a， r， s '， d)。",
+          "originalExcerpt": "2. Store: Save transition (s, a, r, s′ , d) in replay buffer B (capacity ∼1M)."
+        },
+        {
+          "id": "s-3-5-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.5",
+            "pages": "129"
+          },
+          "text": "3. 样本:从B类划出32个统一过渡的小型批次。",
+          "originalExcerpt": "3. Sample: Draw mini-batch of 32 transitions uniformly from B."
+        },
+        {
+          "id": "s-3-5-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.5",
+            "pages": "129"
+          },
+          "text": "4. 计算目标:y = r + γ(1 - d) maxa ' Qθ̄(s '， a ' )(终端时的今后值为零)。",
+          "originalExcerpt": "4. Compute target: y = r + γ(1 − d) maxa′ Qθ̄ (s′ , a′ ) (zero future value if terminal)."
+        },
+        {
+          "id": "s-3-5-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.5",
+            "pages": "129"
+          },
+          "text": "5. 更新: 渐变下降(y − − ×(s， a))2. 剪切梯度为[− 1， 1](Huber损失变体)。",
+          "originalExcerpt": "5. Update: Gradient descent on (y − Qθ (s, a))2 . Clip gradients to [−1, 1] (Huber loss variant)."
+        },
+        {
+          "id": "s-3-5-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.5",
+            "pages": "129"
+          },
+          "text": "6. 同步 target network：每隔 C 个 step 执行一次 θ̄ ← θ。",
+          "originalExcerpt": "6. Sync target: Every C steps, copy θ̄ ← θ."
+        }
+      ]
+    },
+    {
+      "id": "s-3-5-1",
+      "number": "3.5.1",
+      "level": 2,
+      "enTitle": "Understanding Replay Buffers",
+      "zhTitle": "理解重放缓冲",
+      "pages": "130",
+      "blocks": [
+        {
+          "id": "s-3-5-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 3,
+            "section": "3.5.1",
+            "pages": "130"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §3.5.1「理解重放缓冲」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-3-5-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.5.1",
+            "pages": "130"
+          },
+          "text": "重播缓冲器[219](经验重播)是一种数据存储机制，可以保存过去的经验，这样一个Agent可以稍后再从中学习。 Agent在动作后不立即丢弃数据，而是将转换存储在存储库中，并随机抽取小型枪管进行训练。存储的:每个转换都是一个Tuple:",
+          "originalExcerpt": "A replay buffer [219] (experience replay) is a data storage mechanism that saves past experiences so an agent can relearn from them later. Instead of discarding data immediately after an action, the agent stores transitions in a memory bank and samples random mini-batches for training. What’s stored: Each transition is a tuple:"
+        },
+        {
+          "id": "s-3-5-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.5.1",
+            "pages": "130"
+          },
+          "text": "et = (st， at， rt， st+1， dt) (3.18) = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =",
+          "originalExcerpt": "et = (st , at , rt , st+1 , dt ) (3.18)"
+        },
+        {
+          "id": "s-3-5-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.5.1",
+            "pages": "130"
+          },
+          "text": "显示该插曲结束的布尔旗。为什么要重播缓冲器是必需的。",
+          "originalExcerpt": "where dt is a boolean flag indicating if the episode ended. Why Replay Buffers Are Essential"
+        },
+        {
+          "id": "s-3-5-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.5.1",
+            "pages": "130"
+          },
+          "text": "• 断开数据关联:连续步骤高度相关。",
+          "originalExcerpt": "• Breaks data correlation: Consecutive steps are highly correlated. Neural networks"
+        },
+        {
+          "id": "s-3-5-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.5.1",
+            "pages": "130"
+          },
+          "text": "以顺序数据概括不严。从缓冲器中随机取样，使培训样本大致达到当日水平。",
+          "originalExcerpt": "generalize poorly on sequential data. Random sampling from a buffer makes training samples approximately i.i.d."
+        },
+        {
+          "id": "s-3-5-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.5.1",
+            "pages": "130"
+          },
+          "text": "• 防止灾难性的遗忘:没有缓冲，一个经过困难程度的Agent",
+          "originalExcerpt": "• Prevents catastrophic forgetting: Without a buffer, an agent that passes a difficult level"
+        },
+        {
+          "id": "s-3-5-1-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.5.1",
+            "pages": "130"
+          },
+          "text": "缓冲器会确保它继续使用旧的情景。",
+          "originalExcerpt": "might forget how to clear it while spending the next 10K steps failing on a later level. The buffer ensures it continues to practice old scenarios."
+        },
+        {
+          "id": "s-3-5-1-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.5.1",
+            "pages": "130"
+          },
+          "text": "• 提高样本效率:运行环境可能缓慢。",
+          "originalExcerpt": "• Improves sample efficiency: Running environments can be slow. A replay buffer allows"
+        },
+        {
+          "id": "s-3-5-1-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.5.1",
+            "pages": "130"
+          },
+          "text": "从同一个过渡中提取更多值。",
+          "originalExcerpt": "multiple weight updates from the same transition, extracting more value from every step."
+        },
+        {
+          "id": "s-3-5-1-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.5.1",
+            "pages": "130"
+          },
+          "text": "从收藏中随机导入导入deque",
+          "originalExcerpt": "import random from collections import deque"
+        },
+        {
+          "id": "s-3-5-1-b11",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.5.1",
+            "pages": "130"
+          },
+          "language": "python",
+          "code": "class ReplayBuffer : def __init__ ( self , capacity ) : self . buffer = deque ( maxlen = capacity ) # Bounded queue",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-3-5-1-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.5.1",
+            "pages": "130"
+          },
+          "text": "def 推(自，状态，动作，奖励，下 状态，完成) :自。缓冲。附加((状态，动作，奖励，下 状态，完成))。",
+          "originalExcerpt": "def push ( self , state , action , reward , next_state , done ) : self . buffer . append (( state , action , reward , next_state , done ) )"
+        },
+        {
+          "id": "s-3-5-1-b13",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.5.1",
+            "pages": "130"
+          },
+          "language": "python",
+          "code": "def sample ( self , batch_size ) : # Break correlation by selecting random experiences return random . sample ( self . buffer , batch_size )",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-3-5-1-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.5.1",
+            "pages": "130"
+          },
+          "text": "已读。",
+          "originalExcerpt": "def __len__ ( self ) : return len ( self . buffer )"
+        },
+        {
+          "id": "s-3-5-1-b15",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 3,
+            "section": "3.5.1",
+            "pages": "130"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "Prioritized Experience Replay (PER) In a standard buffer, all experiences have equal sampling probability. But some are much more educational. PER [314] scales sampling probability by TD error magnitude — if a transition caused massive “surprise” (high |δt |), the agent samples it more frequently to correct its model faster. This accelerates learning by 2–3×..."
+        }
+      ]
+    },
+    {
+      "id": "s-3-6",
+      "number": "3.6",
+      "level": 1,
+      "enTitle": "Policy Gradient Methods — REINFORCE",
+      "zhTitle": "政策渐进方法——REINFORCE",
+      "pages": "131-132",
+      "blocks": [
+        {
+          "id": "s-3-6-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 3,
+            "section": "3.6",
+            "pages": "131-132"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §3.6「政策渐进方法——REINFORCE」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-3-6-b1",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.6",
+            "pages": "131"
+          },
+          "language": "text",
+          "code": "Instead of learning a value function and deriving a policy, directly optimize the policy parameters θ to maximize expected return [379]. h i PT Objective: J(θ) = Eτ ∼πθ [R(τ )] = Eπθ t=0 rt Policy Gradient Theorem: \" T # X ∇θ J(θ) = Eπθ ∇θ log πθ (at |st ) · Gt (3.19) t=0",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-3-6-b2",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.6",
+            "pages": "131"
+          },
+          "expression": "Policy Gradient Theorem — Formal Derivation (5 Steps) Step 1: Define the objective. We want to maximize expected return: \" T # X X J(θ) = Eτ ∼πθ rt = P (τ |θ)R(τ ) t=0 τ",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-3-6-b3",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.6",
+            "pages": "131"
+          },
+          "expression": "where P (τ |θ) = p(s0 ) Tt=0 πθ (at |st ) p(st+1 |st , at ) is the trajectory probability. Q",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-3-6-b4",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.6",
+            "pages": "131"
+          },
+          "expression": "Step 2: Take the gradient. Only πθ terms depend on θ (dynamics p doesn’t): X ∇θ J = ∇θ P (τ |θ) R(τ ) τ",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-3-6-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.6",
+            "pages": "131"
+          },
+          "text": "第3步:应用日志推理法: ++(\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\",
+          "originalExcerpt": "Step 3: Apply the log-derivative trick: ∇θ P (τ |θ) = P (τ |θ) ∇θ log P (τ |θ):"
+        },
+        {
+          "id": "s-3-6-b6",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.6",
+            "pages": "131"
+          },
+          "expression": "∇θ J = Eτ ∼πθ [∇θ log P (τ |θ) R(τ )]",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-3-6-b7",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.6",
+            "pages": "131"
+          },
+          "expression": "Step 4: Expand log P (τ |θ). The log p(s0 ) and log p(st+1 |st , at ) terms vanish under ∇θ : T X ∇θ log P (τ |θ) = ∇θ log πθ (at |st ) t=0",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-3-6-b8",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 3,
+            "section": "3.6",
+            "pages": "131"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "Step 5: Combine. Future rewards don’t depend on past actions (causality), so each ∇ log π pairs only with future return Gt = Tt′ =t rt′ : P"
+        },
+        {
+          "id": "s-3-6-b9",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.6",
+            "pages": "131"
+          },
+          "expression": "\" T # X ∇θ J = Eπθ ∇θ log πθ (at |st ) · Gt t=0",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-3-6-b10",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.6",
+            "pages": "131"
+          },
+          "expression": "Why This Is Beautiful The gradient does not require differentiating through the environment dynamics p(s′ |s, a). The log-derivative trick converts it into an expectation we can estimate by simply running the policy and observing rewards. Replacing Gt with advantage Ât = Gt − V (st ) reduces variance without bias (since E[∇ log π · b(s)] = 0 for any state-dependent baseline). REINFORCE Algorithm [379] (Williams, 1992):",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-3-6-b11",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.6",
+            "pages": "131"
+          },
+          "expression": "1. Sample complete trajectory τ = (s0 , a0 , r0 , s1 , a1 , r1 , . . .) under πθ",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-3-6-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.6",
+            "pages": "131"
+          },
+          "text": "2. 计算每个时间步骤的返回Gt = k = 0 γ rt+k",
+          "originalExcerpt": "2. Compute return Gt = k=0 γ rt+k for each time step"
+        },
+        {
+          "id": "s-3-6-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.6",
+            "pages": "131"
+          },
+          "text": "3. 更新: + α t + + + log + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + +",
+          "originalExcerpt": "3. Update: θ ← θ + α t ∇θ log πθ (at |st ) · Gt"
+        },
+        {
+          "id": "s-3-6-b16",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 3,
+            "section": "3.6",
+            "pages": "131"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "REINFORCE Intuition — “Reward-Weighted Maximum Likelihood” ∇θ log πθ (at |st ) is the direction that increases the probability of action at . Multiplying by Gt means:"
+        },
+        {
+          "id": "s-3-6-b17",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.6",
+            "pages": "132"
+          },
+          "text": "• 高回报轨迹:增加采取所有行动的概率(正数Gt )",
+          "originalExcerpt": "• High-reward trajectories: increase probability of all actions taken (positive Gt )"
+        },
+        {
+          "id": "s-3-6-b18",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.6",
+            "pages": "132"
+          },
+          "text": "• 低回报轨迹:减少采取行动的概率(基线之后的负Gt)",
+          "originalExcerpt": "• Low-reward trajectories: decrease probability of actions taken (negative Gt after baseline)"
+        },
+        {
+          "id": "s-3-6-b19",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.6",
+            "pages": "132"
+          },
+          "expression": "It’s supervised learning where the “labels” are the actions you took, weighted by how good they turned out to be. Variance Reduction with Baseline: \" T # X ∇θ J(θ) = Eπθ ∇θ log πθ (at |st ) · (Gt − b(st )) (3.20) t=0",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-3-6-b20",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.6",
+            "pages": "132"
+          },
+          "text": "任何不依赖的b(st)基线都保持梯度不偏差，但减少差异。最佳选择:b(st)=V → (st)。然后是Gt — V(st)= A (st， at )=优势。",
+          "originalExcerpt": "Any baseline b(st ) that doesn’t depend on at keeps the gradient unbiased but reduces variance. Best choice: b(st ) = V π (st ). Then Gt − V (st ) ≈ Aπ (st , at ) = advantage. REINFORCE Limitations"
+        },
+        {
+          "id": "s-3-6-b21",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.6",
+            "pages": "132"
+          },
+          "text": "• 高度差异:每个梯度都使用一个轨迹。",
+          "originalExcerpt": "• High variance: Each gradient uses one trajectory. Thousands of samples needed for stable"
+        },
+        {
+          "id": "s-3-6-b23",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.6",
+            "pages": "132"
+          },
+          "text": "• 不拉皮条:必须等待整集(不记部分功劳)。",
+          "originalExcerpt": "• No bootstrapping: Must wait for full episode (no partial credit)."
+        },
+        {
+          "id": "s-3-6-b24",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.6",
+            "pages": "132"
+          },
+          "text": "• 样本效率低下:一旦使用数据，就被丢弃(政策)。",
+          "originalExcerpt": "• Sample inefficient: Data is used once then discarded (on-policy)."
+        },
+        {
+          "id": "s-3-6-b25",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.6",
+            "pages": "132"
+          },
+          "text": "• 不采取步步控制:可采取灾难性的大规模政策步骤。",
+          "originalExcerpt": "• No step-size control: Can take catastrophically large policy steps."
+        },
+        {
+          "id": "s-3-6-b26",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.6",
+            "pages": "132"
+          },
+          "text": "这些限制促使进展:REINFORCE → 演员-批评者 → TRPO → PPO。",
+          "originalExcerpt": "These limitations motivate the progression: REINFORCE → Actor-Critic → TRPO → PPO."
+        }
+      ]
+    },
+    {
+      "id": "s-3-7",
+      "number": "3.7",
+      "level": 1,
+      "enTitle": "Actor-Critic Methods",
+      "zhTitle": "演员-批评方法",
+      "pages": "132",
+      "blocks": [
+        {
+          "id": "s-3-7-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 3,
+            "section": "3.7",
+            "pages": "132"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §3.7「演员-批评方法」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-3-7-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.7",
+            "pages": "132"
+          },
+          "text": "将政策梯度(行为者)与学到的价值函数(批评)结合起来，以减少差异，同时保持政策优化的灵活性。",
+          "originalExcerpt": "Combine policy gradient (actor) with learned value function (critic) to reduce variance while maintaining the flexibility of policy optimization. Architecture:"
+        },
+        {
+          "id": "s-3-7-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.7",
+            "pages": "132"
+          },
+          "text": "• 演员(a) 政策:提出行动。",
+          "originalExcerpt": "• Actor πθ (a|s): The policy. Proposes actions."
+        },
+        {
+          "id": "s-3-7-b3",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 3,
+            "section": "3.7",
+            "pages": "132"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "• Critic Vϕ (s) or Qϕ (s, a): Evaluates how good a state/action is. Provides low-variance baseline."
+        },
+        {
+          "id": "s-3-7-b4",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.7",
+            "pages": "132"
+          },
+          "expression": "Actor update (using advantage from critic): h i ∇θ J = E ∇θ log πθ (at |st ) · Ât , Ât = rt + γVϕ (st+1 ) − Vϕ (st ) (3.21)",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-3-7-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.7",
+            "pages": "132"
+          },
+          "text": "批评更新(最小化TD错误):h i 批评=E(rt + γVφ(st+1) → Vφ(st))2 (3.22)",
+          "originalExcerpt": "Critic update (minimize TD error): h i Lcritic = E (rt + γVϕ (st+1 ) − Vϕ (st ))2 (3.22)"
+        },
+        {
+          "id": "s-3-7-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.7",
+            "pages": "132"
+          },
+          "text": "法学硕士课程向 PPO 的演变",
+          "originalExcerpt": "Evolution to PPO for LLMs"
+        },
+        {
+          "id": "s-3-7-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.7",
+            "pages": "132"
+          },
+          "text": "1. REINFORCE [379]:差异大，不拖鞋 − 对法学硕士不切实际",
+          "originalExcerpt": "1. REINFORCE [379]: High variance, no bootstrapping → impractical for LLMs"
+        },
+        {
+          "id": "s-3-7-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.7",
+            "pages": "132"
+          },
+          "text": "2. A2C/A3C [259] (优势演员-批评):使用基于TD的优势，差异较小。",
+          "originalExcerpt": "2. A2C/A3C [259] (Advantage Actor-Critic): Uses TD-based advantage. Lower variance. But"
+        },
+        {
+          "id": "s-3-7-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.7",
+            "pages": "132"
+          },
+          "text": "无约束的步码大小。",
+          "originalExcerpt": "unbounded step sizes."
+        },
+        {
+          "id": "s-3-7-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.7",
+            "pages": "132"
+          },
+          "text": "3. TRPO [317]:政策更新之间的制约性KL差异。",
+          "originalExcerpt": "3. TRPO [317]: Constrains KL divergence between policy updates. Stable but expensive"
+        },
+        {
+          "id": "s-3-7-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.7",
+            "pages": "132"
+          },
+          "text": "4. PPO [319]:缩小政策比率，以实现与TRPO相似的稳定性，并采用一阶",
+          "originalExcerpt": "4. PPO [319]: Clips the policy ratio to achieve similar stability as TRPO with first-order"
+        },
+        {
+          "id": "s-3-7-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.7",
+            "pages": "132"
+          },
+          "text": "优化仅限 LLM RL 训练的标准。",
+          "originalExcerpt": "optimization only. The standard for LLM RL training."
+        },
+        {
+          "id": "s-3-7-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.7",
+            "pages": "132"
+          },
+          "text": "5. GRPO:完全删除批评者。使用组统计数据作为基线。",
+          "originalExcerpt": "5. GRPO: Removes the critic entirely. Uses group statistics as baseline. Simpler and effective"
+        },
+        {
+          "id": "s-3-7-b15",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.7",
+            "pages": "132"
+          },
+          "text": "以可核实的奖励。",
+          "originalExcerpt": "for verifiable rewards."
+        }
+      ]
+    },
+    {
+      "id": "s-3-8",
+      "number": "3.8",
+      "level": 1,
+      "enTitle": "Generalized Advantage Estimation (GAE)",
+      "zhTitle": "通用优势估计(GAE)",
+      "pages": "133",
+      "blocks": [
+        {
+          "id": "s-3-8-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8",
+            "pages": "133"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §3.8「通用优势估计(GAE)」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-3-8-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8",
+            "pages": "133"
+          },
+          "text": "动机:演员-批评框架需要很好地估计优势A(s)， a(s)=Q(s)-V(s)——这一行动比一般好多少？但根本的紧张:",
+          "originalExcerpt": "Motivation: The Actor-Critic framework needs a good estimate of the advantage A(s, a) = Q(s, a) − V (s) — how much better was this action than average? But there’s a fundamental tension:"
+        },
+        {
+          "id": "s-3-8-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8",
+            "pages": "133"
+          },
+          "text": "• 1-步 TD 优势(r + γV(st+1) − V(st): 差异小(仅一个随机步骤)，但",
+          "originalExcerpt": "• 1-step TD advantage (rt + γV (st+1 ) − V (st )): Low variance (only one random step), but"
+        },
+        {
+          "id": "s-3-8-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8",
+            "pages": "133"
+          },
+          "text": "偏差——如果值函数V错误，则优势估计被系统关闭。",
+          "originalExcerpt": "biased — if the value function V is wrong, the advantage estimate is systematically off."
+        },
+        {
+          "id": "s-3-8-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8",
+            "pages": "133"
+          },
+          "text": "• 蒙特卡洛优势(Gt-V(st)):不带偏见(使用实际回报)，但差异很大——",
+          "originalExcerpt": "• Monte Carlo advantage (Gt − V (st )): Unbiased (uses actual returns), but high variance —"
+        },
+        {
+          "id": "s-3-8-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8",
+            "pages": "133"
+          },
+          "text": "许多随机奖励的总和在各集之间波动很大。",
+          "originalExcerpt": "the sum of many random rewards fluctuates wildly between episodes."
+        },
+        {
+          "id": "s-3-8-b6",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 3,
+            "section": "3.8",
+            "pages": "133"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "GAE [318] (Schulman et al., 2016) provides a smooth interpolation between these extremes via a single parameter λ ∈ [0, 1]. It takes an exponentially-weighted average of n-step advantage estimates for all n, giving a principled way to trade bias for variance. Core idea: Compute the 1-step TD error δt at each timestep, then blend them with exponentially decay..."
+        },
+        {
+          "id": "s-3-8-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8",
+            "pages": "133"
+          },
+          "text": "T X - t + + + + = (γλ)l + + + r + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + +",
+          "originalExcerpt": "T X −t ÂGAE t = (γλ)l δt+l , δt = rt + γV (st+1 ) − V (st ) (3.23) l=0"
+        },
+        {
+          "id": "s-3-8-b8",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 3,
+            "section": "3.8",
+            "pages": "133"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "V Figure 3.2: GAE data flow: each TD residual δt+l is weighted by (γλ)l before summation. Higher λ includes more future residuals (lower bias, higher variance)."
+        },
+        {
+          "id": "s-3-8-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8",
+            "pages": "133"
+          },
+          "text": "什么样的控制——偏见-差异权衡",
+          "originalExcerpt": "What λ Controls — Bias-Variance Tradeoff"
+        },
+        {
+          "id": "s-3-8-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8",
+            "pages": "133"
+          },
+          "text": "• +=0: +=== rt + γV(st+1) − V(st)。信任值函数完全相同。差异小，但差异小。",
+          "originalExcerpt": "• λ = 0: Ât = δt = rt + γV (st+1 ) − V (st ). Trust value function completely. Low variance, but"
+        },
+        {
+          "id": "s-3-8-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8",
+            "pages": "133"
+          },
+          "text": "如果V不准确，则有偏见。",
+          "originalExcerpt": "biased if V is inaccurate."
+        },
+        {
+          "id": "s-3-8-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8",
+            "pages": "133"
+          },
+          "text": "• =1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1=1",
+          "originalExcerpt": "• λ = 1: Ât = l γ l rt+l − V (st ). Full Monte Carlo return minus baseline. Unbiased but very"
+        },
+        {
+          "id": "s-3-8-b15",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 3,
+            "section": "3.8",
+            "pages": "133"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "• λ = 0.95 (standard): Sweet spot. Mostly trusts V but corrects with actual returns for distant"
+        },
+        {
+          "id": "s-3-8-b16",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8",
+            "pages": "133"
+          },
+          "text": "效果。 工作是因为值头在初始训练后变得准确。",
+          "originalExcerpt": "effects. Works because value head becomes accurate after initial training."
+        },
+        {
+          "id": "s-3-8-b17",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8",
+            "pages": "133"
+          },
+          "text": "具体来说，对法学硕士来说: γ=1.0(不打折扣——所有符号在单回合中都同等重要)， λ=0.95.",
+          "originalExcerpt": "For LLMs specifically: γ = 1.0 (no time discounting — all tokens matter equally in single-turn), λ = 0.95."
+        }
+      ]
+    },
+    {
+      "id": "s-3-8-1",
+      "number": "3.8.1",
+      "level": 2,
+      "enTitle": "Intuitive Mapping of Bias and Variance in GAE",
+      "zhTitle": "直观地绘制英国地质学研究中的偏见和差异图",
+      "pages": "133-134",
+      "blocks": [
+        {
+          "id": "s-3-8-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8.1",
+            "pages": "133-134"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §3.8.1「直观地绘制英国地质学研究中的偏见和差异图」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-3-8-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8.1",
+            "pages": "133"
+          },
+          "text": "在监督学习中，偏差和差异来自结构模型假设。在通过GAE强化学习中，它们来自你对一个有缺陷模型的信任程度，以及对一个混乱环境的信任程度:",
+          "originalExcerpt": "In supervised learning, bias and variance stem from structural model assumptions. In reinforcement learning via GAE, they stem from how much you trust a flawed model versus how much you trust a chaotic environment:"
+        },
+        {
+          "id": "s-3-8-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8.1",
+            "pages": "134"
+          },
+          "text": "• 双子(系统错位):当估计者依赖结构斜角时的上升 --",
+          "originalExcerpt": "• Bias (Systemic Misalignment): Arises when the estimator relies on the structural assump-"
+        },
+        {
+          "id": "s-3-8-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8.1",
+            "pages": "134"
+          },
+          "text": "数值网络的图解和不完善的预测 Vθ。如果 θ 训练不足或缺乏能力，则基线猜测是系统性错误的。",
+          "originalExcerpt": "tions and imperfect predictions of the value network Vθ . If θ is under-trained or lacks capacity, the baseline guesses are systematically wrong."
+        },
+        {
+          "id": "s-3-8-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8.1",
+            "pages": "134"
+          },
+          "text": "• 差异(Sample Jitterness):估计者依赖长期、不受约束时出现",
+          "originalExcerpt": "• Variance (Sample Jitteriness): Arises when the estimator relies on long, unconstrained"
+        },
+        {
+          "id": "s-3-8-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8.1",
+            "pages": "134"
+          },
+          "text": "环境轨迹。 随机过渡、随机种子和政策执行噪音在长的视野中积累，导致经验样本在推出之间剧烈波动。",
+          "originalExcerpt": "environmental trajectories. Stochastic transitions, random seeds, and policy execution noise accumulate over long horizons, causing empirical sample rewards to swing wildly between rollouts."
+        }
+      ]
+    },
+    {
+      "id": "s-3-8-2",
+      "number": "3.8.2",
+      "level": 2,
+      "enTitle": "The Architectural Spectrum: Boundary Analysis",
+      "zhTitle": "建筑谱系:边界分析",
+      "pages": "134-135",
+      "blocks": [
+        {
+          "id": "s-3-8-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8.2",
+            "pages": "134-135"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §3.8.2「建筑谱系:边界分析」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-3-8-2-b1",
+          "type": "figure",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8.2",
+            "pages": "134",
+            "figure": "Figure 3.3"
+          },
+          "src": null,
+          "alt": "Figure 3.3：GAE 中的 bias–variance trade-off 由 λ 控制。较小 λ 更多依赖 bootstrap，bias 较高而 variance 较低；较大 λ 更接近完整 Monte Carlo return，bias 较低而 variance 较高。实践中 λ∈[0.9,0.95] 常用于平衡训练稳定性与长程 credit assignment。",
+          "caption": "Figure 3.3：GAE 中的 bias–variance trade-off 由 λ 控制。较小 λ 更多依赖 bootstrap，bias 较高而 variance 较低；较大 λ 更接近完整 Monte Carlo return，bias 较低而 variance 较高。实践中 λ∈[0.9,0.95] 常用于平衡训练稳定性与长程 credit assignment。",
+          "adapted": false
+        },
+        {
+          "id": "s-3-8-2-b2",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8.2",
+            "pages": "134"
+          },
+          "expression": "The hyperparameter λ serves as a slide-rule between two fundamental estimation paradigms. High Bias / Low Variance Limit (λ = 0) GAE(γ,0) Ât = δtV = rt + γVθ (st+1 ) − Vθ (st ) (3.24)",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-3-8-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8.2",
+            "pages": "134"
+          },
+          "text": "• 行为:优点很大程度上取决于参数现状。",
+          "originalExcerpt": "• Behavior: The advantage is heavily dictated by the current state of parameters θ."
+        },
+        {
+          "id": "s-3-8-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8.2",
+            "pages": "134"
+          },
+          "text": "• 远见:由于网络将自身业绩分级到1步，因此存在高度偏见",
+          "originalExcerpt": "• Intuition: Highly biased because the network is grading its own performance over a 1-step"
+        },
+        {
+          "id": "s-3-8-2-b5",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 3,
+            "section": "3.8.2",
+            "pages": "134"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "window; if Vθ is inaccurate, the gradient step is corrupted. Low variance because it ignores future stochastic events beyond step t + 1, leading to smooth, stable parameter updates."
+        },
+        {
+          "id": "s-3-8-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8.2",
+            "pages": "134"
+          },
+          "text": "• 风险:地方微额资金政策陷阱——从未发现复杂的延迟奖励",
+          "originalExcerpt": "• Risk: Policy traps in sub-optimal local minima — never discovers complex delayed reward"
+        },
+        {
+          "id": "s-3-8-2-b8",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8.2",
+            "pages": "134"
+          },
+          "expression": "Low Bias / High Variance Limit (λ = 1) When λ = 1, intermediate value terms telescopically cancel, reducing GAE to Monte Carlo return minus baseline: ∞ GAE(γ,1) X Ât = γ l rt+l − Vθ (st ) (3.25) l=0",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-3-8-2-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8.2",
+            "pages": "134"
+          },
+          "text": "• 行为:丢弃靴子前看后看，总结整个人的字面现实",
+          "originalExcerpt": "• Behavior: Discards bootstrap look-aheads and sums up the literal reality of the entire"
+        },
+        {
+          "id": "s-3-8-2-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8.2",
+            "pages": "134"
+          },
+          "text": "• 意向:完全不偏袒真正的环境动态——措施",
+          "originalExcerpt": "• Intuition: Completely unbiased with respect to true environment dynamics — measures"
+        },
+        {
+          "id": "s-3-8-2-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8.2",
+            "pages": "134"
+          },
+          "text": "实际奖励而不是神经近似。",
+          "originalExcerpt": "actual rewards instead of neural approximations. However, exhibits extreme variance:"
+        },
+        {
+          "id": "s-3-8-2-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8.2",
+            "pages": "135"
+          },
+          "text": "事件早期的轻微扰动会导致总回报率完全不同，导致政策更新变得无常。",
+          "originalExcerpt": "minor perturbations early in an episode can result in completely divergent total returns, causing policy updates to become erratic."
+        },
+        {
+          "id": "s-3-8-2-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8.2",
+            "pages": "135"
+          },
+          "text": "• 风险:破损梯度更新;训练爆炸。",
+          "originalExcerpt": "• Risk: Destructive gradient updates; training explosions."
+        }
+      ]
+    },
+    {
+      "id": "s-3-8-3",
+      "number": "3.8.3",
+      "level": 2,
+      "enTitle": "The Trade-off Matrix",
+      "zhTitle": "权衡矩阵",
+      "pages": "135",
+      "blocks": [
+        {
+          "id": "s-3-8-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8.3",
+            "pages": "135"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §3.8.3「权衡矩阵」 时，不要寻找脱离场景的“最佳方案”。应在质量、latency、计算与存储成本、数据要求、可控性和运维复杂度上逐项比较，并保留原书说明的适用前提与例外。"
+        },
+        {
+          "id": "s-3-8-3-b1",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 3,
+            "section": "3.8.3",
+            "pages": "135"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "By selecting λ ∈ [0.95, 0.99], GAE minimizes the total mean squared error of the advantage estimate: Table 3.1: Operational comparison of GAE parameter choices."
+        },
+        {
+          "id": "s-3-8-3-b2",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8.3",
+            "pages": "135"
+          },
+          "expression": "Configuration Statistical Proper- Core Reliance Practical Risk ties λ=0 High Bias, Low Vari- Model parameters Policy traps in sub-optimal local minance (θ) ima λ ∈ [0.95, 0.99] Balanced (Optimal Hybrid blending Requires tuning based on environ- MSE) ment stochasticity λ=1 Low Bias, High Vari- Empirical environ- Destructive gradient updates; trainance ment rollout ing explosion",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        }
+      ]
+    },
+    {
+      "id": "s-3-8-4",
+      "number": "3.8.4",
+      "level": 2,
+      "enTitle": "Diagnostics for Tuning λ",
+      "zhTitle": "Tu Tu Diagnostic Diagnostic Diagnostic Diagnostic s s",
+      "pages": "135",
+      "blocks": [
+        {
+          "id": "s-3-8-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8.4",
+            "pages": "135"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §3.8.4「Tu Tu Diagnostic Diagnostic Diagnostic Diagnostic s s」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-3-8-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8.4",
+            "pages": "135"
+          },
+          "text": "监测培训曲线可直接发现偏见或差异是否占主导地位:",
+          "originalExcerpt": "Monitoring training curves yields direct insight into whether bias or variance dominates:"
+        },
+        {
+          "id": "s-3-8-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8.4",
+            "pages": "135"
+          },
+          "text": "1. 高差异指标:政策内涵下降迅速，但有说明的2004年差异",
+          "originalExcerpt": "1. High Variance Indicators: Policy entropy drops precipitously while explained variance of"
+        },
+        {
+          "id": "s-3-8-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8.4",
+            "pages": "135"
+          },
+          "text": "值函数变得非常负面或不稳定 = 政策更新很吵。补救措施:降低 ============================================================================================================================================================================================================================================",
+          "originalExcerpt": "the value function becomes highly negative or erratic → policy updates are noisy. Remedy: Lower λ to smooth target updates."
+        },
+        {
+          "id": "s-3-8-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8.4",
+            "pages": "135"
+          },
+          "text": "2. 高比斯指标:Agent实现早期稳定培训，但完全无法发现",
+          "originalExcerpt": "2. High Bias Indicators: Agent achieves early stable training but completely fails to discover"
+        },
+        {
+          "id": "s-3-8-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.8.4",
+            "pages": "135"
+          },
+          "text": "复杂延迟的奖励序列 ~ 由于拖曳而低估长距离依赖。 补救措施: 提高 ~接近 1.0， 使政策暴露在真正的下游轨道信号中。",
+          "originalExcerpt": "complex delayed reward sequences → under-estimating long-horizon dependencies due to bootstrapping. Remedy: Raise λ closer to 1.0 to expose policy to real downstream trajectory signals."
+        }
+      ]
+    },
+    {
+      "id": "s-3-9",
+      "number": "3.9",
+      "level": 1,
+      "enTitle": "On-Policy vs Off-Policy — Detailed Comparison",
+      "zhTitle": "政策与非政策——详细比较",
+      "pages": "135-136",
+      "blocks": [
+        {
+          "id": "s-3-9-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 3,
+            "section": "3.9",
+            "pages": "135-136"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §3.9「政策与非政策——详细比较」 时，不要寻找脱离场景的“最佳方案”。应在质量、latency、计算与存储成本、数据要求、可控性和运维复杂度上逐项比较，并保留原书说明的适用前提与例外。"
+        },
+        {
+          "id": "s-3-9-b1",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 3,
+            "section": "3.9",
+            "pages": "135"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "On-Policy Off-Policy Data source Current policy πθ only Any policy (replay buffer) After update Old data is invalid, must re- Old data still usable generate Sample efficiency Low (data used once) High (data reused many times) Stability More stable (consistent distri- Can diverge (distribution mismatch) bution) Examples REINFORCE, PPO, A2C, Q-Learning, DQN, S..."
+        },
+        {
+          "id": "s-3-9-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.9",
+            "pages": "136"
+          },
+          "text": "。获得两者的好处。 PPO的聪明:使用剪贴率 r = π new/π 旧，从一批政策数据(4个时代)中压缩多个梯度步骤，使其以控制的方式“略去政策”。",
+          "originalExcerpt": "loss (off-policy-style optimization). Gets benefits of both. PPO’s cleverness: Uses the clip ratio r = πnew /πold to squeeze multiple gradient steps from one batch of on-policy data (4 epochs), making it “slightly off-policy” in a controlled way."
+        }
+      ]
+    },
+    {
+      "id": "s-3-10",
+      "number": "3.10",
+      "level": 1,
+      "enTitle": "Model-Based vs Model-Free",
+      "zhTitle": "基于模型的对无模型",
+      "pages": "136",
+      "blocks": [
+        {
+          "id": "s-3-10-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 3,
+            "section": "3.10",
+            "pages": "136"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §3.10「基于模型的对无模型」 时，不要寻找脱离场景的“最佳方案”。应在质量、latency、计算与存储成本、数据要求、可控性和运维复杂度上逐项比较，并保留原书说明的适用前提与例外。"
+        },
+        {
+          "id": "s-3-10-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.10",
+            "pages": "136"
+          },
+          "text": "模型-无模型-基于什么是学到的政策 Q 和/或价值 V / Q di- Environment 模型 P̂(s ' |s， a) 直译规划 无规划，反应决定 能够模拟未来的轨迹 样本效率 低(必须体验每高(可想象)的事情) 模型偏差 模型错误 复合 当使用复杂/未知的动态 简单动态时，需要效率 实例 PPO， DQN， SAC [129] MuZero [316]， Dreamer [130]， AlphaGo [331] 为什么LLM RL是模型-无模型语言生成动力 微不足道(对序列的认可——决定性的过渡)。环境的“模型”不是瓶颈。 难的是奖励 — — 预测人类会喜欢什么。 这就使得基于模型的方法对LLM RL来说没有必要。 RLHF中的奖励模式可以看作是某种意义上的“模式 ” ( 它预测了人类的偏好)，但它被用作奖励信号，而不是用于规划/模拟。 LLM RL从根本上来说是无模式政策优化。",
+          "originalExcerpt": "Model-Free Model-Based What’s learned Policy π and/or value V /Q di- Environment model P̂ (s′ |s, a) rectly Planning No planning, reactive decisions Can simulate future trajectories Sample efficiency Low (must experience every- High (can plan in imagination) thing) Accuracy No model bias Model errors compound When to use Complex/unknown dynamics Simple dynam..."
+        }
+      ]
+    },
+    {
+      "id": "s-3-11",
+      "number": "3.11",
+      "level": 1,
+      "enTitle": "Reward Shaping",
+      "zhTitle": "奖励形状",
+      "pages": "136",
+      "blocks": [
+        {
+          "id": "s-3-11-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 3,
+            "section": "3.11",
+            "pages": "136"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §3.11「奖励形状」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-3-11-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.11",
+            "pages": "136"
+          },
+          "text": "奖励塑造[265]是一种技术，开发者可以修改或补充环境原始奖励功能。其主要目标是将一种稀少的奖励方案——即Agent只有在完成最后任务后才收到反馈——转变为一种密集的奖励方案，并带有中间反馈信号，以加快趋同。",
+          "originalExcerpt": "Reward shaping [265] is a technique where a developer modifies or supplements the environment’s original reward function. Its primary objective is to transform a sparse reward scenario — where the agent receives feedback only upon final task completion — into a dense reward scenario with intermediate feedback signals to accelerate convergence."
+        }
+      ]
+    },
+    {
+      "id": "s-3-11-1",
+      "number": "3.11.1",
+      "level": 2,
+      "enTitle": "The Mathematical Framework",
+      "zhTitle": "数学框架",
+      "pages": "136",
+      "blocks": [
+        {
+          "id": "s-3-11-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 3,
+            "section": "3.11.1",
+            "pages": "136"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §3.11.1「数学框架」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-3-11-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.11.1",
+            "pages": "136"
+          },
+          "text": "让时间步的原始奖励为Rt(s， a， s')。重塑后的奖励增加了辅助塑造功能F:Rt(s， a， s')=Rt(s， a， s)+F(s， a， s)(3.26)。",
+          "originalExcerpt": "Let the original reward at time step t be Rt (s, a, s′ ). The reshaped reward adds an auxiliary shaping function F : Rt′ (s, a, s′ ) = Rt (s, a, s′ ) + F (s, a, s′ ) (3.26)"
+        },
+        {
+          "id": "s-3-11-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.11.1",
+            "pages": "136"
+          },
+          "text": "直肠重塑的风险:如果F(s， a， s')是任意设计的， Agent会发现结构漏洞，以最大化辅助信号，而忽略全球目标。例如:一个导航人员因到达中间地标而得到奖励，可能会学会无限期地绕过一个检查站，积累无限的奖励——而从未到达目的地。在法学硕士中:“自信”的模型无论准确与否，都可能学会从“绝对!”开始。",
+          "originalExcerpt": "The Risk of Naive Reshaping: Reward Hacking If F (s, a, s′ ) is arbitrarily designed, the agent will find structural loopholes to maximize auxiliary signals while ignoring the global objective. Example: A navigation agent rewarded for reaching intermediate landmarks might learn to loop indefinitely around a single checkpoint to accumulate infinite rewards — ..."
+        }
+      ]
+    },
+    {
+      "id": "s-3-11-2",
+      "number": "3.11.2",
+      "level": 2,
+      "enTitle": "Potential-Based Reward Shaping (PBRS)",
+      "zhTitle": "潜在奖励",
+      "pages": "136-137",
+      "blocks": [
+        {
+          "id": "s-3-11-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 3,
+            "section": "3.11.2",
+            "pages": "136-137"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §3.11.2「潜在奖励」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-3-11-2-b1",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 3,
+            "section": "3.11.2",
+            "pages": "136"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "To mathematically guarantee that reshaping does not alter the optimal policy, use Potential-Based Reward Shaping. The shaping function F is constrained to the difference in a scalar potential function Φ across states: F (s, a, s′ ) = γ Φ(s′ ) − Φ(s) (3.27)"
+        },
+        {
+          "id": "s-3-11-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.11.2",
+            "pages": "137"
+          },
+          "text": "S = R 是一个实际价值的潜在函数，评估一个国家是否理想地接近目标，而 Q 则是折扣系数。",
+          "originalExcerpt": "where Φ : S → R is a real-valued potential function evaluating the desirable proximity of a state to the goal, and γ is the discount factor. The complete PBRS reward:"
+        },
+        {
+          "id": "s-3-11-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.11.2",
+            "pages": "137"
+          },
+          "text": "r '(s， a， s ') = R(s， a， s') + γ + Φ(s ') → Φ(s) → (3.28) Φ(s) =(s， a， s') =(s) γ(s) γ(s) γ(s， s) γ(s) γ(s) γ(s， s) −(s) −(s) Φ(s) Φ(s) Φ(s， s) Φ(s) −(s) −(s) −(s) Φ(s) −(s) Φ(s) Φ(s) Φ(s) Φ(s) −(s) −(s) Φ(s) =(s) =(s) =(s) =(s) =(s) =(s) =(s) =(s) =(s) =(s) =(s) =(s) =(",
+          "originalExcerpt": "R′ (s, a, s′ ) = R(s, a, s′ ) + γ Φ(s′ ) − Φ(s) (3.28)"
+        }
+      ]
+    },
+    {
+      "id": "s-3-11-3",
+      "number": "3.11.3",
+      "level": 2,
+      "enTitle": "Theoretical Guarantees",
+      "zhTitle": "理论保证",
+      "pages": "137-138",
+      "blocks": [
+        {
+          "id": "s-3-11-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 3,
+            "section": "3.11.3",
+            "pages": "137-138"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §3.11.3「理论保证」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-3-11-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.11.3",
+            "pages": "137"
+          },
+          "text": "PBRS 政策偏差定理",
+          "originalExcerpt": "PBRS Policy Invariance Theorem"
+        },
+        {
+          "id": "s-3-11-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.11.3",
+            "pages": "137"
+          },
+          "text": "• 政策变化:* 重新调整后的奖励下的最佳政策与",
+          "originalExcerpt": "• Policy Invariance: The optimal policy π ∗ under the reshaped reward R′ is identical to"
+        },
+        {
+          "id": "s-3-11-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.11.3",
+            "pages": "137"
+          },
+          "text": "原始奖励R下的最佳政策 塑造不能引入次最佳行为",
+          "originalExcerpt": "the optimal policy under the original reward R. The shaping cannot introduce sub-optimal behaviors."
+        },
+        {
+          "id": "s-3-11-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.11.3",
+            "pages": "137"
+          },
+          "text": "• 循环豁免:在同一状态开始和结束的任何循环轨道均净值",
+          "originalExcerpt": "• Loop Immunity: Any cyclic trajectory starting and ending at the same state results in net"
+        },
+        {
+          "id": "s-3-11-3-b5",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 3,
+            "section": "3.11.3",
+            "pages": "137"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "potential change of exactly zero (Φ(s) − Φ(s) = 0). The agent cannot exploit loops to hack the reward."
+        },
+        {
+          "id": "s-3-11-3-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.11.3",
+            "pages": "137"
+          },
+          "text": "• 协同加速:虽然最佳政策没有改变，但有形而上学的奖励",
+          "originalExcerpt": "• Convergence Acceleration: While the optimal policy is unchanged, the shaped reward"
+        },
+        {
+          "id": "s-3-11-3-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.11.3",
+            "pages": "137"
+          },
+          "text": "提供密度更高的梯度信号，使Agent在稀疏的奖励环境中能更快地汇合5–50×。",
+          "originalExcerpt": "provides denser gradient signals, enabling the agent to converge 5–50× faster in sparse reward environments."
+        },
+        {
+          "id": "s-3-11-3-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 3,
+            "section": "3.11.3",
+            "pages": "138"
+          },
+          "text": "RL 法学硕士的方法",
+          "originalExcerpt": "RL Methods for LLMs"
+        }
+      ]
+    }
+  ],
+  "glossary": [
+    {
+      "term": "Agent",
+      "zh": "智能体",
+      "meaning": "由模型、状态、工具和运行循环共同构成的目标导向系统。"
+    },
+    {
+      "term": "reward model",
+      "zh": "Reward Model",
+      "meaning": "把人类或规则偏好映射为可优化标量信号的模型。"
+    },
+    {
+      "term": "token",
+      "zh": "词元",
+      "meaning": "模型处理和生成文本时使用的离散单位。"
+    }
+  ],
+  "summary": [
+    "强化学习(RL)是一种范例，即Agent通过与环境互动，获得反馈奖励，优化政策，以在一定时间内最大限度地增加累积奖励[347]，学习做出顺序决定。与监督学习不同(需要标签输入输出对)， RL通过试运行和错误发现最佳行为。",
+    "混合发展方案是5个图(S、A、P、R、γ):",
+    "• S:国家空间——环境的所有可能配置"
+  ],
+  "metrics": {
+    "chineseCharacters": 7586,
+    "sourceCoverage": 88,
+    "sectionCount": 23,
+    "blockCount": 212
+  }
+}

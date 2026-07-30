@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { lessons } from "@/lib/course-data";
+import { catalogHref, chapterCatalog } from "@/lib/chapter-catalog";
 import { useCourse } from "./course-provider";
 
 export function ProgressPage() {
@@ -22,6 +23,11 @@ export function ProgressPage() {
     .map(([topic, data]) => ({ topic, score: data.sum / data.count }))
     .sort((a, b) => a.score - b.score)
     .slice(0, 6);
+  const totalSections = chapterCatalog.reduce(
+    (total, chapter) => total + chapter.metrics.sectionCount,
+    0,
+  );
+  const completedReadingSections = state.completedSections.length;
 
   return (
     <div className="utility-page">
@@ -34,6 +40,25 @@ export function ProgressPage() {
       </header>
 
       <section className="progress-overview">
+        <article>
+          <span>逐节阅读进度</span>
+          <strong>
+            {totalSections
+              ? Math.round((completedReadingSections / totalSections) * 100)
+              : 0}
+            %
+          </strong>
+          <div className="meter-track">
+            <i
+              style={{
+                width: `${totalSections ? (completedReadingSections / totalSections) * 100 : 0}%`,
+              }}
+            />
+          </div>
+          <small>
+            {completedReadingSections} / {totalSections} 个 section
+          </small>
+        </article>
         <article>
           <span>课程完成度</span>
           <strong>{Math.round((completed / lessons.length) * 100)}%</strong>
@@ -52,6 +77,28 @@ export function ProgressPage() {
           <p>低分题更早出现，高分题逐步拉长间隔。</p>
         </article>
       </section>
+
+      {state.lastChapter && (
+        <section className="continue-reading-card">
+          <div>
+            <span className="eyebrow">CONTINUE READING</span>
+            <h2>继续 Ch.{String(state.lastChapter).padStart(2, "0")}</h2>
+            <p>
+              已记录到{" "}
+              {Math.round(
+                (state.readingPositions[String(state.lastChapter)] ?? 0) * 100,
+              )}
+              % 的页面位置。
+            </p>
+          </div>
+          <Link
+            className="primary-button"
+            href={catalogHref(state.lastChapter, state.lastSection)}
+          >
+            回到上次小节 →
+          </Link>
+        </section>
+      )}
 
       <section className="progress-grid">
         <div className="unit-progress">

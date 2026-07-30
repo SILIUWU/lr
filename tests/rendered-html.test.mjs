@@ -6,10 +6,19 @@ import {
   chapterMap,
   labCount,
   lessons,
-  searchLessons,
 } from "../lib/course-data.ts";
-import { chapterReadings, readingsForLesson } from "../lib/reading-content.ts";
+import { migrateLearningStateV1 } from "../lib/learning-state.ts";
 import { isDue, scheduleReview } from "../lib/scheduler.ts";
+
+async function readChapter(chapter) {
+  const slug = String(chapter).padStart(2, "0");
+  return JSON.parse(
+    await readFile(
+      new URL(`../content/chapters/ch-${slug}.json`, import.meta.url),
+      "utf8",
+    ),
+  );
+}
 
 async function render(pathname = "/") {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
@@ -54,26 +63,103 @@ test("course contract covers all chapters, lessons, quizzes and labs", () => {
   assert.ok(lessons.every((item) => item.sources.every((source) => source.pages && source.section && source.url)));
 });
 
-test("guided readings cover every source chapter inside the course", () => {
-  const sourceChapters = chapterReadings.filter((reading) => reading.chapter > 0);
-  assert.equal(sourceChapters.length, 30);
+test("native reader corpus maps all 30 chapters and source sections", async () => {
+  const chapters = await Promise.all(
+    Array.from({ length: 30 }, (_, index) => readChapter(index + 1)),
+  );
+  const sectionCount = chapters.reduce(
+    (total, chapter) => total + chapter.sections.length,
+    0,
+  );
+  const chineseCharacters = chapters.reduce(
+    (total, chapter) => total + chapter.metrics.chineseCharacters,
+    0,
+  );
+  assert.equal(chapters.length, 30);
   assert.deepEqual(
-    sourceChapters.map((reading) => reading.chapter),
+    chapters.map((chapter) => chapter.chapter),
     Array.from({ length: 30 }, (_, index) => index + 1),
   );
-  assert.ok(sourceChapters.every((reading) => reading.pages && reading.overview));
-  assert.ok(sourceChapters.every((reading) => reading.sections.length >= 3));
-  assert.ok(sourceChapters.every((reading) => reading.sections.every((section) => section.paragraphs.length > 0)));
-  assert.deepEqual(readingsForLesson("agentic-stack").map((reading) => reading.chapter), [15]);
-  assert.deepEqual(readingsForLesson("protocols").map((reading) => reading.chapter), [22, 23, 24]);
-  assert.equal(
-    searchLessons("Perceive–Reason–Act", {
-      "agentic-stack": readingsForLesson("agentic-stack")
-        .flatMap((reading) => reading.sections.map((section) => section.english))
-        .join(" "),
-    })[0]?.slug,
-    "agentic-stack",
+  assert.ok(sectionCount >= 900, `expected >=900 mapped sections, got ${sectionCount}`);
+  assert.ok(
+    chineseCharacters >= 300_000,
+    `expected >=300k Chinese source-rendition characters, got ${chineseCharacters}`,
   );
+  assert.ok(
+    chapters.every((chapter) =>
+      chapter.sections.every(
+        (section) =>
+          section.id &&
+          section.pages &&
+          section.blocks.length > 0 &&
+          section.blocks.some((block) =>
+            ["source_translation", "source_definition"].includes(block.origin),
+          ) &&
+          section.blocks.every(
+            (block) =>
+              block.source?.chapter === chapter.chapter && block.source?.pages,
+          ),
+      ),
+    ),
+  );
+  assert.equal(new Set(chapters.flatMap((chapter) => chapter.sections.map((section) => `${chapter.chapter}:${section.id}`))).size, sectionCount);
+  assert.equal(chapters[14].sections.length, 3);
+  assert.ok(
+    chapters
+      .slice(15, 27)
+      .every((chapter) => chapter.sections.length >= 14),
+  );
+  assert.ok(chapters.every((chapter) => chapter.status === "in_progress"));
+});
+
+test("v1 learning state migrates without losing notes, cards or theme", () => {
+  const legacy = {
+    version: 1,
+    completedLessons: ["roadmap"],
+    lastLesson: "roadmap",
+    attempts: [
+      {
+        quizId: "u01-mcq-1",
+        lessonSlug: "roadmap",
+        correct: true,
+        score: 5,
+        at: 1,
+      },
+    ],
+    cards: {
+      "u01-mcq-1": {
+        quizId: "u01-mcq-1",
+        lessonSlug: "roadmap",
+        topic: "architecture",
+        repetitions: 1,
+        interval: 1,
+        ease: 2.6,
+        due: 2,
+        lastScore: 5,
+      },
+    },
+    notes: [
+      {
+        id: "note-1",
+        lessonSlug: "roadmap",
+        lessonTitle: "全书导览",
+        excerpt: "evidence",
+        body: "保留这条笔记",
+        intent: "重要",
+        createdAt: 1,
+      },
+    ],
+    theme: "dark",
+  };
+  const migrated = migrateLearningStateV1(legacy);
+  assert.equal(migrated.version, 2);
+  assert.deepEqual(migrated.completedLessons, legacy.completedLessons);
+  assert.deepEqual(migrated.attempts, legacy.attempts);
+  assert.deepEqual(migrated.cards, legacy.cards);
+  assert.deepEqual(migrated.notes, legacy.notes);
+  assert.equal(migrated.theme, "dark");
+  assert.deepEqual(migrated.completedSections, []);
+  assert.deepEqual(migrated.readingPositions, {});
 });
 
 test("simplified SM-2 resets weak cards and expands strong cards", () => {
@@ -102,23 +188,64 @@ test("server renders the branded course without starter remnants", async () => {
   assert.match(html, /知识地图/);
   assert.match(html, /打开一章/);
   assert.match(html, /按原书章节，直接进入正文/);
-  assert.match(html, /\/learn\/agentic-stack#chapter-15/);
+  assert.match(html, /\/read\/ch-15/);
+  assert.match(html, /逐句校订中/);
+  assert.doesNotMatch(html, /30 章站内精读|全书精读完成/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 });
 
-test("lesson route renders on-page translation, source boundaries and quizzes", async () => {
+test("lesson route links to full chapter pages and retains labs and quizzes", async () => {
   const response = await render("/learn/agentic-stack");
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /Agentic AI Architecture Stack/);
-  assert.match(html, /章节精读：在本站完成正文阅读/);
-  assert.match(html, /完成本单元无需跳转 PDF/);
-  assert.match(html, /Perceive–Reason–Act/);
-  assert.match(html, /可选：核对原文 pp\.[\s\S]*305–307/);
+  assert.match(html, /先进入逐节正文，再回来做实验与测验/);
+  assert.match(html, /\/read\/ch-15/);
+  assert.doesNotMatch(html, /本站阅读到这里已经完整/);
   assert.match(html, /原文事实/);
   assert.match(html, /工程建议/);
   assert.match(html, /3 道机判 \+ 2 道开放题/);
   assert.match(html, /CC BY-SA 4\.0/);
+  assert.match(html, /Haggai Roitman/);
+  assert.doesNotMatch(html, /Guo et al/);
+});
+
+test("chapter route renders section anchors, source pages and native rich blocks", async () => {
+  const chapter15 = await render("/read/ch-15");
+  const introductionHtml = await chapter15.text();
+  const introductionBlockCount =
+    introductionHtml.match(/class="reader-block /g)?.length ?? 0;
+  assert.ok(
+    introductionBlockCount >= 8 && introductionBlockCount <= 12,
+    `Ch.15 should render 8-12 substantive blocks, got ${introductionBlockCount}`,
+  );
+
+  const chapter16 = await render("/read/ch-16");
+  assert.equal(chapter16.status, 200);
+  const ragHtml = await chapter16.text();
+  assert.match(ragHtml, /s-16-7-4/);
+  assert.match(ragHtml, /完整 Agentic RAG 的四节点闭环/);
+  assert.match(ragHtml, /PDF p\.[\s\S]{0,40}322-323/);
+  assert.match(ragHtml, /原文译述/);
+  assert.match(ragHtml, /编者解释/);
+  assert.match(ragHtml, /工程延伸/);
+  assert.match(ragHtml, /逐节译读 · 校订中/);
+
+  const chapter18 = await render("/read/ch-18");
+  const harnessHtml = await chapter18.text();
+  assert.match(harnessHtml, /Eq\.[\s\S]{0,20}18\.10/);
+  assert.match(harnessHtml, /katex/);
+  assert.match(harnessHtml, /figure-18-2\.webp/);
+
+  const chapter22 = await render("/read/ch-22");
+  const protocolHtml = await chapter22.text();
+  assert.match(protocolHtml, /s-22-2-3/);
+  assert.match(protocolHtml, /协议标准化不等于自动安全/);
+
+  const chapter27 = await render("/read/ch-27");
+  const uiHtml = await chapter27.text();
+  assert.match(uiHtml, /s-27-3-6/);
+  assert.match(uiHtml, /错误与恢复必须成为一等 UI 状态/);
 });
 
 test("paper figures and social preview are wired from local assets", async () => {
@@ -130,4 +257,6 @@ test("paper figures and social preview are wired from local assets", async () =>
   assert.match(lessonSource, /figure-18-2\.webp/);
   assert.match(lessonSource, /figure-22-3\.webp/);
   assert.match(layoutSource, /\/og\.png/);
+  assert.match(layoutSource, /Haggai Roitman/);
+  assert.doesNotMatch(layoutSource, /Guo et al/);
 });

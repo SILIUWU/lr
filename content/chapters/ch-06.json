@@ -1,0 +1,2920 @@
+{
+  "chapter": 6,
+  "title": "DPO - Direct Preference Optimization",
+  "zhTitle": "DPO：直接偏好优化",
+  "pages": "151-163",
+  "minutes": 30,
+  "overview": "PPO在内存中需要4个模型(政策，参考， Reward Model，价值头)，复杂的RL基础设施，并且臭名昭著地不稳定。 DPO [302] 问:我们能否跳过RL，直接从偏好中学习?关键见解:RLHF目标(奖励最大化+KL惩罚)下的最佳政策有一个封闭式解决方案。 我们可以得出一个隐含优化同一目标的监管损失。 关键观点是:在高频目标下的最佳政策(奖励最大化+KL惩罚 )。",
+  "status": "in_progress",
+  "sections": [
+    {
+      "id": "s-6-1",
+      "number": "6.1",
+      "level": 1,
+      "enTitle": "Motivation",
+      "zhTitle": "动机",
+      "pages": "151",
+      "blocks": [
+        {
+          "id": "s-6-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 6,
+            "section": "6.1",
+            "pages": "151"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §6.1「动机」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-6-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.1",
+            "pages": "151"
+          },
+          "text": "PPO在内存中需要4个模型(政策，参考， Reward Model，价值头)，复杂的RL基础设施，并且臭名昭著地不稳定。 DPO [302] 问:我们能否跳过RL，直接从偏好中学习?关键见解:RLHF目标(奖励最大化+KL惩罚)下的最佳政策有一个封闭式解决方案。 我们可以得出一个隐含优化同一目标的监管损失。 关键观点是:在高频目标下的最佳政策(奖励最大化+KL惩罚 )。",
+          "originalExcerpt": "PPO requires 4 models in memory (policy, reference, reward model, value head), complex RL infrastructure, and is notoriously unstable. DPO [302] asks: can we skip the RL and learn directly from preferences? Key insight: The optimal policy under the RLHF objective (reward maximization + KL penalty) has a closed-form solution. We can derive a supervised loss t..."
+        }
+      ]
+    },
+    {
+      "id": "s-6-2",
+      "number": "6.2",
+      "level": 1,
+      "enTitle": "Mathematical Derivation",
+      "zhTitle": "数学衍生",
+      "pages": "151",
+      "blocks": [
+        {
+          "id": "s-6-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 6,
+            "section": "6.2",
+            "pages": "151"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §6.2「数学衍生」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-6-2-b1",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.2",
+            "pages": "151"
+          },
+          "expression": "Step 1: RLHF objective: maxπ Ex,y∼π [r(x, y)] − βDKL [π∥πref ] \u0010 \u0011 r(x,y) Step 2: The optimal solution is: π ∗ (y|x) = Z(x) πref (y|x) exp β ∗ Step 3: Rearrange to express reward in terms of policy: r(x, y) = β log ππref(y|x) (y|x) + β log Z(x) Step 4: Substitute into Bradley-Terry preference model P (yw ≻ yl ) = σ(r(yw ) − r(yl )). The Z(x) cancels!",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-6-2-b2",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.2",
+            "pages": "151"
+          },
+          "expression": "πθ (yw |x) πθ (yl |x) \u0014 \u0012 \u0013\u0015 LDPO (θ) = −E(x,yw ,yl ) log σ β log − β log (6.1) πref (yw |x) πref (yl |x)",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-6-2-b3",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.2",
+            "pages": "151"
+          },
+          "expression": "What DPO Actually Does Define the implicit reward as r̂(x, y) = β log ππref θ (y|x) (y|x) . DPO minimizes the cross-entropy loss where the “label” is: chosen should have higher implicit reward than rejected. The margin is controlled by β:",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-6-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.2",
+            "pages": "151"
+          },
+          "text": "• 大型β:需要大幅度 政策动作激烈 有可能忘记",
+          "originalExcerpt": "• Large β: need large margin → policy moves aggressively → risk forgetting"
+        },
+        {
+          "id": "s-6-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.2",
+            "pages": "151"
+          },
+          "text": "• 小β:小差幅足够了 政策接近参考 保守",
+          "originalExcerpt": "• Small β: small margin suffices → policy stays close to reference → conservative"
+        },
+        {
+          "id": "s-6-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.2",
+            "pages": "151"
+          },
+          "text": "参考模式起到规范的作用:政策必须表明优惠一致，从而“证明”偏离政策的任何理由。",
+          "originalExcerpt": "The reference model acts as a regularizer: the policy must “justify” any deviation from it by showing preference alignment."
+        }
+      ]
+    },
+    {
+      "id": "s-6-3",
+      "number": "6.3",
+      "level": 1,
+      "enTitle": "Gradient Analysis",
+      "zhTitle": "渐变分析",
+      "pages": "151-152",
+      "blocks": [
+        {
+          "id": "s-6-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 6,
+            "section": "6.3",
+            "pages": "151-152"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §6.3「渐变分析」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-6-3-b1",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.3",
+            "pages": "151"
+          },
+          "expression": "The DPO gradient decomposes as: ∇θ L = −β · σ(−r̂w + r̂l ) · [∇θ log πθ (yw |x) − ∇θ log πθ (yl |x)] (6.2) | {z } weight: higher when model is wrong",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-6-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.3",
+            "pages": "152"
+          },
+          "text": "解释:梯度增加选择的概率，减少拒绝。当模型目前偏爱错误的答案时，其重量最大——它侧重于学习“混淆”对子。具体DPO实例提示 : “ 解释量子缠绕在10岁的孩子身上 ”。 选择(yw ) : “ 想象一下你有两个神奇的硬币。 当你翻开一个，它的头，另一个立即变成尾巴，不管它们相隔多远！”",
+          "originalExcerpt": "Interpretation: The gradient increases probability of chosen and decreases rejected. The weight is largest when the model currently prefers the wrong answer — it focuses learning on “confusing” pairs. Concrete DPO Example Prompt: “Explain quantum entanglement to a 10-year-old.” Chosen (yw ): “Imagine you have two magic coins. When you flip one and it’s heads..."
+        },
+        {
+          "id": "s-6-3-b3",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.3",
+            "pages": "152"
+          },
+          "expression": "log πθ (yw |x) = −15.3, log πref (yw |x) = −16.1 Rejected (yl ): “Quantum entanglement is a phenomenon where two particles become correlated such that the quantum state of one particle cannot be described independently.”",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-6-3-b4",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.3",
+            "pages": "152"
+          },
+          "expression": "log πθ (yl |x) = −12.8, log πref (yl |x) = −12.5 Implicit rewards: r̂w = 0.1 × ((−15.3) − (−16.1)) = 0.08, r̂l = 0.1 × ((−12.8) − (−12.5)) = −0.03 Loss input: σ(0.08 − (−0.03)) = σ(0.11) = 0.527 Loss: − log(0.527) = 0.64 — The model barely prefers the chosen. Gradient will push hard. After training: chosen probability increases, rejected decreases, until margin stabilizes around 1/(2β).",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        }
+      ]
+    },
+    {
+      "id": "s-6-4",
+      "number": "6.4",
+      "level": 1,
+      "enTitle": "TRL Implementation",
+      "zhTitle": "TRL 执行",
+      "pages": "152-153",
+      "blocks": [
+        {
+          "id": "s-6-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 6,
+            "section": "6.4",
+            "pages": "152-153"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §6.4「TRL 执行」 的实现时，不只看 happy path。请同时标出 state schema、外部依赖、权限边界、重试与终止条件、可观测字段和可能产生副作用的 action；代码能运行，并不等于系统已经具备可恢复性。"
+        },
+        {
+          "id": "s-6-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.4",
+            "pages": "152"
+          },
+          "text": "以下显示一个最小的示例， 使用 HuggingFace TRL 从 trl 导入 DPOConfig， 从Transformer导入 AutoModelForCausalLM 的 DPOTrainer， 从 peft 导入 LoraConfig 从数据集导入 load dataset 导入 LoraConfig 的自动调试器",
+          "originalExcerpt": "The following shows a minimal working example using HuggingFace TRL. from trl import DPOConfig , DPOTrainer from transformers import AutoModelForCausalLM , AutoTokenizer from peft import LoraConfig from datasets import load_dataset"
+        },
+        {
+          "id": "s-6-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.4",
+            "pages": "152"
+          },
+          "text": "型号=Au 到 ModelForCausalLM。出自 预训( \" meta - lama / Llama - 3.1-8 B - 指令 \"，火炬 dtype = 火炬。 bfloat16， atn 执行= \" flash attention 2 \" ) 引号器 = 自动调号器。出自 预训( \" meta - lama / Llama - 3.1-8 B - 指令 \" )",
+          "originalExcerpt": "model = A u to ModelForCausalLM . from_pretrained ( \" meta - llama / Llama -3.1 -8 B - Instruct \" , torch_dtype = torch . bfloat16 , attn_implementation = \" flash_attention_2 \" ) tokenizer = AutoTokenizer . from_pretrained ( \" meta - llama / Llama -3.1 -8 B - Instruct \" )"
+        },
+        {
+          "id": "s-6-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.4",
+            "pages": "152"
+          },
+          "text": "# 数据集格式 : {' expot \": str， \"select \": str， \"dot \" : str = load dataset( \" argilla / 超音速回放 - binarized - 偏好 \" )",
+          "originalExcerpt": "# Dataset format : {\" prompt \": str , \" chosen \": str , \" rejected \": str } dataset = load_dataset ( \" argilla / ultrafeedback - binarized - preferences \" )"
+        },
+        {
+          "id": "s-6-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.4",
+            "pages": "152"
+          },
+          "text": "lora config=洛拉康菲格(r=64， lora alpha=16， lora dropout=0.05，目标 模块=[\"q proj\"， k proj\"， v proj\"， o proj\"，闸门 proj\"，上 proj\"，下 proj\"])。",
+          "originalExcerpt": "lora_config = LoraConfig ( r =64 , lora_alpha =16 , lora_dropout =0.05 , target_modules =[ \" q_proj \" ,\" k_proj \" ,\" v_proj \" ,\" o_proj \" ,\" gate_proj \" ,\" up_proj \" ,\" down_proj \" ])"
+        },
+        {
+          "id": "s-6-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.4",
+            "pages": "152"
+          },
+          "text": "dpo config=DPOConfig(输出 dir= \"./dpo output \" )，β=0.1，#KL规范强度学习 rat=5 e-7，#稳定性损失的LR非常低 类型= \"sigmoid \"，#标准DPO损失最大 长度=2048，#最大序列长度 迅速 长度=1024，# Truncation for exults p e e e e e e e e e e e e e e e e e e r i num t teep step = true， bf16 = true toc toclext step e e e e e tures = Tu e e e e tual t e e e e e tu e e e tu tu e e e tu e e tu tu = tu e i e",
+          "originalExcerpt": "dpo_config = DPOConfig ( output_dir = \" ./ dpo_output \" , beta =0.1 , # KL regularization strength learning_rate =5 e -7 , # Very low LR for stability loss_type = \" sigmoid \" , # Standard DPO loss max_length =2048 , # Max sequence length max_ prompt_length =1024 , # Truncation for prompts p e r _ d e v i c e _ t r a i n _ b a t c h _ s i z e =2 , g r a d i e..."
+        },
+        {
+          "id": "s-6-4-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.4",
+            "pages": "152"
+          },
+          "text": "教练 = DPOTrainer(型号 = 型号 )，",
+          "originalExcerpt": "trainer = DPOTrainer ( model = model ,"
+        },
+        {
+          "id": "s-6-4-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.4",
+            "pages": "153"
+          },
+          "text": "ref model = 无，# 与 LoRA， ref = 基模(不需要复制!) args = dpo config， train dataset = 数据集 [ \" train \" ]， eval dataset = 数据集 [ \"测试 \" ]， 标注符 = 标注符， peft config = lora config，) 教练器。火车 () # 关键度量度量度量表 监视 :火车/奖励/选择、火车/奖励/拒绝、火车/奖励/幅度",
+          "originalExcerpt": "ref_model = None , # With LoRA , ref = base model ( no copy needed !) args = dpo_config , train_dataset = dataset [ \" train \" ] , eval_dataset = dataset [ \" test \" ] , tokenizer = tokenizer , peft_config = lora_config , ) trainer . train () # Key metrics to monitor : train / rewards / chosen , train / rewards / rejected , train / rewards / margins"
+        }
+      ]
+    },
+    {
+      "id": "s-6-5",
+      "number": "6.5",
+      "level": 1,
+      "enTitle": "How DPO Works: Full Mechanics",
+      "zhTitle": "DPO如何工作:全机械师",
+      "pages": "153",
+      "blocks": [
+        {
+          "id": "s-6-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5",
+            "pages": "153"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §6.5「DPO如何工作:全机械师」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-6-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5",
+            "pages": "153"
+          },
+          "text": "本节提供DPO的完整计算细节——培训期间在象征性级别上发生的情况。",
+          "originalExcerpt": "This section provides the complete computational details of DPO — what happens at the token level during training."
+        }
+      ]
+    },
+    {
+      "id": "s-6-5-1",
+      "number": "6.5.1",
+      "level": 2,
+      "enTitle": "Sequence-Level Log-Probabilities",
+      "zhTitle": "序列- 级别日志- 概率",
+      "pages": "153",
+      "blocks": [
+        {
+          "id": "s-6-5-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.1",
+            "pages": "153"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §6.5.1「序列- 级别日志- 概率」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-6-5-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.1",
+            "pages": "153"
+          },
+          "text": "DPO中的关键数量是给定的 exple x 的 y = (y1， y2， .， yT ) 的整个序列的对数概率。 计算时为每根日志概率的总和 :",
+          "originalExcerpt": "The key quantity in DPO is the log-probability of an entire sequence y = (y1 , y2 , . . . , yT ) given prompt x. This is computed as the sum of per-token log-probabilities:"
+        },
+        {
+          "id": "s-6-5-1-b2",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.1",
+            "pages": "153"
+          },
+          "expression": "T X log πθ (y|x) = log πθ (yt | x, y<t ) (6.3) t=1",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-6-5-1-b3",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.1",
+            "pages": "153"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "Each term log πθ (yt |x, y<t ) is the log-softmax output at position t for the actual token yt in the sequence. This is identical to the cross-entropy loss used in standard language modeling — but here we sum rather than average. Critical detail: The gradient flows through every token position in both yw and yl . There is no masking of intermediate tokens — ..."
+        }
+      ]
+    },
+    {
+      "id": "s-6-5-2",
+      "number": "6.5.2",
+      "level": 2,
+      "enTitle": "The DPO Loss Decomposed",
+      "zhTitle": "被拆解的DPO损失",
+      "pages": "153",
+      "blocks": [
+        {
+          "id": "s-6-5-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.2",
+            "pages": "153"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §6.5.2「被拆解的DPO损失」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-6-5-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.2",
+            "pages": "153"
+          },
+          "text": "从损失开始:",
+          "originalExcerpt": "Starting from the loss:"
+        },
+        {
+          "id": "s-6-5-2-b2",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.2",
+            "pages": "153"
+          },
+          "expression": "LDPO (θ) = −E(x,yw ,yl )∼D [log σ(β · hθ (x, yw , yl ))] (6.4)",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-6-5-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.2",
+            "pages": "153"
+          },
+          "text": "“间接奖励幅度”为:",
+          "originalExcerpt": "where the “implicit reward margin” hθ is:"
+        },
+        {
+          "id": "s-6-5-2-b4",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.2",
+            "pages": "153"
+          },
+          "expression": "πθ (yw |x) πθ (yl |x) hθ (x, yw , yl ) = log − log (6.5) πref (yw |x) πref (yl |x) | {z } | {z } chosen reward proxy rejected reward proxy",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-6-5-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.2",
+            "pages": "153"
+          },
+          "text": "扩展为符号级术语 :",
+          "originalExcerpt": "Expanding into token-level terms:"
+        },
+        {
+          "id": "s-6-5-2-b6",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.2",
+            "pages": "153"
+          },
+          "expression": "|yw |h i |yl | h i X X t <t t <t hθ = log πθ (yw |x, yw ) − log πref (yw |x, yw ) − log πθ (ylt |x, yl<t ) − log πref (ylt |x, yl<t ) (6.6) t=1 t=1",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        }
+      ]
+    },
+    {
+      "id": "s-6-5-3",
+      "number": "6.5.3",
+      "level": 2,
+      "enTitle": "Forward Pass: Step by Step",
+      "zhTitle": "前进通道: 一步一步",
+      "pages": "153-154",
+      "blocks": [
+        {
+          "id": "s-6-5-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.3",
+            "pages": "153-154"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §6.5.3「前进通道: 一步一步」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-6-5-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.3",
+            "pages": "153"
+          },
+          "text": "培训实例(x、yw、yl):",
+          "originalExcerpt": "For one training example (x, yw , yl ):"
+        },
+        {
+          "id": "s-6-5-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.3",
+            "pages": "153"
+          },
+          "text": "1. 凝酸剂:形成两个序列:[x;yw]和[x;yl]。罐体在批内达到等长。",
+          "originalExcerpt": "1. Concatenate: Form two sequences: [x; yw ] and [x; yl ]. Pad to equal length within the batch."
+        },
+        {
+          "id": "s-6-5-3-b3",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.3",
+            "pages": "153"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "2. Forward pass (policy πθ ): Run both sequences through the model. Collect logits at every"
+        },
+        {
+          "id": "s-6-5-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.3",
+            "pages": "153"
+          },
+          "text": "反应位置。",
+          "originalExcerpt": "response position."
+        },
+        {
+          "id": "s-6-5-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.3",
+            "pages": "154"
+          },
+          "text": "3. 提取日志证明:在答复中每个位置t，取日志软马克斯(logitst)[yt]——",
+          "originalExcerpt": "3. Extract log-probs: At each position t in the response, take log softmax(logitst )[yt ] — the"
+        },
+        {
+          "id": "s-6-5-3-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.3",
+            "pages": "154"
+          },
+          "text": "实际符号的日志概率。",
+          "originalExcerpt": "log-probability of the actual token."
+        },
+        {
+          "id": "s-6-5-3-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.3",
+            "pages": "154"
+          },
+          "text": "4. 代号总和:",
+          "originalExcerpt": "4. Sum over tokens:"
+        },
+        {
+          "id": "s-6-5-3-b8",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.3",
+            "pages": "154"
+          },
+          "expression": "X t <t logp_chosen = log πθ (yw |x, yw ) (6.7) t∈response positions X logp_rejected = log πθ (ylt |x, yl<t ) (6.8) t∈response positions",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-6-5-3-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.3",
+            "pages": "154"
+          },
+          "text": "5. 减法参考(预计算或从第二次前传):",
+          "originalExcerpt": "5. Subtract reference (pre-computed or from second forward pass):"
+        },
+        {
+          "id": "s-6-5-3-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.3",
+            "pages": "154"
+          },
+          "text": "比率 w=logp 选择 – ref logp 选择 (6.9) 比率 l=logp 拒绝 – ref logp 拒绝 (6.10) 页面存档备份，存于互联网档案馆 页面存档备份，存于互联网档案馆 页面存档备份，存于互联网档案馆 页面存档备份，存于互联网档案馆 页面存档备份，存于互联网档案馆 页面存档备份，存于互联网档案馆 互联网档案馆 页面存档备份，存于互联网档案馆 页面存档备份，存于互联网档案馆 页面存档备份，存于互联网档案馆 页面存档备份，存于互联网档案馆 互联网档案馆 互联网档案馆， 互联网档案馆， 互联网档案馆， 互联网档案馆， 互联网档案馆， 互联网档案馆， 上， 互联网档案馆， 互联网档案馆， 互联网档案馆， 互联网档案馆， 互联网档案馆， 互联网档案馆， 互联网档案馆， 上， 互联网档案馆， 上， 互联网档案馆， 互联网档案馆， 互联网档案馆， 互联网档案馆， 上，",
+          "originalExcerpt": "ratio_w = logp_chosen − ref_logp_chosen (6.9) ratio_l = logp_rejected − ref_logp_rejected (6.10)"
+        },
+        {
+          "id": "s-6-5-3-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.3",
+            "pages": "154"
+          },
+          "text": "6。计算损失:L=-对数 + (β=(ratio w=比率 l))",
+          "originalExcerpt": "6. Compute loss: L = − log σ(β · (ratio_w − ratio_l))"
+        },
+        {
+          "id": "s-6-5-3-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.3",
+            "pages": "154"
+          },
+          "text": "7。后行传:梯度通过步数5 → 4 → 3 → 2 向后流，以更新 →。",
+          "originalExcerpt": "7. Backward pass: Gradients flow back through steps 5 → 4 → 3 → 2 to update θ."
+        }
+      ]
+    },
+    {
+      "id": "s-6-5-4",
+      "number": "6.5.4",
+      "level": 2,
+      "enTitle": "Token-Level Gradient Analysis",
+      "zhTitle": "脚本级梯度分析",
+      "pages": "154",
+      "blocks": [
+        {
+          "id": "s-6-5-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.4",
+            "pages": "154"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §6.5.4「脚本级梯度分析」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-6-5-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.4",
+            "pages": "154"
+          },
+          "text": "每个符号是否都得到一个梯度？是的。 所选序列中 t 位置的对数的梯度是 :",
+          "originalExcerpt": "Does every token get a gradient? Yes. The gradient with respect to the logits at position t in the chosen sequence is:"
+        },
+        {
+          "id": "s-6-5-4-b2",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.4",
+            "pages": "154"
+          },
+          "expression": "∂L t |·) ∂ log πθ (yw (w) = − σ(−β · hθ ) ·β · (w) (6.11) ∂logitst | {z } ∂logitst scaling factor",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-6-5-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.4",
+            "pages": "154"
+          },
+          "text": "关键见解:缩放系数+(−β · θ)在两个序列中在所有符号中都共享。它起到适应性学习率的作用:",
+          "originalExcerpt": "Key insight: The scaling factor σ(−β · hθ ) is shared across all tokens in both sequences. It acts as an adaptive learning rate:"
+        },
+        {
+          "id": "s-6-5-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.4",
+            "pages": "154"
+          },
+          "text": "• 当hθ小(模型无法区分所选与被否决):缩放 0.5 – 强",
+          "originalExcerpt": "• When hθ is small (model can’t distinguish chosen from rejected): scaling ≈ 0.5 — strong"
+        },
+        {
+          "id": "s-6-5-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.4",
+            "pages": "154"
+          },
+          "text": "渐渐的，学习积极。",
+          "originalExcerpt": "gradient, learn aggressively."
+        },
+        {
+          "id": "s-6-5-4-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.4",
+            "pages": "154"
+          },
+          "text": "^ 当 hθ大( 模型已经选择了): 缩放 0 — 可忽略的梯度， 不要",
+          "originalExcerpt": "• When hθ is large (model already prefers chosen): scaling ≈ 0 — negligible gradient, don’t"
+        },
+        {
+          "id": "s-6-5-4-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.4",
+            "pages": "154"
+          },
+          "text": "超匹配。 对所选的符号的影响: 概率增加( log- prob pushed up)。",
+          "originalExcerpt": "over-fit. Effect on chosen tokens: Probability is increased (log-prob pushed up)."
+        },
+        {
+          "id": "s-6-5-4-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.4",
+            "pages": "154"
+          },
+          "text": "对被拒绝的令牌的影响:概率降低(日志-prob推倒)。",
+          "originalExcerpt": "Effect on rejected tokens: Probability is decreased (log-prob pushed down)."
+        },
+        {
+          "id": "s-6-5-4-b9",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.4",
+            "pages": "154"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "Relative to reference: Only the difference from πref matters. If the model already assigns high probability to the chosen response (matching the reference), there’s little gradient."
+        }
+      ]
+    },
+    {
+      "id": "s-6-5-5",
+      "number": "6.5.5",
+      "level": 2,
+      "enTitle": "Per-Token vs. Sequence-Level: Length Normalization",
+      "zhTitle": "Per-Token 与序列级: 长度正常化",
+      "pages": "154",
+      "blocks": [
+        {
+          "id": "s-6-5-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.5",
+            "pages": "154"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §6.5.5「Per-Token 与序列级: 长度正常化」 时，不要寻找脱离场景的“最佳方案”。应在质量、latency、计算与存储成本、数据要求、可控性和运维复杂度上逐项比较，并保留原书说明的适用前提与例外。"
+        },
+        {
+          "id": "s-6-5-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.5",
+            "pages": "154"
+          },
+          "text": "一个微妙的问题:较长的序列自然具有较低的对数概率(更多的词总和，每个)。如果Q|yw ≫ ≫ | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | loss loss | loss | | | | | | | loss loss | loss loss loss loss | loss | | | | | | | | | | | | | | | | | | | |",
+          "originalExcerpt": "A subtle issue: longer sequences naturally have lower log-probabilities (more terms summed, each ≤ 0). If |yw | ≫ |yl |, the loss can be biased toward preferring shorter responses. Solutions: t log πθ (yt |·). Used in some imple- P"
+        },
+        {
+          "id": "s-6-5-5-b2",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.5",
+            "pages": "154"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "• Length-normalized DPO: Replace log πθ (y|x) with |y|"
+        },
+        {
+          "id": "s-6-5-5-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.5",
+            "pages": "154"
+          },
+          "text": "修饰(SimPO采纳此法)。",
+          "originalExcerpt": "mentations (SimPO adopts this)."
+        },
+        {
+          "id": "s-6-5-5-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.5",
+            "pages": "154"
+          },
+          "text": "• 标准DPO:使用原始和(没有正常化)，这隐含地惩罚动词——即:",
+          "originalExcerpt": "• Standard DPO: Uses raw sum (no normalization). This implicitly penalizes verbosity — the"
+        },
+        {
+          "id": "s-6-5-5-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.5",
+            "pages": "154"
+          },
+          "text": "模型必须在所选响应中给每个符号分配高概率。",
+          "originalExcerpt": "model must assign high probability to every token in the chosen response."
+        },
+        {
+          "id": "s-6-5-5-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.5",
+            "pages": "154"
+          },
+          "text": "• 实际影响:在基准上，长度正常的DPO减少长度游戏，但可以",
+          "originalExcerpt": "• Practical impact: On benchmarks, length-normalized DPO reduces length gaming but can"
+        },
+        {
+          "id": "s-6-5-5-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.5",
+            "pages": "154"
+          },
+          "text": "标准(非正常)在生产中更为常见。",
+          "originalExcerpt": "hurt instruction-following quality. Standard (unnormalized) is more common in production."
+        }
+      ]
+    },
+    {
+      "id": "s-6-5-6",
+      "number": "6.5.6",
+      "level": 2,
+      "enTitle": "Label Masking: What Gets Gradients",
+      "zhTitle": "标签遮罩: 梯度是什么",
+      "pages": "154-155",
+      "blocks": [
+        {
+          "id": "s-6-5-6-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.6",
+            "pages": "154-155"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §6.5.6「标签遮罩: 梯度是什么」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-6-5-6-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.6",
+            "pages": "155"
+          },
+          "text": "DPO 中Tokens 接收渐变",
+          "originalExcerpt": "Which Tokens Receive Gradient in DPO"
+        },
+        {
+          "id": "s-6-5-6-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.6",
+            "pages": "155"
+          },
+          "text": "• 提示符(x):无梯度。损失仅计算在响应位置上。",
+          "originalExcerpt": "• Prompt tokens (x): NO gradient. The loss is computed only over response positions."
+        },
+        {
+          "id": "s-6-5-6-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.6",
+            "pages": "155"
+          },
+          "text": "提示符提供了上下文， 但是它们的日志不会为日志 {(y|x) 做出贡献。 t 帮助",
+          "originalExcerpt": "Prompt tokens provide context but their logits don’t contribute to log π(y|x). t contributes to the"
+        },
+        {
+          "id": "s-6-5-6-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.6",
+            "pages": "155"
+          },
+          "text": "· 选择响应符(yw):所有符号都得到梯度。",
+          "originalExcerpt": "• Chosen response tokens (yw ): ALL tokens get gradient. Each yw"
+        },
+        {
+          "id": "s-6-5-6-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.6",
+            "pages": "155"
+          },
+          "text": "渐渐的推高了它们的概率",
+          "originalExcerpt": "sum. Gradient pushes their probabilities up."
+        },
+        {
+          "id": "s-6-5-6-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.6",
+            "pages": "155"
+          },
+          "text": "· 拒绝的响应符(yl):所有符号都得到梯度。每个ylt 都为",
+          "originalExcerpt": "• Rejected response tokens (yl ): ALL tokens get gradient. Each ylt contributes to the"
+        },
+        {
+          "id": "s-6-5-6-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.6",
+            "pages": "155"
+          },
+          "text": "渐渐的推倒了他们的概率",
+          "originalExcerpt": "sum. Gradient pushes their probabilities down."
+        },
+        {
+          "id": "s-6-5-6-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.6",
+            "pages": "155"
+          },
+          "text": "• 贴花标志:没有梯度，用护目罩蒙住。",
+          "originalExcerpt": "• Padding tokens: NO gradient. Masked out with attention mask."
+        }
+      ]
+    },
+    {
+      "id": "s-6-5-7",
+      "number": "6.5.7",
+      "level": 2,
+      "enTitle": "Pseudocode: DPO Training Step",
+      "zhTitle": "修道院:DPO训练步",
+      "pages": "155",
+      "blocks": [
+        {
+          "id": "s-6-5-7-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.7",
+            "pages": "155"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §6.5.7「修道院:DPO训练步」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-6-5-7-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.7",
+            "pages": "155"
+          },
+          "text": "DPO 前进 + 后退( PyTorch 风格)",
+          "originalExcerpt": "DPO Forward + Backward (PyTorch-style)"
+        },
+        {
+          "id": "s-6-5-7-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.7",
+            "pages": "155"
+          },
+          "text": "dpo loss (型号， ref model， 批号， β=0.1) : \" 一个 DPO 训练步骤。\" # 批号包含: 输入 ids chosen， 输入 ids rejected， # 标签 chosen， 标签 rejected( 被擦拭到 - 100)",
+          "originalExcerpt": "def dpo_loss ( model , ref_model , batch , beta =0.1) : \" \" \" One DPO training step . \" \" \" # batch contains : input_ids_chosen , input_ids_rejected , # labels_chosen , labels_rejected ( prompt masked to -100)"
+        },
+        {
+          "id": "s-6-5-7-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.7",
+            "pages": "155"
+          },
+          "text": "# 1. 前进通道: 获得 / - 符号日志 - 指针日志 选择 = 获得 序列 logprob(型号，批号[ \" 选定 \" ]) 日志 拒绝 = 获得 序列 logprob(型号，批号[ \" 拒绝 \" ])",
+          "originalExcerpt": "# 1. Forward pass : get per - token log - probs logps_chosen = get_sequence_logprob ( model , batch [ \" chosen \" ]) logps_rejected = get_sequence_logprob ( model , batch [ \" rejected \" ])"
+        },
+        {
+          "id": "s-6-5-7-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.7",
+            "pages": "155"
+          },
+          "text": "#2参考日志 - 使用火炬的证明(此处计算或预置)。 no grad (): ref logps chosen = 获得 序列 logprob ( ref model， 批号 [ \" 选定 \" ] ) r logps 被拒 = 获得 序列 logprob ( ref model， 批号 [ \" 被拒绝 \" ])",
+          "originalExcerpt": "# 2. Reference log - probs ( pre - computed or computed here ) with torch . no_grad () : ref_logps_chosen = get_sequence_logprob ( ref_model , batch [ \" chosen \" ]) r ef_logps_rejected = get_sequence_logprob ( ref_model , batch [ \" rejected \" ])"
+        },
+        {
+          "id": "s-6-5-7-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.7",
+            "pages": "155"
+          },
+          "text": "# 3. 计算所选的隐含奖励幅度 奖励=β * (logps chosen - ref logps chosen) 拒绝 奖励=β * (logps rejectd - ref logps rejectd) 互联网档案馆的存檔，存档日期2013-09-02.",
+          "originalExcerpt": "# 3. Compute implicit reward margins chosen_rewards = beta * ( logps_chosen - ref_logps_chosen ) rejected_rewards = beta * ( logps_rejected - ref_logps_rejected )"
+        },
+        {
+          "id": "s-6-5-7-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.7",
+            "pages": "155"
+          },
+          "text": "# 4. DPO损失= - log( sigmoid(选定 奖励-拒绝 奖励)) 损失= - F。 logsigmoid(选定 奖励-拒绝 奖励) 表示() 返回损失",
+          "originalExcerpt": "# 4. DPO loss = - log ( sigmoid ( chosen_reward - rejected_reward ) ) loss = -F . logsigmoid ( chosen_rewards - rejected_rewards ) . mean () return loss"
+        },
+        {
+          "id": "s-6-5-7-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.7",
+            "pages": "155"
+          },
+          "text": "def g e t sequence logprob(模型，序列): \" 日志总和 - 仅对响应符进行测试。 \" \" 输出=模型(序列[ \" 输入 ids \" ]，注意 mask=序列[ \" 遮盖 \" ]) 日志=输出[:，]:-1， : ] 下一个移动 - 符号预测",
+          "originalExcerpt": "def g e t _ s equence_logprob ( model , sequences ) : \" \" \" Sum of log - probs over response tokens only . \" \" \" outputs = model ( sequences [ \" input_ids \" ] , attention_mask = sequences [ \" mask \" ]) logits = outputs . logits [: , : -1 , :] # Shift for next - token prediction"
+        },
+        {
+          "id": "s-6-5-7-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.7",
+            "pages": "155"
+          },
+          "text": "# 收集日志 - 实际符号标签的证明=序列 [ \" 标签 \" ] [:， 1] # 移动标签日志 probs = F。 log softmax (logits， dim = -1) 符号 logps = log probs 收集 ( -1，标签未挤压 ( -1))。挤压 ( -1)。",
+          "originalExcerpt": "# Gather log - prob of actual tokens labels = sequences [ \" labels \" ][: , 1:] # Shifted labels log_probs = F . log_softmax ( logits , dim = -1) token_logps = log_probs . gather ( -1 , labels . unsqueeze ( -1) ) . squeeze ( -1)"
+        },
+        {
+          "id": "s-6-5-7-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.7",
+            "pages": "155"
+          },
+          "text": "# 面具: 仅和过响应符(标签!= -100) 面具=(标签!= -100) 浮点() 返回(标志 logps * 面具) 和(暗= -1) 形状: [批 大小]",
+          "originalExcerpt": "# Mask : only sum over response tokens ( labels != -100) mask = ( labels != -100) . float () return ( token_logps * mask ) . sum ( dim = -1) # Shape : [ batch_size ]"
+        }
+      ]
+    },
+    {
+      "id": "s-6-5-8",
+      "number": "6.5.8",
+      "level": 2,
+      "enTitle": "Common Pitfalls",
+      "zhTitle": "常见的陷阱",
+      "pages": "155-156",
+      "blocks": [
+        {
+          "id": "s-6-5-8-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.8",
+            "pages": "155-156"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §6.5.8「常见的陷阱」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-6-5-8-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.8",
+            "pages": "155"
+          },
+          "text": "DPO 执行陷阱",
+          "originalExcerpt": "DPO Implementation Pitfalls"
+        },
+        {
+          "id": "s-6-5-8-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.8",
+            "pages": "155"
+          },
+          "text": "• 忘记掩盖提示:如果提示符包含在日志-prob和中，则",
+          "originalExcerpt": "• Forgetting to mask the prompt: If prompt tokens are included in the log-prob sum, the"
+        },
+        {
+          "id": "s-6-5-8-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.8",
+            "pages": "155"
+          },
+          "text": "模型优化了即时可能性(无用)，有效的β是错误的。",
+          "originalExcerpt": "model optimizes for prompt likelihood (useless) and the effective β is wrong."
+        },
+        {
+          "id": "s-6-5-8-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.8",
+            "pages": "155"
+          },
+          "text": "• 使用平均而不是总和:T1吨对数=",
+          "originalExcerpt": "• Using mean instead of sum: T1 t log π vs."
+        },
+        {
+          "id": "s-6-5-8-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.8",
+            "pages": "155"
+          },
+          "text": "PP t log − ——这些都规定了不同的隐含长度处罚，必须在 − 和 → ref 之间保持一致。",
+          "originalExcerpt": "P P t log π — these give different implicit length penalties. Must be consistent between πθ and πref ."
+        },
+        {
+          "id": "s-6-5-8-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.8",
+            "pages": "156"
+          },
+          "text": "• 参考模型:如果“参考模型”离“模型”太远(例如，基础模型对微调)，则“参考模型”是指“模型”是指“模型”的“模型”。",
+          "originalExcerpt": "• Stale reference model: If πref is too far from πθ (e.g., base model vs. fine-tuned), the"
+        },
+        {
+          "id": "s-6-5-8-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.8",
+            "pages": "156"
+          },
+          "text": "KL 名词占据主导地位，渐变消失。解决方案:使用 SFT 检查站(不是基数)作为参考。",
+          "originalExcerpt": "KL term dominates and gradients vanish. Solution: use the SFT checkpoint (not base) as reference."
+        },
+        {
+          "id": "s-6-5-8-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.8",
+            "pages": "156"
+          },
+          "text": "• β太大:放大对数-检验差异 → sigmoid饱和度 → 0梯度。",
+          "originalExcerpt": "• β too large: Magnifies log-prob differences → sigmoid saturates → zero gradients. Start"
+        },
+        {
+          "id": "s-6-5-8-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.8",
+            "pages": "156"
+          },
+          "text": "与β=0.1，调值为[0.05，0.5]。",
+          "originalExcerpt": "with β = 0.1, tune in [0.05, 0.5]."
+        },
+        {
+          "id": "s-6-5-8-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.8",
+            "pages": "156"
+          },
+          "text": "• β太小:理论上允许更多的参考自由(弱KL限制)，但",
+          "originalExcerpt": "• β too small: Theoretically allows more freedom from reference (weaker KL constraint), but"
+        },
+        {
+          "id": "s-6-5-8-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.5.8",
+            "pages": "156"
+          },
+          "text": "渐变的 β + + + + + + 消失的 → 损失的地貌是平的 → 极慢的汇合。该模型“允许”移动到很远的地方，但几乎没有收到指示它移动到哪里的信号。",
+          "originalExcerpt": "the gradient ∝ β · σ(−βh) becomes vanishingly small → loss landscape is flat → extremely slow convergence. The model has “permission” to move far but receives almost no signal telling it where to move."
+        }
+      ]
+    },
+    {
+      "id": "s-6-6",
+      "number": "6.6",
+      "level": 1,
+      "enTitle": "DPO Variants and When Each Fails",
+      "zhTitle": "DPO 变式和每一次失败时",
+      "pages": "156",
+      "blocks": [
+        {
+          "id": "s-6-6-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 6,
+            "section": "6.6",
+            "pages": "156"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §6.6「DPO 变式和每一次失败时」 时，把每个 failure mode 拆成触发条件、可观测信号、影响范围、缓解措施和剩余风险。原书给出的警告不是附录信息，而是决定系统是否能进入生产环境的设计约束。"
+        },
+        {
+          "id": "s-6-6-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.6",
+            "pages": "156"
+          },
+          "text": "1. 分配转变:从旧模式获得优先数据。当前政策产生不同的文本",
+          "originalExcerpt": "1. Distribution shift: Preference data from old model. Current policy generates different text"
+        },
+        {
+          "id": "s-6-6-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.6",
+            "pages": "156"
+          },
+          "text": "——损失是对无关的例子进行优化。",
+          "originalExcerpt": "→ loss is optimizing on irrelevant examples."
+        },
+        {
+          "id": "s-6-6-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.6",
+            "pages": "156"
+          },
+          "text": "无法发现数据组中没有的行为。 无法发现本地最佳行为。 无法发现数据组中没有的行为。 无法发现数据组中没有的行为。 无法发现数据组中没有的行为。",
+          "originalExcerpt": "2. No exploration: Can’t discover behaviors not in dataset. Stuck in local optimum."
+        },
+        {
+          "id": "s-6-6-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.6",
+            "pages": "156"
+          },
+          "text": "参考崩溃:如果参考力太强，政策就无法移动。 如果参考力太弱，则无法规范化。",
+          "originalExcerpt": "3. Reference collapse: If reference is too strong, policy can’t move. If too weak, no regularization."
+        },
+        {
+          "id": "s-6-6-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.6",
+            "pages": "156"
+          },
+          "text": "4. 数据质量:噪声标签为毒药培训，不同于PPO， PPO平均超过许多样本，",
+          "originalExcerpt": "4. Data quality: Noisy labels poison training. Unlike PPO which averages over many samples,"
+        },
+        {
+          "id": "s-6-6-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.6",
+            "pages": "156"
+          },
+          "text": "DPO记忆着个人的对子。",
+          "originalExcerpt": "DPO memorizes individual pairs."
+        },
+        {
+          "id": "s-6-6-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.6",
+            "pages": "156"
+          },
+          "text": "5. 优先数据多样性:确保所选/拒绝的对子覆盖全部质量范围",
+          "originalExcerpt": "5. Preference data diversity: Ensure chosen/rejected pairs cover the full spectrum of quality"
+        },
+        {
+          "id": "s-6-6-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.6",
+            "pages": "156"
+          },
+          "text": "不同(不仅仅是好-坏-可怕的 )。 方法不同，而不只是质量不同，教给更多的政策区别。",
+          "originalExcerpt": "differences (not just good-vs-terrible). Pairs that differ in approach, not just quality, teach richer policy distinctions."
+        },
+        {
+          "id": "s-6-6-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.6",
+            "pages": "156"
+          },
+          "text": "6.7β 选择指南",
+          "originalExcerpt": "6.7 β Selection Guide"
+        },
+        {
+          "id": "s-6-6-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.6",
+            "pages": "156"
+          },
+          "text": "β 系统 使用 0.01 时非常积极 只有当数据非常干净，并且需要大分布式转移 0.05 侵略性良好数据时，需要比 SFT 0.1 标准默认起点有显著的改进。质量与稳定性的平衡良好 0.2 保守噪声数据，或已经接近预期的模型 0.5 高度保守的安全微调，其中你不得破坏能力",
+          "originalExcerpt": "β Regime When to Use 0.01 Very aggressive Only if data is extremely clean and you need large distributional shift 0.05 Aggressive Good data, want noticeable improvement over SFT 0.1 Standard Default starting point. Good balance of quality vs stability 0.2 Conservative Noisy data, or model already close to desired behavior 0.5 Very conservative Safety fine-tu..."
+        }
+      ]
+    },
+    {
+      "id": "s-6-8",
+      "number": "6.8",
+      "level": 1,
+      "enTitle": "DPO Batch Size Configuration and Scaling",
+      "zhTitle": "DPO 批量大小配置和缩放",
+      "pages": "156",
+      "blocks": [
+        {
+          "id": "s-6-8-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 6,
+            "section": "6.8",
+            "pages": "156"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §6.8「DPO 批量大小配置和缩放」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-6-8-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.8",
+            "pages": "156"
+          },
+          "text": "与运行在单序列符号预测上的标准SFT不同， DPO利用一个双向损失，将首选序列与偏好序列进行比较。这从根本上改变了内存的利用率和优化稳定性。",
+          "originalExcerpt": "Unlike standard SFT which operates on single-sequence token predictions, DPO leverages a pairwise loss comparing a preferred sequence against a dispreferred sequence. This fundamentally alters memory utilization and optimization stability."
+        }
+      ]
+    },
+    {
+      "id": "s-6-8-1",
+      "number": "6.8.1",
+      "level": 2,
+      "enTitle": "Global Batch Size Target",
+      "zhTitle": "全球批量大小目标",
+      "pages": "156-157",
+      "blocks": [
+        {
+          "id": "s-6-8-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 6,
+            "section": "6.8.1",
+            "pages": "156-157"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §6.8.1「全球批量大小目标」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-6-8-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.8.1",
+            "pages": "156"
+          },
+          "text": "整个DPO实施过程中的经验证据确定了一个最佳的全球批量规模范围:",
+          "originalExcerpt": "Empirical evidence across DPO implementations establishes an optimal global batch size range:"
+        },
+        {
+          "id": "s-6-8-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.8.1",
+            "pages": "156"
+          },
+          "text": "全球[32、128](6.12)",
+          "originalExcerpt": "Bglobal ∈ [32, 128] (6.12)"
+        },
+        {
+          "id": "s-6-8-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.8.1",
+            "pages": "156"
+          },
+          "text": "• 全球性 < 32:暗含奖励估计中严重梯度噪音 – 政策扭曲破坏性",
+          "originalExcerpt": "• Bglobal < 32: Severe gradient noise in implicit reward estimation → policy oscillates destructively"
+        },
+        {
+          "id": "s-6-8-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.8.1",
+            "pages": "156"
+          },
+          "text": "将目标(帮助与安全)放在了一致之间。",
+          "originalExcerpt": "between alignment goals (helpfulness vs. safety)."
+        },
+        {
+          "id": "s-6-8-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.8.1",
+            "pages": "157"
+          },
+          "text": "• 环球 > 128:汇合速度回报下降;通信费用高",
+          "originalExcerpt": "• Bglobal > 128: Diminishing returns on convergence velocity; high communication overhead"
+        },
+        {
+          "id": "s-6-8-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.8.1",
+            "pages": "157"
+          },
+          "text": "整个分布计算。",
+          "originalExcerpt": "across distributed compute."
+        }
+      ]
+    },
+    {
+      "id": "s-6-8-2",
+      "number": "6.8.2",
+      "level": 2,
+      "enTitle": "Mathematical Decomposition",
+      "zhTitle": "数学解析",
+      "pages": "157",
+      "blocks": [
+        {
+          "id": "s-6-8-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 6,
+            "section": "6.8.2",
+            "pages": "157"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §6.8.2「数学解析」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-6-8-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.8.2",
+            "pages": "157"
+          },
+          "text": "由于DPO同时加载两个模型副本(活动策略 + 冻结引用 + πref)，每序列内存加倍。全球批量大小被分解为:",
+          "originalExcerpt": "Because DPO loads two model copies simultaneously (active policy πθ + frozen reference πref ), per-sequence memory is doubled. The global batch size is decomposed as:"
+        },
+        {
+          "id": "s-6-8-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.8.2",
+            "pages": "157"
+          },
+          "text": "双子 = Bmicro × NGPUs × Kaccum(6.13) 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双子 双 双子 双子 双 双子 双 双子 双子 双 双子 双子 双 双 双子 双 双 双 双 双 双 双 双 双 双 双 双",
+          "originalExcerpt": "Bglobal = Bmicro × NGPUs × Kaccum (6.13)"
+        },
+        {
+          "id": "s-6-8-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.8.2",
+            "pages": "157"
+          },
+          "text": "• Bmicro:每副设备的微批量尺寸(每向前行驶时的首选对数)。",
+          "originalExcerpt": "• Bmicro : Per-device micro-batch size (preference pairs per forward pass)."
+        },
+        {
+          "id": "s-6-8-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.8.2",
+            "pages": "157"
+          },
+          "text": "• NGPU:并行数据处理设备的数目。",
+          "originalExcerpt": "• NGPUs : Number of parallel data-processing devices."
+        },
+        {
+          "id": "s-6-8-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.8.2",
+            "pages": "157"
+          },
+          "text": "• Kaccum:在更新重量前逐步积累步骤。",
+          "originalExcerpt": "• Kaccum : Gradient accumulation steps before weight update."
+        },
+        {
+          "id": "s-6-8-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.8.2",
+            "pages": "157"
+          },
+          "text": "配对乘数:一个单独的DPO数据实例包含一个提示(x)，选择(yw)，拒绝(yl)。实际的每个微批的拉伸负载:",
+          "originalExcerpt": "The pairing multiplier: A single DPO data instance contains a prompt (x), chosen (yw ), and rejected (yl ). The actual tensor load per micro-batch:"
+        },
+        {
+          "id": "s-6-8-2-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.8.2",
+            "pages": "157"
+          },
+          "text": "序列=2×Bmicro(6.14) = = = = =",
+          "originalExcerpt": "Tsequences = 2 × Bmicro (6.14)"
+        },
+        {
+          "id": "s-6-8-2-b8",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 6,
+            "section": "6.8.2",
+            "pages": "157"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "For models >7B parameters on 80GB GPUs with context lengths 4096–8192 tokens, the physical limit is rigidly constrained to Bmicro ∈ [1, 2]."
+        }
+      ]
+    },
+    {
+      "id": "s-6-8-3",
+      "number": "6.8.3",
+      "level": 2,
+      "enTitle": "Distributed Scaling Configurations",
+      "zhTitle": "分布式缩放配置",
+      "pages": "157",
+      "blocks": [
+        {
+          "id": "s-6-8-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 6,
+            "section": "6.8.3",
+            "pages": "157"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §6.8.3「分布式缩放配置」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-6-8-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.8.3",
+            "pages": "157"
+          },
+          "text": "表6.1: 分发的DPO培训比例图(BGlobal=64目标)",
+          "originalExcerpt": "Table 6.1: Distributed scaling profiles for DPO training (Bglobal = 64 target)."
+        },
+        {
+          "id": "s-6-8-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.8.3",
+            "pages": "157"
+          },
+          "text": "配置 单 GPU 8-GPU 节点 Bglobal 64 64 Bmicro 2(4序列) 2(4序列) NGPU 1 8 Kaccum 32 步骤 4 步骤 通过输出 序列/低水平平行吞吐",
+          "originalExcerpt": "Configuration Single GPU 8-GPU Node Bglobal 64 64 Bmicro 2 (4 sequences) 2 (4 sequences) NGPUs 1 8 Kaccum 32 steps 4 steps Throughput Sequential/slow High parallel throughput"
+        }
+      ]
+    },
+    {
+      "id": "s-6-8-4",
+      "number": "6.8.4",
+      "level": 2,
+      "enTitle": "VRAM Optimization: Pre-computing Reference Log-Probabilities",
+      "zhTitle": "VRAM 优化:预计算参考日志-概率",
+      "pages": "157",
+      "blocks": [
+        {
+          "id": "s-6-8-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 6,
+            "section": "6.8.4",
+            "pages": "157"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §6.8.4「VRAM 优化:预计算参考日志-概率」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-6-8-4-b1",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.8.4",
+            "pages": "157"
+          },
+          "expression": "The DPO loss: πθ (yw |x) πθ (yl |x) \u0014 \u0012 \u0013\u0015 LDPO (θ) = −E(x,yw ,yl ) log σ β log − β log (6.15) πref (yw |x) πref (yl |x)",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-6-8-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.8.4",
+            "pages": "157"
+          },
+          "text": "由于 πref 在整个培训过程中是完全静止的，其产出可以预先计算:参考模型 Eviction 战略",
+          "originalExcerpt": "Because πref is completely static throughout training, its outputs can be pre-computed: Reference Model Eviction Strategy"
+        },
+        {
+          "id": "s-6-8-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.8.4",
+            "pages": "157"
+          },
+          "text": "1. 在培训开始前仅使用“ref”执行数据集D的转发。",
+          "originalExcerpt": "1. Execute a forward pass over dataset D using only πref before training begins."
+        },
+        {
+          "id": "s-6-8-4-b4",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 6,
+            "section": "6.8.4",
+            "pages": "157"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "2. Cache the scalars log πref (yw |x) and log πref (yl |x) to disk."
+        },
+        {
+          "id": "s-6-8-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.8.4",
+            "pages": "157"
+          },
+          "text": "3. Evict πref 完全来自GPU内存。",
+          "originalExcerpt": "3. Evict πref completely from GPU memory."
+        },
+        {
+          "id": "s-6-8-4-b6",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 6,
+            "section": "6.8.4",
+            "pages": "157"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "Result: Available GPU memory doubles → can increase Bmicro from 1–2 to 4–8, maximizing hardware utilization and training throughput. Implementation: In TRL, set precompute_ref_log_probs=True in DPOConfig. For 70B models, this saves ∼140GB of GPU memory across the cluster."
+        }
+      ]
+    },
+    {
+      "id": "s-6-9",
+      "number": "6.9",
+      "level": 1,
+      "enTitle": "DPO Extensions and Variants",
+      "zhTitle": "DPO 扩展和备选",
+      "pages": "158-159",
+      "blocks": [
+        {
+          "id": "s-6-9-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9",
+            "pages": "158-159"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §6.9「DPO 扩展和备选」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-6-9-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9",
+            "pages": "158"
+          },
+          "text": "直接优惠优化(DPO)通过在奖励功能和最佳政策之间得出闭式映射，将RLHF重新定位为受监督的学习问题。标准DPO损失是:",
+          "originalExcerpt": "Direct Preference Optimization (DPO) reformulates RLHF as a supervised learning problem by deriving a closed-form mapping between the reward function and the optimal policy. The standard DPO loss is:"
+        },
+        {
+          "id": "s-6-9-b2",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9",
+            "pages": "158"
+          },
+          "expression": "πθ (yw |q) πθ (yl |q) \u0014 \u0012 \u0013\u0015 LDPO (θ) = −E(q,yw ,yl ) log σ β log − β log , πref (yw |q) πref (yl |q) where yw is the preferred (winning) response, yl is the dispreferred (losing) response, and β controls the strength of the KL penalty. The following subsections cover the most important extensions and variants.",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-6-9-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9",
+            "pages": "158"
+          },
+          "text": "6.9.1 f-DPO – 通用f-Divardgence DPO Beyond Ransit KL标准DPO使用逆KL差异作为政策和参考的规范化。反转 KL 是模式求求解:它更倾向于将概率质量集中在几个高回报的响应上。前置 KL 是模式覆盖: 它会分散概率质量以覆盖所有可能的反应。 f- DPO [363] 概括到任何f- divergence， 允许从业者交易这些行为。 f-DPO损失用f-divergence生成器的衍生物取代对数-ratio:",
+          "originalExcerpt": "6.9.1 f-DPO – Generalised f-Divergence DPO Beyond Reverse KL Standard DPO uses reverse KL divergence as the regulariser between policy and reference. Reverse KL is mode-seeking: it prefers to concentrate probability mass on a few high-reward responses. Forward KL is mode-covering: it spreads probability mass to cover all plausible responses. f- DPO [363] gen..."
+        },
+        {
+          "id": "s-6-9-b4",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9",
+            "pages": "158"
+          },
+          "expression": "πθ (yw |q) πθ (yl |q) \u0014 \u0012 \u0013 \u0012 \u0013\u0015 ′ ′ Lf -DPO = −E f −f , πref (yw |q) πref (yl |q) where f ′ is the derivative of the f-divergence generator function. f-Divergence Options in TRL",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-6-9-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9",
+            "pages": "158"
+          },
+          "text": "^ 逆 kl: f ′ (u) = log u。标准DPO。模式寻访。",
+          "originalExcerpt": "• reverse_kl: f ′ (u) = log u. Standard DPO. Mode-seeking."
+        },
+        {
+          "id": "s-6-9-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9",
+            "pages": "158"
+          },
+          "text": "• 前置:f ' (u)=-1.u。模式覆盖:更好的多样性。",
+          "originalExcerpt": "• forward_kl: f ′ (u) = −1/u. Mode-covering. Better diversity."
+        },
+        {
+          "id": "s-6-9-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9",
+            "pages": "158"
+          },
+          "text": "• js divergence: f ′ (u) = log(2u/(u+1)) 平衡模式寻/覆盖。",
+          "originalExcerpt": "• js_divergence: f ′ (u) = log(2u/(u + 1)). Balanced mode-seeking/covering."
+        },
+        {
+          "id": "s-6-9-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9",
+            "pages": "158"
+          },
+          "text": "^ alpha divergence: f ′ (u) = uα−1. Interpodates between forward and revolution KL。互联网档案馆的存檔，存档日期2014-09-02.",
+          "originalExcerpt": "• alpha_divergence: f ′ (u) = uα−1 . Interpolates between forward and reverse KL."
+        },
+        {
+          "id": "s-6-9-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9",
+            "pages": "158"
+          },
+          "text": "从 trl 导入 DPOConfig， DPOTrainer",
+          "originalExcerpt": "from trl import DPOConfig , DPOTrainer"
+        },
+        {
+          "id": "s-6-9-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9",
+            "pages": "158"
+          },
+          "text": "# Jensen - 香农差异(均衡)配置=DPOConfig(f d vergence type= \"js divergence\"，β=0.1，) 互联网档案馆的存檔，存档日期2011-09-02.",
+          "originalExcerpt": "# Jensen - Shannon divergence ( balanced ) config = DPOConfig ( f_d ivergence_type = \" js_divergence \" , beta =0.1 , )"
+        },
+        {
+          "id": "s-6-9-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9",
+            "pages": "158"
+          },
+          "text": "# Alpha 差值(α=0:前方 KL，α=1:逆方 KL) config alpha = DPOConfig(f d ivergence type= \"α 潜水\"， f a l p h a div e rg en c c oe f=0.5，# alpha 参数β=0.1，) beta beta beta beta beta beta beta beta beta beta beta beta beta beta beta beta beta beta beta beta beta beta beta beta beta beta beta beta beta beta beta beta beta beta beta beta beta beta beta beta beta beta beta beta beta 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 beta beta 0.5 0.5 beta 0.5 0.5 0.5 0.5",
+          "originalExcerpt": "# Alpha divergence ( alpha =0: forward KL , alpha =1: reverse KL ) config_alpha = DPOConfig ( f_d ivergence_type = \" alpha_divergence \" , f _ a l p h a_ d iv e rg en c e_ c oe f =0.5 , # alpha parameter beta =0.1 , )"
+        },
+        {
+          "id": "s-6-9-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9",
+            "pages": "158"
+          },
+          "text": "教练=DPOTrainer(型号=型号， ref model=ref model， args=配置， train dataset=dataset，)， ) set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set ) set ) ) = ) ) set ) set ) ) ) set ) ) =",
+          "originalExcerpt": "trainer = DPOTrainer ( model = model , ref_model = ref_model , args = config , train_dataset = dataset , )"
+        },
+        {
+          "id": "s-6-9-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9",
+            "pages": "159"
+          },
+          "text": "何时使用 f- DPO",
+          "originalExcerpt": "When to Use f-DPO"
+        },
+        {
+          "id": "s-6-9-b15",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9",
+            "pages": "159"
+          },
+          "text": "• 在希望多样性和质量之间取得平衡时，使用联合来文的差异。",
+          "originalExcerpt": "• Use JS divergence when you want a balance between diversity and quality."
+        },
+        {
+          "id": "s-6-9-b16",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9",
+            "pages": "159"
+          },
+          "text": "· 在多样性至高无上的地方，利用 \" 知识 \" 来完成创造性任务。",
+          "originalExcerpt": "• Use forward KL for creative tasks where diversity is paramount."
+        },
+        {
+          "id": "s-6-9-b17",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9",
+            "pages": "159"
+          },
+          "text": "^ 使用逆向 KL(标准DPO)进行任务，并有单一的正确答案。",
+          "originalExcerpt": "• Use reverse KL (standard DPO) for tasks with a single correct answer."
+        },
+        {
+          "id": "s-6-9-b18",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9",
+            "pages": "159"
+          },
+          "text": "• 利用α差异来不断插图和调和权衡。",
+          "originalExcerpt": "• Use alpha divergence to continuously interpolate and tune the trade-off."
+        }
+      ]
+    },
+    {
+      "id": "s-6-9-2",
+      "number": "6.9.2",
+      "level": 2,
+      "enTitle": "Robust DPO",
+      "zhTitle": "强力DPO",
+      "pages": "159",
+      "blocks": [
+        {
+          "id": "s-6-9-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.2",
+            "pages": "159"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §6.9.2「强力DPO」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-6-9-2-b1",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.2",
+            "pages": "159"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "Noisy Labels in Preference Data Human preference annotations are noisy. Annotators disagree, make mistakes, and sometimes flip the preferred/dispreferred labels. Standard DPO treats all labels as ground truth, which can cause the model to overfit to noise. Robust DPO [56] analytically debiases the loss under a known noise model. Assume each label is flipped ..."
+        },
+        {
+          "id": "s-6-9-2-b2",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.2",
+            "pages": "159"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "(1 − ϵ) LDPO (yw , yl ) − ϵ LDPO (yl , yw ) Lrobust = , 1 − 2ϵ where LDPO (yw , yl ) is the standard DPO loss treating yw as preferred, and LDPO (yl , yw ) is the loss with labels flipped. This correction removes the bias introduced by label noise. Intuition for Robust DPO The formula is a linear combination that “subtracts out” the contribution of flipped l..."
+        },
+        {
+          "id": "s-6-9-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.2",
+            "pages": "159"
+          },
+          "text": "从 trl 导入 DPOConfig， DPOTrainer",
+          "originalExcerpt": "from trl import DPOConfig , DPOTrainer"
+        },
+        {
+          "id": "s-6-9-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.2",
+            "pages": "159"
+          },
+          "text": "配置=DPOConfig(损失 类型= \" 稳健 \"，标签 smoothing=0.1，#对应epsilon=0.1β=0.1，)",
+          "originalExcerpt": "config = DPOConfig ( loss_type = \" robust \" , label_smoothing =0.1 , # corresponds to epsilon = 0.1 beta =0.1 , )"
+        },
+        {
+          "id": "s-6-9-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.2",
+            "pages": "159"
+          },
+          "text": "教练=DPOTrainer(型号=型号， ref model=ref model， args=配置， train dataset=dataset，)， ) set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set ) set ) ) = ) ) set ) set ) ) ) set ) ) =",
+          "originalExcerpt": "trainer = DPOTrainer ( model = model , ref_model = ref_model , args = config , train_dataset = dataset , )"
+        }
+      ]
+    },
+    {
+      "id": "s-6-9-3",
+      "number": "6.9.3",
+      "level": 2,
+      "enTitle": "TR-DPO – Trust Region DPO",
+      "zhTitle": "TR-DPO - 信托区",
+      "pages": "159-160",
+      "blocks": [
+        {
+          "id": "s-6-9-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.3",
+            "pages": "159-160"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §6.9.3「TR-DPO - 信托区」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-6-9-3-b1",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.3",
+            "pages": "159"
+          },
+          "expression": "Stale Reference Model Problem Standard DPO uses a fixed reference model πref throughout training. As the policy πθ improves, the KL penalty β log(πθ /πref ) grows, eventually dominating the loss and preventing further improvement. TR-DPO [116] periodically updates the reference model to track the current policy. TR-DPO updates the reference model using an exponential moving average (EMA):",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-6-9-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.3",
+            "pages": "159"
+          },
+          "text": "(t+1) (t) (t) π ref ← πθ πθ πθ πθ πθ πθ π π π π π π π π π π π ∈ ∈ ∈ ∈ ∈ ∈ ∈ ∈ ∈ ∈ ∈ ∈ ∈ ∈ ∈ ∈ ∈ ∈ ∈ ∈ ∈ ∈ ∈ steps steps steps steps ∈ ∈ steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps steps",
+          "originalExcerpt": "(t+1) (t) (t) πref ← α · πθ + (1 − α) · πref , where α ∈ (0, 1) is the mixup coefficient. This is applied every Tsync gradient steps."
+        },
+        {
+          "id": "s-6-9-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.3",
+            "pages": "160"
+          },
+          "text": "从 trl 导入 DPOConfig， DPOTrainer",
+          "originalExcerpt": "from trl import DPOConfig , DPOTrainer"
+        },
+        {
+          "id": "s-6-9-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.3",
+            "pages": "160"
+          },
+          "text": "配置=DPOConfig(损失 类型= \" sigmoid \"，#标准 DPO损失同步 ref model= True，# 启用 TR - DPO r e f m od el m ixup alph a =0.6，# alph :当前政策在 r e f 中混用多少 m odel sync steps = 512，# T sync :每512步同步β=0.1，)",
+          "originalExcerpt": "config = DPOConfig ( loss_type = \" sigmoid \" , # standard DPO loss sync_ref_model = True , # enable TR - DPO r e f _ m od el_m ixup_ alph a =0.6 , # alpha : how much of current policy to mix in r e f _ m odel_sync_steps =512 , # T_sync : sync every 512 steps beta =0.1 , )"
+        },
+        {
+          "id": "s-6-9-3-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.3",
+            "pages": "160"
+          },
+          "text": "教练=DPOTrainer(型号=型号， ref model=ref model， args=配置， train dataset=dataset，)， ) set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set ) set ) ) = ) ) set ) set ) ) ) set ) ) =",
+          "originalExcerpt": "trainer = DPOTrainer ( model = model , ref_model = ref_model , args = config , train_dataset = dataset , )"
+        },
+        {
+          "id": "s-6-9-3-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.3",
+            "pages": "160"
+          },
+          "text": "何时使用TR- DPO",
+          "originalExcerpt": "When to Use TR-DPO"
+        },
+        {
+          "id": "s-6-9-3-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.3",
+            "pages": "160"
+          },
+          "text": "· 长期培训，其政策偏离最初的参考。",
+          "originalExcerpt": "• Long training runs where the policy drifts far from the initial reference."
+        },
+        {
+          "id": "s-6-9-3-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.3",
+            "pages": "160"
+          },
+          "text": "• 当您看到由于KL惩罚统治而导致的DPO损失在早期稳定下来时。",
+          "originalExcerpt": "• When you observe the DPO loss plateauing early due to KL penalty domination."
+        },
+        {
+          "id": "s-6-9-3-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.3",
+            "pages": "160"
+          },
+          "text": "• 从现行政策中收集新优惠数据的本地发展业务方案管道。",
+          "originalExcerpt": "• Iterative DPO pipelines where new preference data is collected from the current policy."
+        },
+        {
+          "id": "s-6-9-3-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.3",
+            "pages": "160"
+          },
+          "text": "• 设定 α 接近 1 用于快速参考更新; 接近 0 用于慢速更新。",
+          "originalExcerpt": "• Set α close to 1 for fast reference updates; close to 0 for slow updates."
+        }
+      ]
+    },
+    {
+      "id": "s-6-9-4",
+      "number": "6.9.4",
+      "level": 2,
+      "enTitle": "EXO – Exact Optimisation",
+      "zhTitle": "EXO — 精确优化",
+      "pages": "160-161",
+      "blocks": [
+        {
+          "id": "s-6-9-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.4",
+            "pages": "160-161"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §6.9.4「EXO — 精确优化」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-6-9-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.4",
+            "pages": "160"
+          },
+          "text": "DPO的KL方向问题DPO是通过在反向KL制约下解决最佳政策而衍生出来的。 然而，由此造成的损失实际上选择了奖励空间中的前方KL目标，而这是错误的方向。 EXO [163] 通过使用反向 KL 概率匹配来纠正这一点，这是对齐的理论上正确的目标。 EXO 将模型分布和目标(奖励-优化)分布之间的反向 KL 最小化:",
+          "originalExcerpt": "DPO’s KL Direction Problem DPO is derived by solving for the optimal policy under a reverse KL constraint. However, the resulting loss actually optimises a forward KL objective in the reward space, which is the wrong direction. EXO [163] corrects this by using reverse KL probability matching, which is the theoretically correct objective for alignment. EXO mi..."
+        },
+        {
+          "id": "s-6-9-4-b2",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.4",
+            "pages": "160"
+          },
+          "expression": "πθ (y|q) \u0014 \u0015 LEXO = Ey∼πθ log ∗ , p (y|q) where p∗ (y|q) ∝ πref (y|q) exp(r(y, q)/β) is the optimal policy. In practice, EXO approximates this using the available preference pairs:",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-6-9-4-b3",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.4",
+            "pages": "160"
+          },
+          "expression": "πref (yw |q) πref (yl |q) \u0014 \u0012 \u0013\u0015 LEXO ≈ −E log σ β log − β log . πθ (yw |q) πθ (yl |q) Note the swapped roles of πθ and πref compared to DPO. EXO in TRL",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-6-9-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.4",
+            "pages": "160"
+          },
+          "text": "从 trl 导入 DPOConfig， DPOTrainer",
+          "originalExcerpt": "from trl import DPOConfig , DPOTrainer"
+        },
+        {
+          "id": "s-6-9-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.4",
+            "pages": "160"
+          },
+          "text": "配置=DPOConfig(损失 类型= \" exo pair \"，β=0.1， )",
+          "originalExcerpt": "config = DPOConfig ( loss_type = \" exo_pair \" , beta =0.1 , )"
+        },
+        {
+          "id": "s-6-9-4-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.4",
+            "pages": "160"
+          },
+          "text": "教练员=DPOTrainer(型号=型号， ref model=ref model， args=配置)， 编剧: = = ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig ig = = = ig = = = = = = ig = = conf = = = = = = = = = = = = = = = = = = = = = = = = = =",
+          "originalExcerpt": "trainer = DPOTrainer ( model = model , ref_model = ref_model , args = config ,"
+        },
+        {
+          "id": "s-6-9-4-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.4",
+            "pages": "161"
+          },
+          "text": "train dataset = 数据集， )",
+          "originalExcerpt": "train_dataset = dataset , )"
+        }
+      ]
+    },
+    {
+      "id": "s-6-9-5",
+      "number": "6.9.5",
+      "level": 2,
+      "enTitle": "NCA – Noise Contrastive Alignment",
+      "zhTitle": "NCAA - 噪声对齐",
+      "pages": "161",
+      "blocks": [
+        {
+          "id": "s-6-9-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.5",
+            "pages": "161"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §6.9.5「NCAA - 噪声对齐」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-6-9-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.5",
+            "pages": "161"
+          },
+          "text": "可能崩溃在DPO中 已知的失败模式是 概率崩溃:该模型学习降低输掉响应的概率，但也降低胜出响应的概率(因为输掉只在乎差数)。 NCAA [43] 增加了一个绝对概率术语来防止这种情况。 NCA将校正重新设定为噪声相控估计。损失有三个术语:",
+          "originalExcerpt": "Likelihood Collapse in DPO A known failure mode of DPO is likelihood collapse: the model learns to decrease the probability of the losing response but also decreases the probability of the winning response (since the loss only cares about the difference). NCA [43] adds an absolute likelihood term to prevent this. NCA reframes alignment as noise-contrastive e..."
+        },
+        {
+          "id": "s-6-9-5-b2",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.5",
+            "pages": "161"
+          },
+          "expression": "LNCA = − log σ(rw ) − 21 log σ(−rw ) − 12 log σ(−rl ), where ry = β log(πθ (y|q)/πref (y|q)) is the implicit reward. The first term encourages high reward for yw ; the second and third terms penalise high reward for both yw and yl (preventing collapse). NCA in TRL",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-6-9-5-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.5",
+            "pages": "161"
+          },
+          "text": "从 trl 导入 DPOConfig， DPOTrainer",
+          "originalExcerpt": "from trl import DPOConfig , DPOTrainer"
+        },
+        {
+          "id": "s-6-9-5-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.5",
+            "pages": "161"
+          },
+          "text": "配置=DPOConfig(损失 类型= \" nca pair \"，β=0.01，#小β:绝对概率词占主导地位)",
+          "originalExcerpt": "config = DPOConfig ( loss_type = \" nca_pair \" , beta =0.01 , # small beta : absolute likelihood term dominates )"
+        },
+        {
+          "id": "s-6-9-5-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.5",
+            "pages": "161"
+          },
+          "text": "教练=DPOTrainer(型号=型号， ref model=ref model， args=配置， train dataset=dataset，)， ) set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set ) set ) ) = ) ) set ) set ) ) ) set ) ) =",
+          "originalExcerpt": "trainer = DPOTrainer ( model = model , ref_model = ref_model , args = config , train_dataset = dataset , )"
+        },
+        {
+          "id": "s-6-9-5-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.5",
+            "pages": "161"
+          },
+          "text": "• 在DPO训练期间，观察中标反应概率下降。",
+          "originalExcerpt": "• When you observe the winning response probability decreasing during DPO training."
+        },
+        {
+          "id": "s-6-9-5-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.5",
+            "pages": "161"
+          },
+          "text": "· 对于绝对反应质量有重要意义的任务，而不仅仅是相对的排名。",
+          "originalExcerpt": "• For tasks where absolute response quality matters, not just relative ranking."
+        },
+        {
+          "id": "s-6-9-5-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.5",
+            "pages": "161"
+          },
+          "text": "• 使用小β(如0.01)来给绝对可能性值以更大的权重。",
+          "originalExcerpt": "• Use small β (e.g., 0.01) to give the absolute likelihood term more weight."
+        }
+      ]
+    },
+    {
+      "id": "s-6-9-6",
+      "number": "6.9.6",
+      "level": 2,
+      "enTitle": "SLiC-HF – Sequence Likelihood Calibration",
+      "zhTitle": "SLIC-HF – 序列相似性校准",
+      "pages": "161-162",
+      "blocks": [
+        {
+          "id": "s-6-9-6-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.6",
+            "pages": "161-162"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §6.9.6「SLIC-HF – 序列相似性校准」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-6-9-6-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.6",
+            "pages": "161"
+          },
+          "text": "Hinge Loss 作为一种简单易用的替代品 DPO 中的log-sigmoid 损失是平滑的，但当差值大时可以缓慢聚合。 SLIC-HF [432] 使用一个链链式损失，当差值超过一个阈值时，则该链式损失为零，否则为线性损失。更简单、更快、更具有竞争力。 SLIC-HF损失是:",
+          "originalExcerpt": "Hinge Loss as a Simpler Alternative The log-sigmoid loss in DPO is smooth but can be slow to converge when the margin is large. SLiC-HF [432] uses a hinge loss, which is zero when the margin exceeds a threshold and linear otherwise. This is simpler, faster, and surprisingly competitive. The SLiC-HF loss is:"
+        },
+        {
+          "id": "s-6-9-6-b2",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.6",
+            "pages": "161"
+          },
+          "expression": "πθ (yw |q) πθ (yl |q) \u0012 \u0013 LSLiC = max 0, δ − β log + β log , πref (yw |q) πref (yl |q) where δ is the margin threshold. When the model already assigns a margin of δ between winning and losing responses, the loss is zero. SLiC-HF in TRL",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-6-9-6-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.6",
+            "pages": "161"
+          },
+          "text": "从 trl 导入 DPOConfig， DPOTrainer",
+          "originalExcerpt": "from trl import DPOConfig , DPOTrainer"
+        },
+        {
+          "id": "s-6-9-6-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.6",
+            "pages": "161"
+          },
+          "text": "配置=DPOConfig (% 1)",
+          "originalExcerpt": "config = DPOConfig ("
+        },
+        {
+          "id": "s-6-9-6-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.6",
+            "pages": "162"
+          },
+          "text": "损失 类型= \" 链条 \"，β=0.1，)",
+          "originalExcerpt": "loss_type = \" hinge \" , beta =0.1 , )"
+        },
+        {
+          "id": "s-6-9-6-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.6",
+            "pages": "162"
+          },
+          "text": "教练=DPOTrainer(型号=型号， ref model=ref model， args=配置， train dataset=dataset，)， ) set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set ) set ) ) = ) ) set ) set ) ) ) set ) ) =",
+          "originalExcerpt": "trainer = DPOTrainer ( model = model , ref_model = ref_model , args = config , train_dataset = dataset , )"
+        }
+      ]
+    },
+    {
+      "id": "s-6-9-7",
+      "number": "6.9.7",
+      "level": 2,
+      "enTitle": "Iterative RPO – Reasoning Preference Optimisation",
+      "zhTitle": "惯性 RPO – 优化优先性的理由",
+      "pages": "162",
+      "blocks": [
+        {
+          "id": "s-6-9-7-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.7",
+            "pages": "162"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §6.9.7「惯性 RPO – 优化优先性的理由」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-6-9-7-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.7",
+            "pages": "162"
+          },
+          "text": "DPO忘记如何生成标准DPO训练模式，以区分胜负反应。 但对于推理任务，模型还需要产生正确的推理痕迹。一个可以有区别但不能生成的模型在推论时间是无用的。 RPO在中选响应上添加了一个NLL(负对数-类似)术语，以确保模型学会生成它。 RPO损失结合了DPO和SFT:",
+          "originalExcerpt": "DPO Forgets How to Generate Standard DPO trains the model to discriminate between winning and losing responses. But for reasoning tasks, the model also needs to generate correct reasoning traces. A model that can discriminate but not generate is useless at inference time. RPO adds an NLL (negative log-likelihood) term on the winning response to ensure the mo..."
+        },
+        {
+          "id": "s-6-9-7-b2",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.7",
+            "pages": "162"
+          },
+          "expression": "LRPO = λ1 LDPO (yw , yl ) + λ2 LNLL (yw ), where LNLL (yw ) = − log πθ (yw |q) is the standard language modelling loss on the winning response. Iterative RPO in TRL",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-6-9-7-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.7",
+            "pages": "162"
+          },
+          "text": "从 trl 导入 DPOConfig， DPOTrainer",
+          "originalExcerpt": "from trl import DPOConfig , DPOTrainer"
+        },
+        {
+          "id": "s-6-9-7-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.7",
+            "pages": "162"
+          },
+          "text": "配置 = DPOConfig(损失 类型 = \" sigmoid \"，#标准 DPO 损失 rpo alpha = 1.0，# NLL 正规化重量 (RPO) β = 0.1，)",
+          "originalExcerpt": "config = DPOConfig ( loss_type = \" sigmoid \" , # Standard DPO loss rpo_alpha =1.0 , # NLL regularisation weight ( RPO ) beta =0.1 , )"
+        },
+        {
+          "id": "s-6-9-7-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.7",
+            "pages": "162"
+          },
+          "text": "教练=DPOTrainer(型号=型号， ref model=ref model， args=配置， train dataset=dataset，)， ) set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set set ) set ) ) = ) ) set ) set ) ) ) set ) ) =",
+          "originalExcerpt": "trainer = DPOTrainer ( model = model , ref_model = ref_model , args = config , train_dataset = dataset , )"
+        },
+        {
+          "id": "s-6-9-7-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.7",
+            "pages": "162"
+          },
+          "text": "· 模型必须产生分步解决的理性任务(math， code，逻辑)。",
+          "originalExcerpt": "• Reasoning tasks (math, code, logic) where the model must generate step-by-step solutions."
+        },
+        {
+          "id": "s-6-9-7-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.7",
+            "pages": "162"
+          },
+          "text": "• 当DPO培训导致模型失去流畅或生成质量时。",
+          "originalExcerpt": "• When DPO training causes the model to lose fluency or generation quality."
+        },
+        {
+          "id": "s-6-9-7-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.7",
+            "pages": "162"
+          },
+          "text": "• 惯性管道:推出、贴上标签、用RPO进行训练、重复。",
+          "originalExcerpt": "• Iterative pipelines: generate rollouts, label them, train with RPO, repeat."
+        },
+        {
+          "id": "s-6-9-7-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.7",
+            "pages": "162"
+          },
+          "text": "• NLL一词是常态化词，防止政策崩溃。",
+          "originalExcerpt": "• The NLL term acts as a regulariser, preventing the policy from collapsing."
+        }
+      ]
+    },
+    {
+      "id": "s-6-9-8",
+      "number": "6.9.8",
+      "level": 2,
+      "enTitle": "SimPO – Simple Preference Optimisation",
+      "zhTitle": "SimPO – 简单优化偏好",
+      "pages": "162-163",
+      "blocks": [
+        {
+          "id": "s-6-9-8-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.8",
+            "pages": "162-163"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §6.9.8「SimPO – 简单优化偏好」 时，把训练数据、优化目标、更新信号、reference 或 baseline、计算代价和稳定性约束放在同一张因果图里。算法名称本身不是结论，真正需要核对的是它改变了哪一个信号，以及为此引入了什么偏差。"
+        },
+        {
+          "id": "s-6-9-8-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.8",
+            "pages": "162"
+          },
+          "text": "参考无偏爱学习DPO需要一个参考模型来计算隐含的奖励，这可以加倍内存使用，增加复杂性。 SimPO [252]通过将反应的平均对数概率作为隐含的奖励来消除参考模型，长度的正常化期可以防止模型偏爱短响应。 SimPO将隐含的奖励定义为:",
+          "originalExcerpt": "Reference-Free Preference Learning DPO requires a reference model to compute the implicit reward. This doubles memory usage and adds complexity. SimPO [252] eliminates the reference model by using the average log-probability of the response as an implicit reward, with a length normalisation term to prevent the model from preferring short responses. SimPO def..."
+        },
+        {
+          "id": "s-6-9-8-b2",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.8",
+            "pages": "163"
+          },
+          "expression": "β rSimPO (y|q) = log πθ (y|q), |y| and the loss as:",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-6-9-8-b3",
+          "type": "formula",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.8",
+            "pages": "163"
+          },
+          "expression": "β β \u0014 \u0012 \u0013\u0015 LSimPO = −E log σ log πθ (yw |q) − log πθ (yl |q) − γ , |yw | |yl |",
+          "reading": "该表达式由原书公式文本转写；符号含义以紧邻正文为准。"
+        },
+        {
+          "id": "s-6-9-8-b4",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.8",
+            "pages": "163"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "where γ > 0 is a target reward margin that ensures the winning response has strictly higher reward than the losing response by at least γ. SimPO vs DPO vs ORPO"
+        },
+        {
+          "id": "s-6-9-8-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.8",
+            "pages": "163"
+          },
+          "text": "• DPO:采用参考模式;基于比例的隐含奖励。",
+          "originalExcerpt": "• DPO: uses reference model; ratio-based implicit reward."
+        },
+        {
+          "id": "s-6-9-8-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.8",
+            "pages": "163"
+          },
+          "text": "• ORPO:无参考;在SFT损失中增加概率-比率词。",
+          "originalExcerpt": "• ORPO: reference-free; adds odds-ratio term to SFT loss."
+        },
+        {
+          "id": "s-6-9-8-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.8",
+            "pages": "163"
+          },
+          "text": "● SimPO:无参考;长度规范的对数-prob奖励+比值。",
+          "originalExcerpt": "• SimPO: reference-free; length-normalised log-prob reward + margin."
+        },
+        {
+          "id": "s-6-9-8-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.8",
+            "pages": "163"
+          },
+          "text": "• SimPO比DPO(没有参考模型)简单，比ORPO更有原则。",
+          "originalExcerpt": "• SimPO is simpler than DPO (no reference model) and more principled than ORPO."
+        },
+        {
+          "id": "s-6-9-8-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.8",
+            "pages": "163"
+          },
+          "text": "^ SimPO中的长度正常化是关键:没有它，模型更喜欢长的响应。",
+          "originalExcerpt": "• The length normalisation in SimPO is critical: without it, the model prefers long responses."
+        },
+        {
+          "id": "s-6-9-8-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.8",
+            "pages": "163"
+          },
+          "text": "从 trl 导入 DPOConfig， DPOTrainer",
+          "originalExcerpt": "from trl import DPOConfig , DPOTrainer"
+        },
+        {
+          "id": "s-6-9-8-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.8",
+            "pages": "163"
+          },
+          "text": "配置 = DPOConfig(损失 类型 = \" simpo \"， simpo gamma = 0.5，#目标奖励比值 γβ = 2.5，#长度正常化系数 # 不需要参考 模型!)",
+          "originalExcerpt": "config = DPOConfig ( loss_type = \" simpo \" , simpo_gamma =0.5 , # target reward margin gamma beta =2.5 , # length normalisation coefficient # No ref_model needed ! )"
+        },
+        {
+          "id": "s-6-9-8-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 6,
+            "section": "6.9.8",
+            "pages": "163"
+          },
+          "text": "教练员=DPOTrainer(型号=型号， ref model=无，#SimPO是参考 - 免费的args=配置， train dataset=dataset，)， ) ) ) ) ) ) ) ) = trainer ) = ) ) trainer ) = ) trainer trainer trainer trainer trainer trainer trainer trainer trainer trainer trainer trainer = = trainer = trainer = trainer = = = ) = = =",
+          "originalExcerpt": "trainer = DPOTrainer ( model = model , ref_model = None , # SimPO is reference - free args = config , train_dataset = dataset , )"
+        }
+      ]
+    }
+  ],
+  "glossary": [
+    {
+      "term": "reward model",
+      "zh": "Reward Model",
+      "meaning": "把人类或规则偏好映射为可优化标量信号的模型。"
+    },
+    {
+      "term": "token",
+      "zh": "词元",
+      "meaning": "模型处理和生成文本时使用的离散单位。"
+    }
+  ],
+  "summary": [
+    "PPO在内存中需要4个模型(政策，参考， Reward Model，价值头)，复杂的RL基础设施，并且臭名昭著地不稳定。 DPO [302] 问:我们能否跳过RL，直接从偏好中学习?关键见解:RLHF目标(奖励最大化+KL惩罚)下的最佳政策有一个封闭式解决方案。 我们可以得出一个隐含优化同一目标的监管损失。 关键观点是:在高频目标下的最佳政策(奖励最大化+KL惩罚 )。",
+    "• 大型β:需要大幅度 政策动作激烈 有可能忘记",
+    "• 小β:小差幅足够了 政策接近参考 保守"
+  ],
+  "metrics": {
+    "chineseCharacters": 8063,
+    "sourceCoverage": 88,
+    "sectionCount": 27,
+    "blockCount": 218
+  }
+}

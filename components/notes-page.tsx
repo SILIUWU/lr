@@ -31,7 +31,7 @@ export function NotesPage() {
         "",
         note.body,
         "",
-        `[返回课程](${window.location.origin}/learn/${note.lessonSlug})`,
+        `[返回来源](${window.location.origin}${note.sourceHref ?? `/learn/${note.lessonSlug}`})`,
         "",
       ]),
     ].join("\n");
@@ -77,7 +77,7 @@ export function NotesPage() {
           <span>✎</span>
           <h2>这里还没有批注</h2>
           <p>进入一个学习单元，划选一段文字，再点击页面右下角的批注按钮。</p>
-          <Link className="primary-button" href="/learn/agentic-stack">打开 Agentic Stack →</Link>
+          <Link className="primary-button" href="/read/ch-15">打开 Ch.15 正文 →</Link>
         </section>
       ) : (
         <section className="note-list">
@@ -86,7 +86,10 @@ export function NotesPage() {
               <header>
                 <div>
                   <span className={`note-intent intent-${note.intent}`}>{note.intent}</span>
-                  <Link href={`/learn/${note.lessonSlug}`}>{note.lessonTitle} ↗</Link>
+                  <Link href={note.sourceHref ?? `/learn/${note.lessonSlug}`}>
+                    {note.lessonTitle}
+                    {note.sectionId ? ` · ${note.sectionId.replace("s-", "§").replaceAll("-", ".")}` : ""} ↗
+                  </Link>
                 </div>
                 <button type="button" onClick={() => deleteNote(note.id)} aria-label="删除批注">×</button>
               </header>

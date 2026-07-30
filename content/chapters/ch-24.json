@@ -1,0 +1,3945 @@
+{
+  "chapter": 24,
+  "title": "Agent-to-Agent Communication (A2A)",
+  "zhTitle": "A2A： Agent 间通信",
+  "pages": "446-467",
+  "minutes": 52,
+  "overview": "随着LLM从孤立的助手演变成专业Agent的合作网络， Agent如何相互交谈的问题变得与内部如何解释一样重要。本节涵盖使多Agent系统能够协调、授权和集体解决任何单一Agent都无法单独处理的问题的协议、模式和工程做法。",
+  "status": "in_progress",
+  "sections": [
+    {
+      "id": "s-24-introduction",
+      "number": null,
+      "level": 1,
+      "enTitle": "Chapter introduction",
+      "zhTitle": "章节导入",
+      "pages": "446",
+      "blocks": [
+        {
+          "id": "s-24-introduction-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": null,
+            "pages": "446"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 本章导入「章节导入」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-24-introduction-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": null,
+            "pages": "446"
+          },
+          "text": "随着LLM从孤立的助手演变成专业Agent的合作网络， Agent如何相互交谈的问题变得与内部如何解释一样重要。本节涵盖使多Agent系统能够协调、授权和集体解决任何单一Agent都无法单独处理的问题的协议、模式和工程做法。",
+          "originalExcerpt": "As large language models evolve from isolated assistants into collaborative networks of specialized agents, the question of how agents talk to each other becomes as important as how they reason internally. This section covers the protocols, patterns, and engineering practices that enable multiagent systems to coordinate, delegate, and collectively solve prob..."
+        }
+      ]
+    },
+    {
+      "id": "s-24-1",
+      "number": "24.1",
+      "level": 1,
+      "enTitle": "Motivation: Why Agents Must Communicate",
+      "zhTitle": "Motivation: Why Agents Must Communicate",
+      "pages": "446-447",
+      "blocks": [
+        {
+          "id": "s-24-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.1",
+            "pages": "446-447"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.1「Motivation: Why Agents Must Communicate」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-24-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.1",
+            "pages": "446"
+          },
+          "text": "专门化的必然性 一个单一的通论Agent面临一个根本的紧张:知识的广度与能力的深度。现实世界的任务——法律文件审查、多步骤科学研究、企业软件开发——两者都要求。 Agent与Agent通信通过允许专家网络合作解决了这一紧张关系，这些专家网络在下放弱点的同时贡献其优势。",
+          "originalExcerpt": "The Specialization Imperative A single generalist agent faces a fundamental tension: breadth of knowledge versus depth of capability. Real-world tasks—legal document review, multi-step scientific research, enterprise software development—demand both. Agent-to-agent communication resolves this tension by allowing a network of specialists to collaborate, each ..."
+        },
+        {
+          "id": "s-24-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.1",
+            "pages": "446"
+          },
+          "text": "认知负载和上下文限制。 每个 LLM 运行在一个有限的context window中。 复杂的工作流程 — 扩展了数百个文档、 tool calling和推理步骤 — 快速超过单个Agent在内存中所能持有的。通过将任务分解到各Agent之间，每个Agent在可管理的范围内运作，而管弦乐Agent只维持高层状态。",
+          "originalExcerpt": "Cognitive Load and Context Limits. Every LLM operates within a finite context window. Complex workflows—spanning hundreds of documents, tool calls, and reasoning steps—quickly exceed what a single agent can hold in memory. By decomposing tasks across agents, each agent operates within a manageable context, and the orchestrating agent maintains only high-leve..."
+        },
+        {
+          "id": "s-24-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.1",
+            "pages": "446"
+          },
+          "text": "专业与专业知识。不同的Agent可能为特定领域进行微调、诱导或配备工具:可访问编译器和测试跑车的代码Agent、可访问判例法数据库的法律顾问、有统计库的DataAgent。向合适的专家提供分任务既能提高质量，又能提高效率。",
+          "originalExcerpt": "Specialization and Expertise. Different agents may be fine-tuned, prompted, or tool-equipped for specific domains: a CodeAgent with access to compilers and test runners, a LegalAgent with access to case-law databases, a DataAgent with statistical libraries. Routing subtasks to the right specialist improves both quality and efficiency."
+        },
+        {
+          "id": "s-24-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.1",
+            "pages": "446"
+          },
+          "text": "并行性和通量 独立子任务可以同时发送到多个Agent。一个研究指挥家可能会同时在五个专业人员身上进行文献搜索，然后综合其成果，从而戏剧性地缩短了时钟时间。",
+          "originalExcerpt": "Parallelism and Throughput. Independent subtasks can be dispatched to multiple agents simultaneously. A research orchestrator might fan out literature searches across five specialized agents in parallel, then synthesize their results—dramatically reducing wall-clock time."
+        },
+        {
+          "id": "s-24-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.1",
+            "pages": "446"
+          },
+          "text": "错位隔离和复原能力。 当一个Agent失败时，一个设计良好的多Agent系统可以使用不同的Agent进行重试，回到更简单的方法，或者升级为人，而不崩溃整个工作流程。",
+          "originalExcerpt": "Fault Isolation and Resilience. When one agent fails, a well-designed multi-agent system can retry with a different agent, fall back to a simpler approach, or escalate to a human—without collapsing the entire workflow."
+        },
+        {
+          "id": "s-24-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.1",
+            "pages": "446"
+          },
+          "text": "授权和汉德沃夫 长期任务可能需要随着背景变化在Agent之间交接。最初的一位规划师将目标分解，将子任务交给执行者Agent，最后一位审查者Agent验证产出——每个Agent都完全接收到它所需要的背景。",
+          "originalExcerpt": "Delegation and Handoff. Long-running tasks may need to be handed off between agents as context shifts. An initial PlannerAgent decomposes a goal, hands subtasks to ExecutorAgents, and a final ReviewerAgent validates outputs—each agent receiving exactly the context it needs."
+        },
+        {
+          "id": "s-24-1-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.1",
+            "pages": "447"
+          },
+          "text": "A2A通信的核心要求",
+          "originalExcerpt": "Core Requirements for A2A Communication"
+        },
+        {
+          "id": "s-24-1-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.1",
+            "pages": "447"
+          },
+          "text": "1. 发现:Agent必须能够找到其他Agent并了解其能力。",
+          "originalExcerpt": "1. Discoverability: Agents must be able to find other agents and understand their capabilities."
+        },
+        {
+          "id": "s-24-1-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.1",
+            "pages": "447"
+          },
+          "text": "2. 互操作性:由不同团队或供应商组成的Agent必须讲共同协议。",
+          "originalExcerpt": "2. Interoperability: Agents built by different teams or vendors must speak a common protocol."
+        },
+        {
+          "id": "s-24-1-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.1",
+            "pages": "447"
+          },
+          "text": "3. 同步:长期任务不得阻断呼叫者;结果通过回调或",
+          "originalExcerpt": "3. Asynchrony: Long-running tasks must not block the caller; results arrive via callbacks or"
+        },
+        {
+          "id": "s-24-1-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.1",
+            "pages": "447"
+          },
+          "text": "4. 安全:Agent必须相互认证，并强制执行授权界限。",
+          "originalExcerpt": "4. Security: Agents must authenticate each other and enforce authorization boundaries."
+        },
+        {
+          "id": "s-24-1-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.1",
+            "pages": "447"
+          },
+          "text": "5. 观察性:每条信息交换都必须可以追踪，以便调试和审计。",
+          "originalExcerpt": "5. Observability: Every message exchange must be traceable for debugging and auditing."
+        }
+      ]
+    },
+    {
+      "id": "s-24-2",
+      "number": "24.2",
+      "level": 1,
+      "enTitle": "The Google A2A Protocol",
+      "zhTitle": "The Google A2A Protocol",
+      "pages": "447",
+      "blocks": [
+        {
+          "id": "s-24-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2",
+            "pages": "447"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.2「The Google A2A Protocol」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-24-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2",
+            "pages": "447"
+          },
+          "text": "2025年4月， Google(由50多个技术伙伴提供捐款)发布了Agentto-Agent(A2A)协议[113]，这是AIAgent之间互操作通信的开放规格。协议随后捐赠给Linux基金会，截至2026年，协议已经发展到150多个支持组织。 A2A的设计围绕一系列核心原则，将其与早期的特设方法区分开来。",
+          "originalExcerpt": "In April 2025, Google (with contributions from over 50 technology partners) released the Agentto-Agent (A2A) Protocol [113], an open specification for interoperable communication between AI agents. The protocol was subsequently donated to the Linux Foundation and has grown to over 150 supporting organizations as of 2026. A2A is designed around a set of core ..."
+        }
+      ]
+    },
+    {
+      "id": "s-24-2-1",
+      "number": "24.2.1",
+      "level": 2,
+      "enTitle": "Design Philosophy",
+      "zhTitle": "Design Philosophy",
+      "pages": "447",
+      "blocks": [
+        {
+          "id": "s-24-2-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2.1",
+            "pages": "447"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.2.1「Design Philosophy」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-24-2-1-b1",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2.1",
+            "pages": "447"
+          },
+          "language": "text",
+          "code": "The A2A specification articulates five guiding principles (adapted from the official spec [113], §1.2): A2A Design Principles Opaque execution Calling agents never inspect the internals of a remote agent—they interact solely through the declared interface. Whether the target is GPT-4, Gemini, or a rule-based system is irrelevant to the protocol, enabling genuinely heterogeneous agent ecosystems. Enterprise readiness Authentication (OAuth 2.0, API keys, JWT), audit logging, and regulatory compliance are not afterthoughts—they are integrated at the protocol level from the outset. Modality agnosticism A single message may combine text, binary files, and structured JSON payloads, accommodating agents that operate on images, audio, code, or documents without protocol extensions. Simplicity via existing standards Rather than inventing new transports, A2A reuses HTTP/HTTPS with JSON-RPC 2.0 messages, Server-Sent Events (SSE) for streaming, and gRPC as an alternative binding—technologies that every infrastructure team already operates. Async-first task model Long-running operations are the norm, not the exception. Push notifications and polling are both first-class mechanisms, so callers never need to hold open a connection for hours.",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        }
+      ]
+    },
+    {
+      "id": "s-24-2-2",
+      "number": "24.2.2",
+      "level": 2,
+      "enTitle": "Agent Cards",
+      "zhTitle": "Agent Cards",
+      "pages": "447-448",
+      "blocks": [
+        {
+          "id": "s-24-2-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2.2",
+            "pages": "447-448"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.2.2「Agent Cards」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-24-2-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2.2",
+            "pages": "447"
+          },
+          "text": "A2A可发现性的基础是Agent卡——一个机器可读JSON的列表，主机位于一个著名的端点(/。 well-nowledge/Agent.json)。它宣传Agent能够做什么，如何认证，以及在哪里发送任务——类似OpenAPI的规格，但针对的是自主Agent而不是REST的终点。 Agent Card Story",
+          "originalExcerpt": "The foundation of A2A discoverability is the Agent Card—a machine-readable JSON manifest hosted at a well-known endpoint (/.well-known/agent.json). It advertises what the agent can do, how to authenticate, and where to send tasks—analogous to an OpenAPI spec but for autonomous agents rather than REST endpoints. Agent Card Structure"
+        },
+        {
+          "id": "s-24-2-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2.2",
+            "pages": "447"
+          },
+          "text": "#Agent卡服务于https://Agent。 example。 com /。 well - 熟知/Agent.json Agent card = { \"名称 \" : \" 数据分析Agent \"， \" 描述 \" : \" 分析结构化数据集，生成统计摘要 \"，",
+          "originalExcerpt": "# Agent Card served at https :// agent . example . com /. well - known / agent . json agent_card = { \" name \" : \" DataAnalysisAgent \" , \" description \" : \" Analyzes structured datasets , produces statistical summaries , \""
+        },
+        {
+          "id": "s-24-2-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2.2",
+            "pages": "448"
+          },
+          "text": "\" 生成可视化，并回答数据问题。\"， \" url \" : \" https://Agent。 example。 com / A2A \"， \" 版本 \" : \" 1.2.0 \"， \" 能力 \" :{ \" 流线 \" :真， \" 推通知 \" :正确， \" eT 上 运行 si ti 运行于His to ry \" : True } \" 认证 \" : { \" 计划 \" :[ \" 持枪者 \"， \" ApiKey \" ]]， \" 技能 \" :[{ \" id \" : \" 统计-分析 \"， \" 名称 \" : \" 统计分析 \"， \" 描述 \" :\" 计算描述性统计数据，进行假设测试， \" 适合表格数据上的回归模型 \"， \" 标记 \" :[ \" 统计 \"， \" 数据 \"， \" 分析 \"， \" 回归 \" ]， \" 实例 \" :[ \" A栏和B栏之间有何关联？\"， \" 运行一个 t-测试比较这两个组。 \"， \" 适应从广告开支中预测销售量的线性回归。 \" ]， \" 输入模式 \" :[ \" 文本 \"， \" 数据 \" ]， \" 输出模式 \" :[ \" 文本 \" 、 \" 数据 \" 、 \" 文件 \" ]}、{ \" id \" : \" 可视化 \" 、 \" 名称 \" : \" 数据可视化 \" 、 \" 描述 \" : \" 从数据生成图表、图和仪表板 \" 、 \" 标记 \" :[ \" 图表 \" 、 \" 地图 \" 、 \" 视觉 \" 、 \" 仪表板 \" ]、 \" 实例 \" :[ \" 创建月收入条形图。\" 、 \" 客户年龄分布图。\" ]、 \" 输入模式 \" :[ \" 文本 \" 、 \" 数据 \" ]、 \" 输出模式 \" :[ \" 文件 \" 、 \" 文本 \" ] ]、 \" 默认输入模式 \" :[ \" 文本 \" ]、 \" de fa ultutputModes \" :[ \" 文本 \" ]]]",
+          "originalExcerpt": "\" generates visualizations , and answers data questions . \" , \" url \" : \" https :// agent . example . com / a2a \" , \" version \" : \" 1.2.0 \" , \" capabilities \" : { \" streaming \" : True , \" pushNotifications \" : True , \" st at eT ran si ti on His to ry \" : True }, \" authentication \" : { \" schemes \" : [ \" Bearer \" , \" ApiKey \" ] }, \" skills \" : [ { \" id \" : \" s..."
+        },
+        {
+          "id": "s-24-2-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2.2",
+            "pages": "448"
+          },
+          "text": "Agent卡可以基于能力的路由:一个管弦乐团的Agent可以从注册处取卡，将一个子任务与最合适的Agent进行同步匹配，并相应发送——所有这一切都没有硬编码的路由逻辑。",
+          "originalExcerpt": "Agent Cards enable capability-based routing: an orchestrator agent can fetch cards from a registry, semantically match a subtask to the most appropriate agent, and dispatch accordingly—all without hardcoded routing logic."
+        }
+      ]
+    },
+    {
+      "id": "s-24-2-3",
+      "number": "24.2.3",
+      "level": 2,
+      "enTitle": "Task Lifecycle",
+      "zhTitle": "Task Lifecycle",
+      "pages": "448-449",
+      "blocks": [
+        {
+          "id": "s-24-2-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2.3",
+            "pages": "448-449"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.2.3「Task Lifecycle」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-24-2-3-b1",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2.3",
+            "pages": "448"
+          },
+          "language": "text",
+          "code": "A2A models all work as Tasks. A task progresses through a well-defined state machine: submitted The client has sent the task; the server has acknowledged receipt. working The agent is actively processing. The client may poll or await SSE events. input-required The agent needs additional information from the user or calling agent before it can proceed (e.g., a clarifying question, a missing credential). completed The task finished successfully; results are available in the response. failed",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-24-2-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2.3",
+            "pages": "449"
+          },
+          "text": "发生了无法恢复的错误; 错误消息解释了原因。 拒绝 Agent拒绝了任务( 例如， 超出其能力或未经授权)。添加到 A2A v1.0。已取消任务被中止， 无论是由客户端还是服务器。",
+          "originalExcerpt": "An unrecoverable error occurred; an error message explains the cause. rejected The agent declined the task (e.g., outside its capabilities or unauthorized). Added in A2A v1.0. canceled The task was aborted, either by the client or by the server."
+        }
+      ]
+    },
+    {
+      "id": "s-24-2-4",
+      "number": "24.2.4",
+      "level": 2,
+      "enTitle": "Streaming via Server-Sent Events",
+      "zhTitle": "Streaming via Server-Sent Events",
+      "pages": "449",
+      "blocks": [
+        {
+          "id": "s-24-2-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2.4",
+            "pages": "449"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.2.4「Streaming via Server-Sent Events」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-24-2-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2.4",
+            "pages": "449"
+          },
+          "text": "对于产生增量输出的任务(例如，正在撰写的长报告，正在生成代码文件)， A2A使用Server-Sent Events(SSE)。客户端打开一个持久的 HTTP 连接，并接收 JSON 事件的流: SSE 事件流示例",
+          "originalExcerpt": "For tasks that produce incremental output (e.g., a long report being written, a code file being generated), A2A uses Server-Sent Events (SSE). The client opens a persistent HTTP connection and receives a stream of JSON events: SSE Event Stream Example"
+        },
+        {
+          "id": "s-24-2-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2.4",
+            "pages": "449"
+          },
+          "text": "# 每个SSE事件都包含一个 Tas kStat us Up 日期 even t 或者 T sk A rt 如果一个 ct U pd at ev e nt # 例流用于 \" 写一份研究报告 \" 任务:",
+          "originalExcerpt": "# Each SSE event carries a Tas kStat usUp date Even t or T a sk A rt if a ct U pd at e Ev e nt # Example stream for a \" write a research report \" task :"
+        },
+        {
+          "id": "s-24-2-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2.4",
+            "pages": "449"
+          },
+          "text": "# 事件1: 状态更新数据 { \" id \" : \" 任务-abc123 \"， \" 状态 \" :{ \" 状态 \" : \" 工作 \" }， \" 最终 \" : 假 }",
+          "originalExcerpt": "# Event 1: status update data : { \" id \" : \" task - abc123 \" , \" status \" : { \" state \" : \" working \" } , \" final \" : false }"
+        },
+        {
+          "id": "s-24-2-4-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2.4",
+            "pages": "449"
+          },
+          "text": "# 事件2: 部分文物(流转文本)数据:{ \" id \" : \" 任务-abc123 \"， \" 文物 \" :{ \" 部分 \" :[{ \" 类型 \"， \" 文本 \" : \" □ 导言\\ n\\ n\\ n最近在。\"， \" 索引 \" :0， \" 附录 \" :假， \" last Chunk \" : 假 }， \" 最终 \" : 假 }",
+          "originalExcerpt": "# Event 2: partial artifact ( streaming text ) data : { \" id \" : \" task - abc123 \" , \" artifact \" : { \" parts \" : [{ \" type \" : \" text \" , \" text \" : \" ## Introduction \\ n \\ nRecent advances in ... \" }] , \" index \" : 0 , \" append \" : false , \" lastChunk \" : false }, \" final \" : false }"
+        },
+        {
+          "id": "s-24-2-4-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2.4",
+            "pages": "449"
+          },
+          "text": "# 活动3: 更多文本附加数据:{ \" id \" : \" 任务-abc123 \"， \" 文物 \" :{ \" 部分 \" :[{ \" 类型 \" : \" 文本 \"， \" 文本 \" : \" 强化学习已经显示。\"， \" 索引 \" :0， \" 附录 \" :，# 对现有文物的附加 \" lastChunk \" : fult }， \" final \" : fult }",
+          "originalExcerpt": "# Event 3: more text appended data : { \" id \" : \" task - abc123 \" , \" artifact \" : { \" parts \" : [{ \" type \" : \" text \" , \" text \" : \" reinforcement learning have shown ... \" }] , \" index \" : 0 , \" append \" : true , # append to existing artifact \" lastChunk \" : false }, \" final \" : false }"
+        },
+        {
+          "id": "s-24-2-4-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2.4",
+            "pages": "449"
+          },
+          "text": "# 最后事件:任务完整数据:{ \" id \" : \" 任务-abc123 \"， \" 状态 \" :{ \" 状态 \" : \" 完成 \" }， \" 最终 \" : 真实 }",
+          "originalExcerpt": "# Final event : task complete data : { \" id \" : \" task - abc123 \" , \" status \" : { \" state \" : \" completed \" } , \" final \" : true }"
+        }
+      ]
+    },
+    {
+      "id": "s-24-2-5",
+      "number": "24.2.5",
+      "level": 2,
+      "enTitle": "Push Notifications for Long-Running Tasks",
+      "zhTitle": "Push Notifications for Long-Running Tasks",
+      "pages": "449-450",
+      "blocks": [
+        {
+          "id": "s-24-2-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2.5",
+            "pages": "449-450"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.2.5「Push Notifications for Long-Running Tasks」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-24-2-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2.5",
+            "pages": "449"
+          },
+          "text": "当任务可能需要几分钟或几个小时，维持一个打开的SSE连接是不切实际的。 A2A支持推移通知:客户端注册一个webhook URL，服务器 POSTs状态随着任务的进展而更新。",
+          "originalExcerpt": "When a task may take minutes or hours, maintaining an open SSE connection is impractical. A2A supports push notifications: the client registers a webhook URL, and the server POSTs status updates as the task progresses."
+        },
+        {
+          "id": "s-24-2-5-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2.5",
+            "pages": "450"
+          },
+          "text": "# 客户在提交任务时注册了一个按键通知端点 request={ \" id \" : \" 任务 - xyz789 \"， \" message \" :{ \" 作用 \" : \" 用户 \"， \" 部件 \" :[{ \" 类型 \" : \" 文本 \"， \" 文本 \" :\" 分析Q3销售数据并提出报告。\" }}， \" 推动通知 \" :{ \" url \" : \" https:// my-conditor。 example.com / webhooks / A2A \"， \" 标志 \" : \" 秘密-hmac-sident - for - 校验 \"， \" 认证 \" :{ \" 计划 \" :[ \" 持枪手 \" ]， \" 证书 \" : \" eyJhbGciOiJIUzI1NiJ9..。\" }}}# 服务器将 POST Task Stat us Up dateE 向webhook URL 发送对象，作为任务通过状态的过渡。",
+          "originalExcerpt": "# Client registers a push notification endpoint when submitting the task task_request = { \" id \" : \" task - xyz789 \" , \" message \" : { \" role \" : \" user \" , \" parts \" : [{ \" type \" : \" text \" , \" text \" : \" Analyze Q3 sales data and produce a report . \" }] }, \" pushNotification \" : { \" url \" : \" https :// my - orchestrator . example . com / webhooks / a2a \" ..."
+        }
+      ]
+    },
+    {
+      "id": "s-24-2-6",
+      "number": "24.2.6",
+      "level": 2,
+      "enTitle": "Message Format",
+      "zhTitle": "Message Format",
+      "pages": "450",
+      "blocks": [
+        {
+          "id": "s-24-2-6-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2.6",
+            "pages": "450"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.2.6「Message Format」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-24-2-6-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2.6",
+            "pages": "450"
+          },
+          "text": "A2A电文由角色(用户或Agent)加上打字部分(文本、文件或结构化数据)列表组成，完整的电文计划、多模式实例和上下文通路准则在第24.5节中述及。",
+          "originalExcerpt": "A2A messages consist of a role (user or agent) plus a list of typed parts (text, file, or structured data). The full message schema, multi-modal examples, and context-passing guidelines are covered in Section 24.5."
+        }
+      ]
+    },
+    {
+      "id": "s-24-2-7",
+      "number": "24.2.7",
+      "level": 2,
+      "enTitle": "Authentication and Authorization",
+      "zhTitle": "Authentication and Authorization",
+      "pages": "450",
+      "blocks": [
+        {
+          "id": "s-24-2-7-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2.7",
+            "pages": "450"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.2.7「Authentication and Authorization」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-24-2-7-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2.7",
+            "pages": "450"
+          },
+          "text": "A2A支持在Agent卡中宣布的多种认证计划，并按要求执行:",
+          "originalExcerpt": "A2A supports multiple authentication schemes, declared in the Agent Card and enforced per-request:"
+        },
+        {
+          "id": "s-24-2-7-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2.7",
+            "pages": "450"
+          },
+          "text": "• 持卡人证(JWT/OAuth 2.0):企业部署标准;持卡人携带",
+          "originalExcerpt": "• Bearer tokens (JWT/OAuth 2.0): Standard for enterprise deployments; tokens carry"
+        },
+        {
+          "id": "s-24-2-7-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2.7",
+            "pages": "450"
+          },
+          "text": "范围限制呼叫Agent所允许的要求。",
+          "originalExcerpt": "scopes that limit what the calling agent is permitted to request."
+        },
+        {
+          "id": "s-24-2-7-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2.7",
+            "pages": "450"
+          },
+          "text": "• API 密钥:内部或信任环境的简单方案。",
+          "originalExcerpt": "• API keys: Simpler scheme for internal or trusted environments."
+        },
+        {
+          "id": "s-24-2-7-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2.7",
+            "pages": "450"
+          },
+          "text": "• 互用TLS(mTLS):基于证书的高度安全部署认证。",
+          "originalExcerpt": "• Mutual TLS (mTLS): Certificate-based authentication for high-security deployments."
+        },
+        {
+          "id": "s-24-2-7-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2.7",
+            "pages": "450"
+          },
+          "text": "• OpenID 连接:联邦身份，使跨组织Agent能够进行沟通。",
+          "originalExcerpt": "• OpenID Connect: Federated identity, enabling cross-organization agent communication."
+        },
+        {
+          "id": "s-24-2-7-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.2.7",
+            "pages": "450"
+          },
+          "text": "接受任务的人员不仅必须核实谁打电话(认证)，而且必须核实他们获准要求什么(授权)。报告Agent可以接受任何经认证的Agent只读数据查询，但将写作业务限制在具有特定OAuth范围的Agent。如果不执行，就会导致多种Agent系统特权升级。",
+          "originalExcerpt": "Authorization Scope Enforcement An agent receiving a task must verify not only who is calling (authentication) but what they are allowed to request (authorization). A ReportingAgent might accept read-only data queries from any authenticated agent, but restrict write operations to agents holding a specific OAuth scope. Failing to enforce this creates privileg..."
+        }
+      ]
+    },
+    {
+      "id": "s-24-3",
+      "number": "24.3",
+      "level": 1,
+      "enTitle": "Communication Patterns",
+      "zhTitle": "Communication Patterns",
+      "pages": "450",
+      "blocks": [
+        {
+          "id": "s-24-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.3",
+            "pages": "450"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.3「Communication Patterns」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-24-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.3",
+            "pages": "450"
+          },
+          "text": "多Agent系统根据任务性质，耐久性要求，以及所涉Agent数量，采用多种通信模式。",
+          "originalExcerpt": "Multi-agent systems employ a variety of communication patterns depending on the nature of the task, latency requirements, and the number of agents involved."
+        }
+      ]
+    },
+    {
+      "id": "s-24-3-1",
+      "number": "24.3.1",
+      "level": 2,
+      "enTitle": "Request-Response",
+      "zhTitle": "Request-Response",
+      "pages": "450",
+      "blocks": [
+        {
+          "id": "s-24-3-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.3.1",
+            "pages": "450"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.3.1「Request-Response」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-24-3-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.3.1",
+            "pages": "450"
+          },
+          "text": "最简单的模式: A Agent 向 B Agent 发送任务， 等待完整回复。 适合在需要结果时执行短而定义清晰的子任务， 然后再进行。",
+          "originalExcerpt": "The simplest pattern: Agent A sends a task to Agent B and waits for a complete response. Suitable for short, well-defined subtasks where the result is needed before proceeding."
+        }
+      ]
+    },
+    {
+      "id": "s-24-3-2",
+      "number": "24.3.2",
+      "level": 2,
+      "enTitle": "Streaming",
+      "zhTitle": "Streaming",
+      "pages": "450-451",
+      "blocks": [
+        {
+          "id": "s-24-3-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.3.2",
+            "pages": "450-451"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.3.2「Streaming」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-24-3-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.3.2",
+            "pages": "450"
+          },
+          "text": "AAgent打开了SSE连接; BAgent流在生成时会部分流出结果。 理想是长形生成( 报告， 代码)， 实时协作， 或进步的 UI 更新。",
+          "originalExcerpt": "Agent A opens an SSE connection; Agent B streams partial results as they are produced. Ideal for long-form generation (reports, code), real-time collaboration, or progressive UI updates."
+        },
+        {
+          "id": "s-24-3-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.3.2",
+            "pages": "451"
+          },
+          "text": "流程模式 使用 Case An 调遣员请一名写作员起草一份10页的技术文件。管弦乐团没有等待2分钟，而是按其写法逐节进行，让审查Agent开始审查早期章节，而后部分仍在生成中，这一管道将总延迟率减少40-60%。",
+          "originalExcerpt": "Streaming Pattern Use Case An orchestrator asks a WritingAgent to draft a 10-page technical document. Rather than waiting 2 minutes for the complete document, the orchestrator streams each section as it is written, allowing a ReviewAgent to begin reviewing early sections while later sections are still being generated—a pipeline that reduces total latency by ..."
+        }
+      ]
+    },
+    {
+      "id": "s-24-3-3",
+      "number": "24.3.3",
+      "level": 2,
+      "enTitle": "Multi-Turn Interaction",
+      "zhTitle": "Multi-Turn Interaction",
+      "pages": "451",
+      "blocks": [
+        {
+          "id": "s-24-3-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.3.3",
+            "pages": "451"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.3.3「Multi-Turn Interaction」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-24-3-3-b1",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.3.3",
+            "pages": "451"
+          },
+          "language": "python",
+          "code": "Some tasks require iterative refinement. The agent enters input-required state, the orchestrator provides clarification, and the task resumes. This mirrors human collaborative workflows: draft → feedback → revision. # Multi - turn : orchestrator handles input - required state async def run_multiturn_task ( client , initial_message ) : task = await client . send_task ( message = initial_message )",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-24-3-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.3.3",
+            "pages": "451"
+          },
+          "text": "任务状态。 state not in ( \" completedate \"， \" failed \"， \" recredate \" ) : 如果任务状态。 state = 需要 \" 输入 - 需要 \" :# Agent需要澄清 需要=任务 状态。 state print (f \" Agent asking :{需要澄清 } >",
+          "originalExcerpt": "while task . status . state not in ( \" completed \" , \" failed \" , \" canceled \" ) : if task . status . state == \" input - required \" : # Agent needs clarification clarification_needed = task . status . message print ( f \" Agent asks : { clarification_needed } \" )"
+        },
+        {
+          "id": "s-24-3-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.3.3",
+            "pages": "451"
+          },
+          "text": "# Orchestrator 生成或转发一个澄清响应用户 reply = 等待得到 澄清(澄清 需要)",
+          "originalExcerpt": "# Orchestrator generates or forwards a clarifying response user_reply = await get_clarification ( clarification_needed )"
+        },
+        {
+          "id": "s-24-3-3-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.3.3",
+            "pages": "451"
+          },
+          "text": "# 发送回复以继续任务 = 等待客户端。发送 任务( 任务 id = 任务) id， 消息 # # # \" 角色 \" : \" 用户 \"， \" 部件 \" : [{ \" 类型 \" : \" 文本 \"， \" 文本 \" : 用户 reply }]] 其它 :# 仍在工作 -- -- 推迟后进行投票， 等待 Ayncio。 sleep (2) 任务=等待客户端。 get task( job id )",
+          "originalExcerpt": "# Send the reply to continue the task task = await client . send_task ( task_id = task . id , message ={ \" role \" : \" user \" , \" parts \" : [{ \" type \" : \" text \" , \" text \" : user_reply }]} ) else : # Still working --- poll after a delay await asyncio . sleep (2) task = await client . get_task ( task . id )"
+        }
+      ]
+    },
+    {
+      "id": "s-24-3-4",
+      "number": "24.3.4",
+      "level": 2,
+      "enTitle": "Broadcast",
+      "zhTitle": "Broadcast",
+      "pages": "451",
+      "blocks": [
+        {
+          "id": "s-24-3-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.3.4",
+            "pages": "451"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.3.4「Broadcast」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-24-3-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.3.4",
+            "pages": "451"
+          },
+          "text": "管弦乐团同时向多个Agent发送同样的信息，用于公告、分配共享上下文或触发平行的独立工作流程。",
+          "originalExcerpt": "An orchestrator sends the same message to multiple agents simultaneously—useful for announcements, distributing shared context, or triggering parallel independent workflows."
+        }
+      ]
+    },
+    {
+      "id": "s-24-3-5",
+      "number": "24.3.5",
+      "level": 2,
+      "enTitle": "Publish-Subscribe (Pub-Sub)",
+      "zhTitle": "Publish-Subscribe (Pub-Sub)",
+      "pages": "451",
+      "blocks": [
+        {
+          "id": "s-24-3-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.3.5",
+            "pages": "451"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.3.5「Publish-Subscribe (Pub-Sub)」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-24-3-5-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.3.5",
+            "pages": "451"
+          },
+          "text": "Agent订阅事件频道( 如新文档加载、 模式调整 )。 当事件起火时， 通知所有订阅的Agent。 这使得生产者与消费者脱钩， 并允许被动的、 事件驱动的架构。",
+          "originalExcerpt": "Agents subscribe to event channels (e.g., new-document-uploaded, model-retrained). When an event fires, all subscribed agents are notified. This decouples producers from consumers and enables reactive, event-driven architectures."
+        }
+      ]
+    },
+    {
+      "id": "s-24-3-6",
+      "number": "24.3.6",
+      "level": 2,
+      "enTitle": "Negotiation",
+      "zhTitle": "Negotiation",
+      "pages": "451-452",
+      "blocks": [
+        {
+          "id": "s-24-3-6-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.3.6",
+            "pages": "451-452"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.3.6「Negotiation」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-24-3-6-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.3.6",
+            "pages": "451"
+          },
+          "text": "两位Agent交换提案和反提案，以便就计划、资源分配或办法达成协议。 A型计划设计师提出了5步研究计划。 A型计划设计师回应说，第3步(运行一个大型模拟)将超过计算预算。计划设计师反向建议一个缩放模拟。资源Agent机构批准，然后将商定的计划发送给",
+          "originalExcerpt": "Two agents exchange proposals and counter-proposals to reach agreement on a plan, resource allocation, or approach. Common in multi-agent planning systems where agents have different objectives or constraints. Negotiation Pattern A PlannerAgent proposes a 5-step research plan. A ResourceAgent responds that Step 3 (running a large simulation) would exceed the..."
+        },
+        {
+          "id": "s-24-3-6-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.3.6",
+            "pages": "452"
+          },
+          "text": "执行者Agent。",
+          "originalExcerpt": "executor agents."
+        }
+      ]
+    },
+    {
+      "id": "s-24-3-7",
+      "number": "24.3.7",
+      "level": 2,
+      "enTitle": "Auction-Based Task Allocation",
+      "zhTitle": "Auction-Based Task Allocation",
+      "pages": "452",
+      "blocks": [
+        {
+          "id": "s-24-3-7-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.3.7",
+            "pages": "452"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.3.7「Auction-Based Task Allocation」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-24-3-7-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.3.7",
+            "pages": "452"
+          },
+          "text": "管弦乐团宣布一项任务，并附有要求;候选Agent提交投标(估计完成时间、信心、成本);管弦乐团将任务授予中标人。这使得能以动态和市场为基础的负荷在各种Agent体之间取得平衡。",
+          "originalExcerpt": "The orchestrator announces a task with requirements; candidate agents submit bids (estimated completion time, confidence, cost); the orchestrator awards the task to the winning bidder. This enables dynamic, market-based load balancing across a pool of agents. Table 24.1: Summary of A2A communication patterns."
+        },
+        {
+          "id": "s-24-3-7-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.3.7",
+            "pages": "452"
+          },
+          "text": "请求响应最短、定义明确的子任务模式 流 低(第一令牌) 长式生成、实时 UI 多调中度宏大任务需要澄清 广播 低共享上下文分布 普布-Sub变量事件驱动的反应工作流程 谈判 中度-高资源约束规划 拍卖 中度动态负载平衡",
+          "originalExcerpt": "Pattern Latency Best For Request-Response Low Short, well-defined subtasks Streaming Low (first token) Long-form generation, real-time UI Multi-Turn Medium Ambiguous tasks requiring clarification Broadcast Low Shared context distribution Pub-Sub Variable Event-driven reactive workflows Negotiation Medium–High Resource-constrained planning Auction Medium Dyna..."
+        }
+      ]
+    },
+    {
+      "id": "s-24-4",
+      "number": "24.4",
+      "level": 1,
+      "enTitle": "Agent Discovery and Routing",
+      "zhTitle": "Agent Discovery and Routing",
+      "pages": "452",
+      "blocks": [
+        {
+          "id": "s-24-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.4",
+            "pages": "452"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.4「Agent Discovery and Routing」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-24-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.4",
+            "pages": "452"
+          },
+          "text": "Agent在与另一个Agent通信之前，必须找到它。 Agent发现是能够处理特定任务的Agent的定位过程。",
+          "originalExcerpt": "Before an agent can communicate with another, it must find it. Agent discovery is the process of locating agents that can handle a given task."
+        }
+      ]
+    },
+    {
+      "id": "s-24-4-1",
+      "number": "24.4.1",
+      "level": 2,
+      "enTitle": "Agent Registries",
+      "zhTitle": "Agent Registries",
+      "pages": "452",
+      "blocks": [
+        {
+          "id": "s-24-4-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.4.1",
+            "pages": "452"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.4.1「Agent Registries」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-24-4-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.4.1",
+            "pages": "452"
+          },
+          "text": "Agent注册是一个目录服务，它索引Agent卡，并提供搜索和查询API。存在两种部署模式: 集中式登记 A 单一权威登记(如企业服务目录) 对所有Agent进行索引。简单操作但产生单一的失败点，可能不会对跨组织部署进行规模化。联邦注册多功能注册，每个权威为域或组织，拥有交叉注册搜索协议。更具有弹性和隐私保护，但需要标准化的联邦协议。",
+          "originalExcerpt": "An agent registry is a directory service that indexes Agent Cards and provides search and lookup APIs. Two deployment models exist: Centralized Registry A single authoritative registry (e.g., an enterprise service catalog) indexes all agents. Simple to operate but creates a single point of failure and may not scale to cross-organization deployments. Federate..."
+        }
+      ]
+    },
+    {
+      "id": "s-24-4-2",
+      "number": "24.4.2",
+      "level": 2,
+      "enTitle": "Capability-Based Routing",
+      "zhTitle": "Capability-Based Routing",
+      "pages": "452-453",
+      "blocks": [
+        {
+          "id": "s-24-4-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.4.2",
+            "pages": "452-453"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.4.2「Capability-Based Routing」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-24-4-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.4.2",
+            "pages": "452"
+          },
+          "text": "管弦乐团与其说硬编码Agent URL，不如说执行基于能力的路由:他们查询注册局的Agent匹配所需技能，然后选择最佳匹配。 Class Agent Router :\" \" 根据能力匹配向Agent提供路线任务 \"。",
+          "originalExcerpt": "Rather than hardcoding agent URLs, orchestrators perform capability-based routing: they query the registry for agents matching required skills, then select the best match. class AgentRouter : \" \" \" Routes tasks to agents based on capability matching . \" \" \""
+        },
+        {
+          "id": "s-24-4-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.4.2",
+            "pages": "452"
+          },
+          "text": "def init (自， register url: str):自。 register url = register url self。 cache:dict [str， list [AgentCard]]==",
+          "originalExcerpt": "def __init__ ( self , registry_url : str ) : self . registry_url = registry_url self . _cache : dict [ str , list [ AgentCard ]] = {}"
+        },
+        {
+          "id": "s-24-4-2-b3",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.4.2",
+            "pages": "452"
+          },
+          "language": "python",
+          "code": "async def find_agents ( self , required_skill : str , tags : list [ str ] | None = None ) -> list [ AgentCard ]: \" \" \" Query registry for agents with the required skill . \" \" \" params = { \" skill \" : required_skill } if tags : params [ \" tags \" ] = \" ,\" . join ( tags ) async with httpx . AsyncClient () as client : resp = await client . get ( f \" { self . registry_url }/ agents \" , params = params ) return [ AgentCard (** card ) for card in resp . json () [ \" agents \" ]]",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-24-4-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.4.2",
+            "pages": "452"
+          },
+          "text": "async def 路由( 自我， 任务 描述 : str) - > AgentCard :",
+          "originalExcerpt": "async def route ( self , task_description : str ) -> AgentCard :"
+        },
+        {
+          "id": "s-24-4-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.4.2",
+            "pages": "453"
+          },
+          "text": "\" \" 将任务描述与最佳可用Agent匹配。 \" # 嵌入任务描述任务 嵌入=等待嵌入(任务 描述)",
+          "originalExcerpt": "\" \" \" Semantically match a task description to the best available agent . \" \" \" # Embed the task description task_embedding = await embed ( task_description )"
+        },
+        {
+          "id": "s-24-4-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.4.2",
+            "pages": "453"
+          },
+          "text": "# 获取所有注册Agent = 等待自我。 find Agents( 需要 skill = \" * \" )",
+          "originalExcerpt": "# Fetch all registered agents all_agents = await self . find_agents ( required_skill = \" * \" )"
+        },
+        {
+          "id": "s-24-4-2-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.4.2",
+            "pages": "453"
+          },
+          "text": "# 通过任务与Agent描述的余弦相似来给每个Agent计分 得分= = [] 用于所有Agent中的Agent :Agent 嵌入 = 等待嵌入(Agent。描述) 得分= cosine 同义(任务 嵌入， Agent 嵌入) 得分=。 appind ((分， Agent))。",
+          "originalExcerpt": "# Score each agent by cosine similarity of task to agent description scored = [] for agent in all_agents : agent_embedding = await embed ( agent . description ) score = cosine_similarity ( task_embedding , agent_embedding ) scored . append (( score , agent ) )"
+        },
+        {
+          "id": "s-24-4-2-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.4.2",
+            "pages": "453"
+          },
+          "text": "# 返回最高的 - 得分Agent得分。 sort (键 = lambda x: x [0]， 逆向= True) 返回得分 [0][1]",
+          "originalExcerpt": "# Return the highest - scoring agent scored . sort ( key = lambda x : x [0] , reverse = True ) return scored [0][1]"
+        }
+      ]
+    },
+    {
+      "id": "s-24-4-3",
+      "number": "24.4.3",
+      "level": 2,
+      "enTitle": "Load Balancing Across Equivalent Agents",
+      "zhTitle": "Load Balancing Across Equivalent Agents",
+      "pages": "453",
+      "blocks": [
+        {
+          "id": "s-24-4-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.4.3",
+            "pages": "453"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.4.3「Load Balancing Across Equivalent Agents」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-24-4-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.4.3",
+            "pages": "453"
+          },
+          "text": "当多个Agent提供相同的能力时，路由器必须分配负载。共同策略:",
+          "originalExcerpt": "When multiple agents offer the same capability, the router must distribute load. Common strategies:"
+        },
+        {
+          "id": "s-24-4-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.4.3",
+            "pages": "453"
+          },
+          "text": "• 圆形轮机:在所有现有Agent中均匀分配任务。",
+          "originalExcerpt": "• Round-robin: Distribute tasks evenly across all available agents."
+        },
+        {
+          "id": "s-24-4-3-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.4.3",
+            "pages": "453"
+          },
+          "text": "• 最低负荷:与最少数积极任务(需要健康/计量)的Agent的联络途径",
+          "originalExcerpt": "• Least-loaded: Route to the agent with the fewest active tasks (requires health/metrics"
+        },
+        {
+          "id": "s-24-4-3-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.4.3",
+            "pages": "453"
+          },
+          "text": "• 了解紧急情况:途径最近的响应时间最少的Agent。",
+          "originalExcerpt": "• Latency-aware: Route to the agent with the lowest recent response time."
+        },
+        {
+          "id": "s-24-4-3-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.4.3",
+            "pages": "453"
+          },
+          "text": "· 基于无限:向同一Agent发送路线相关任务，以利用缓存上下文。",
+          "originalExcerpt": "• Affinity-based: Route related tasks to the same agent to exploit cached context."
+        }
+      ]
+    },
+    {
+      "id": "s-24-4-4",
+      "number": "24.4.4",
+      "level": 2,
+      "enTitle": "Version Management and Compatibility",
+      "zhTitle": "Version Management and Compatibility",
+      "pages": "453",
+      "blocks": [
+        {
+          "id": "s-24-4-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.4.4",
+            "pages": "453"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.4.4「Version Management and Compatibility」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-24-4-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.4.4",
+            "pages": "453"
+          },
+          "text": "Agent卡包括一个版本字段。 Orchestrators 应当在只有旧版本时指定最小版本要求并处理优雅的退化。语义版[293](MAJOR.MINOR.PATCH)推荐:突破接口变化增量 MAJOR，新能力增量 MINOOR。长跑系统中的版本Skew 在生产多Agent系统时，不同的Agent可能在不同的时间更新，创建版本skew。与Agent卡dv2.1编译的管弦乐器可能会遇到仍然运行v1.3的Agent。总是执行后向兼容的信息处理，并明确测试交叉版本的情景。",
+          "originalExcerpt": "Agent Cards include a version field. Orchestrators should specify minimum version requirements and handle graceful degradation when only older versions are available. Semantic versioning [293] (MAJOR.MINOR.PATCH) is recommended: breaking interface changes increment MAJOR, new capabilities increment MINOR. Version Skew in Long-Running Systems In production mu..."
+        }
+      ]
+    },
+    {
+      "id": "s-24-5",
+      "number": "24.5",
+      "level": 1,
+      "enTitle": "Message Formats and Schemas",
+      "zhTitle": "Message Formats and Schemas",
+      "pages": "453",
+      "blocks": [
+        {
+          "id": "s-24-5-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.5",
+            "pages": "453"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.5「Message Formats and Schemas」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-24-5-structure-note",
+          "type": "callout",
+          "origin": "source_definition",
+          "source": {
+            "chapter": 24,
+            "section": "24.5",
+            "pages": "453"
+          },
+          "title": "原书结构说明",
+          "text": "§24.5 在原书中是父级目录节，具体论证由紧随其后的子节展开。本站保留这一锚点和来源页码，以维持与原书目录的一一对应，不把目录标题扩写成不存在的正文。"
+        },
+        {
+          "id": "s-24-5-source-note",
+          "type": "callout",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 24,
+            "section": "24.5",
+            "pages": "453"
+          },
+          "text": "本节主要由公式、图表或代码构成，网页转写仍在人工核对中；当前状态不会标记为精读完成。"
+        }
+      ]
+    },
+    {
+      "id": "s-24-5-1",
+      "number": "24.5.1",
+      "level": 2,
+      "enTitle": "Structured vs. Unstructured Messages",
+      "zhTitle": "Structured vs. Unstructured Messages",
+      "pages": "453",
+      "blocks": [
+        {
+          "id": "s-24-5-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.5.1",
+            "pages": "453"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.5.1「Structured vs. Unstructured Messages」 时，不要寻找脱离场景的“最佳方案”。应在质量、latency、计算与存储成本、数据要求、可控性和运维复杂度上逐项比较，并保留原书说明的适用前提与例外。"
+        },
+        {
+          "id": "s-24-5-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.5.1",
+            "pages": "453"
+          },
+          "text": "A2A支持从完全无结构(平面文本)到完全结构(类型为JSON schemas)的谱系。正确的选择取决于所涉及的Agent:",
+          "originalExcerpt": "A2A supports a spectrum from fully unstructured (plain text) to fully structured (typed JSON schemas). The right choice depends on the agents involved:"
+        }
+      ]
+    },
+    {
+      "id": "s-24-5-2",
+      "number": "24.5.2",
+      "level": 2,
+      "enTitle": "Multi-Modal Messages",
+      "zhTitle": "Multi-Modal Messages",
+      "pages": "453-455",
+      "blocks": [
+        {
+          "id": "s-24-5-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.5.2",
+            "pages": "453-455"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.5.2「Multi-Modal Messages」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-24-5-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.5.2",
+            "pages": "453"
+          },
+          "text": "A2A 消息的结构是角色(用户或Agent)加一个打字部件列表: 现代Agent越来越多地使用非文本模式工作。 A2A 的 FilePart 支持任意MIME类型， 使丰富的多模式工作流程得以:",
+          "originalExcerpt": "A2A messages are structured as a role (user or agent) plus a list of typed parts: Modern agents increasingly work with non-text modalities. A2A’s FilePart supports any MIME type, enabling rich multi-modal workflows:"
+        },
+        {
+          "id": "s-24-5-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.5.2",
+            "pages": "454"
+          },
+          "text": "表24.2:结构化与无结构化的A2A信息权衡。",
+          "originalExcerpt": "Table 24.2: Structured vs. unstructured A2A message trade-offs."
+        },
+        {
+          "id": "s-24-5-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.5.2",
+            "pages": "454"
+          },
+          "text": "消息类型优势 简便文本 灵活，人可读，难于可靠解析，没有计划验证 容易生成结构化 JSON 机器解析，有效 要求 计划协议， 不太灵活， 键入混合(文本+数据) 人可读意图 + 更复杂 构造和解析机器解析有效载荷",
+          "originalExcerpt": "Message Type Advantages Disadvantages Plain text Flexible, human-readable, Hard to parse reliably, no schema validation easy to generate Structured JSON Machine-parseable, validat- Requires schema agreement, less flexible able, typed Hybrid (text + data) Human-readable intent + More complex to construct and parse machine-parseable payload"
+        },
+        {
+          "id": "s-24-5-2-b4",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 24,
+            "section": "24.5.2",
+            "pages": "454"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "Table 24.3: A2A message part types (wire format uses \"type\": \"text\"|\"file\"|\"data\")."
+        },
+        {
+          "id": "s-24-5-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.5.2",
+            "pages": "454"
+          },
+          "text": "部分类型 字段 使用大小写 部分文本: 字符串 自然语言指令 响应 文件 部分 mimeType， uri 或字节 文档， 图像， 音频， 代码文件 数据 部分数据: 对象结构化 JSON( 工具结果， 计划)",
+          "originalExcerpt": "Part Type Fields Use Case TextPart text: string Natural language instructions, responses FilePart mimeType, uri or bytes Documents, images, audio, code files DataPart data: object Structured JSON (tool results, schemas)"
+        },
+        {
+          "id": "s-24-5-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.5.2",
+            "pages": "454"
+          },
+          "text": "多模态 A2A 消息:数据分析",
+          "originalExcerpt": "Multi-Modal A2A Message: Data Analysis"
+        },
+        {
+          "id": "s-24-5-2-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.5.2",
+            "pages": "454"
+          },
+          "text": "# 将文本指令与数据有效载荷和文件信息合并为{{{ 角色: \" 用户 \" 、 \" 部件 \" :[{ \" 类型 \" : \" 文本 \" 、 \" 文本 \" :\" 分析所附的CSV和下文的图案。 \" 查明异常并提出一份简要报告。 \" }，{ \" 类型 \" : \" 文件 \"， \" mimeType \" : \" text /csv \"， \" uri \" :\" https:// starch。 example。 com / data / serve q3.csv \" }，{ \" 类型 \" : \" 数据 \"， \" 数据 \" :{ \" 计划 \" :{ \" 栏 \" :[ \" 日期 \"， \" 区域 \"， \" 产品 \"， \" 收入 \"， \" 单位 \" ]， \" 类型 \" :[ \" 日期 \" 、 \" 字符串 \" 、 \" 字符串 \" 、 \" 浮点 \" 、 \" 英寸 \" ] } \" 预期RowCount \" :15000， \" 异常危险 \" : 3.0 # z - 得分阈值 }}}}]",
+          "originalExcerpt": "# A message combining text instructions with a data payload and a file message = { \" role \" : \" user \" , \" parts \" : [ { \" type \" : \" text \" , \" text \" : \" Analyze the attached CSV and the schema below . \" \" Identify anomalies and produce a summary report . \" }, { \" type \" : \" file \" , \" mimeType \" : \" text / csv \" , \" uri \" : \" https :// storage . example ...."
+        },
+        {
+          "id": "s-24-5-2-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.5.2",
+            "pages": "454"
+          },
+          "text": "多模态 A2A 消息:图像分析",
+          "originalExcerpt": "Multi-Modal A2A Message: Image Analysis"
+        },
+        {
+          "id": "s-24-5-2-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.5.2",
+            "pages": "454"
+          },
+          "text": "# 多模式消息:文本+图像+结构化数据 mult im od al message = { \" 作用 \" : \" 用户 \"， \" 部分 \" : [{ \" 类型 \" : \" 文本 \"， \" 文本 \" : \" 描述此图表有问题，并建议修正。 \" }，{ \" 类型 \" :\" 文件 \"， \" mimeType \" : \" 图像 / png \"， \"字节 \" : base64. b64encode(图表 image 字节).decode ()}，{ \" 类型 \" : \" 数据 \"， \" 数据 \" :{",
+          "originalExcerpt": "# Multi - modal message : text + image + structured data mu lt im od al_message = { \" role \" : \" user \" , \" parts \" : [ { \" type \" : \" text \" , \" text \" : \" Describe what is wrong with this chart and suggest fixes . \" } , { \" type \" : \" file \" , \" mimeType \" : \" image / png \" , \" bytes \" : base64 . b64encode ( chart_image_bytes ) . decode () } , { \" type \" :..."
+        },
+        {
+          "id": "s-24-5-2-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.5.2",
+            "pages": "455"
+          },
+          "text": "\" 图Type \" : \" 栏 \"， \" 数据来源 \" : \" Q3 收入，按区域分列 \"， \" 已知问题 \" :[ \"y - 轴不从零开始 \"， \" 缺失错误栏 \" ] ] ]",
+          "originalExcerpt": "\" chartType \" : \" bar \" , \" dataSource \" : \" Q3 Revenue by Region \" , \" knownIssues \" : [ \"y - axis does not start at zero \" , \" missing error bars \" ] }} ] }"
+        }
+      ]
+    },
+    {
+      "id": "s-24-5-3",
+      "number": "24.5.3",
+      "level": 2,
+      "enTitle": "Context Passing: What to Share vs. What to Keep Private",
+      "zhTitle": "Context Passing: What to Share vs. What to Keep Private",
+      "pages": "455",
+      "blocks": [
+        {
+          "id": "s-24-5-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.5.3",
+            "pages": "455"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.5.3「Context Passing: What to Share vs. What to Keep Private」 时，不要寻找脱离场景的“最佳方案”。应在质量、latency、计算与存储成本、数据要求、可控性和运维复杂度上逐项比较，并保留原书说明的适用前提与例外。"
+        },
+        {
+          "id": "s-24-5-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.5.3",
+            "pages": "455"
+          },
+          "text": "多Agent系统的关键设计决定是上下文范围化:对话历史和内部状态中有多少可以传递给子Agent。定义最小背景关系只传递给子Agent完成它的任务所需要的内容。 减少象征性的使用、 延迟和泄露敏感信息的风险。总结背景而不是通过原始对话历史，通过一个结构化的总结:目标、限制、作出的决定和相关事实。私人国产内部推理，中间稿，用户PII一般不应被转发给子Agent，除非有明确要求。关联ID总是通过一个关联ID，这样子Agent动作就可以追溯到日志和审计线索中最初的工作流程。",
+          "originalExcerpt": "A critical design decision in multi-agent systems is context scoping: how much of the conversation history and internal state to pass to a sub-agent. Context Scoping Principles Minimal Context Pass only what the sub-agent needs to complete its task. Reduces token usage, latency, and the risk of leaking sensitive information. Summarized Context Instead of pas..."
+        }
+      ]
+    },
+    {
+      "id": "s-24-5-4",
+      "number": "24.5.4",
+      "level": 2,
+      "enTitle": "Conversation Threading and Correlation IDs",
+      "zhTitle": "Conversation Threading and Correlation IDs",
+      "pages": "455-456",
+      "blocks": [
+        {
+          "id": "s-24-5-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.5.4",
+            "pages": "455-456"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.5.4「Conversation Threading and Correlation IDs」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-24-5-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.5.4",
+            "pages": "455"
+          },
+          "text": "在复杂的工作流程中，许多任务可能同时在飞行中。关联ID将相关任务连接到Agent:导入uuid",
+          "originalExcerpt": "In complex workflows, many tasks may be in flight simultaneously. Correlation IDs link related tasks across agents: import uuid"
+        },
+        {
+          "id": "s-24-5-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.5.4",
+            "pages": "455"
+          },
+          "text": "类 Workflow 语句: \" \" 通过多Agent工作流程传递相关元数据。 \"",
+          "originalExcerpt": "class WorkflowContext : \" \" \" Carries correlation metadata through a multi - agent workflow . \" \" \""
+        },
+        {
+          "id": "s-24-5-4-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.5.4",
+            "pages": "455"
+          },
+          "text": "def init (自，工作流程 id:str = 无) :自.工作流程 id = 工作流程 id 或 str (uuid .uid4()) : 自我。 ban id = str (uid .uid 4 ()) 自我。 parent span id: str d = 无) :",
+          "originalExcerpt": "def __init__ ( self , workflow_id : str | None = None ) : self . workflow_id = workflow_id or str ( uuid . uuid4 () ) self . span_id = str ( uuid . uuid4 () ) self . parent_span_id : str | None = None"
+        },
+        {
+          "id": "s-24-5-4-b4",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.5.4",
+            "pages": "455"
+          },
+          "language": "python",
+          "code": "def child_context ( self ) -> \" WorkflowContext \" : \" \" \" Create a child context for a sub - task . \" \" \" child = WorkflowContext ( workflow_id = self . workflow_id ) child . parent_span_id = self . span_id return child",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-24-5-4-b5",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.5.4",
+            "pages": "455"
+          },
+          "language": "python",
+          "code": "def to_metadata ( self ) -> dict : return { \"x - workflow - id \" : self . workflow_id , \"x - span - id \" : self . span_id , \"x - parent - span - id \" : self . parent_span_id }",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-24-5-4-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.5.4",
+            "pages": "455"
+          },
+          "text": "# 用法: 附加到每个 A2A 任务提交 ctx = WorkflowContext () 任务=等待客户端。发送 任务(消息=消息，元数据= ctx ) 到 元数据()",
+          "originalExcerpt": "# Usage : attach to every A2A task submission ctx = WorkflowContext () task = await client . send_task ( message = message , metadata = ctx . to_metadata ()"
+        },
+        {
+          "id": "s-24-5-4-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.5.4",
+            "pages": "456"
+          },
+          "text": "# 子 - 任务使用儿童背景来追踪 sub ctx = ctx。 child context ()",
+          "originalExcerpt": ") # Sub - tasks use child contexts for tracing sub_ctx = ctx . child_context ()"
+        }
+      ]
+    },
+    {
+      "id": "s-24-6",
+      "number": "24.6",
+      "level": 1,
+      "enTitle": "Coordination Protocols",
+      "zhTitle": "Coordination Protocols",
+      "pages": "456",
+      "blocks": [
+        {
+          "id": "s-24-6-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.6",
+            "pages": "456"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.6「Coordination Protocols」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-24-6-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.6",
+            "pages": "456"
+          },
+          "text": "除了点对点的交流之外，多Agent系统还受益于更高层次的协调协议——结构化的互动模式，从而能够作出集体决策和解决问题。",
+          "originalExcerpt": "Beyond point-to-point communication, multi-agent systems benefit from higher-level coordination protocols—structured interaction patterns that enable collective decision-making and problemsolving."
+        }
+      ]
+    },
+    {
+      "id": "s-24-6-1",
+      "number": "24.6.1",
+      "level": 2,
+      "enTitle": "Contract Net Protocol",
+      "zhTitle": "Contract Net Protocol",
+      "pages": "456-457",
+      "blocks": [
+        {
+          "id": "s-24-6-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.6.1",
+            "pages": "456-457"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.6.1「Contract Net Protocol」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-24-6-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.6.1",
+            "pages": "456"
+          },
+          "text": "合同网协议[334]是一个典型的多Agent协调机制，适合基于LLM的系统:",
+          "originalExcerpt": "The Contract Net Protocol (CNP) [334] is a classic multi-agent coordination mechanism adapted for LLM-based systems:"
+        },
+        {
+          "id": "s-24-6-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.6.1",
+            "pages": "456"
+          },
+          "text": "1. 公告:经理Agent向所有可能的欺诈者广播任务公告 -- --",
+          "originalExcerpt": "1. Announcement: The manager agent broadcasts a task announcement to all potential con-"
+        },
+        {
+          "id": "s-24-6-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.6.1",
+            "pages": "456"
+          },
+          "text": "拖拉机制剂，包括任务要求和评估标准。",
+          "originalExcerpt": "tractor agents, including task requirements and evaluation criteria."
+        },
+        {
+          "id": "s-24-6-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.6.1",
+            "pages": "456"
+          },
+          "text": "2. 投标:承包者Agent根据自身能力对任务进行评估，并提交标书",
+          "originalExcerpt": "2. Bidding: Contractor agents evaluate the task against their capabilities and submit bids"
+        },
+        {
+          "id": "s-24-6-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.6.1",
+            "pages": "456"
+          },
+          "text": "载有估计完成时间、信心和所需资源。",
+          "originalExcerpt": "containing estimated completion time, confidence, and resource requirements."
+        },
+        {
+          "id": "s-24-6-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.6.1",
+            "pages": "456"
+          },
+          "text": "3. 评标:由经理选择中标(或并行子任务的多项投标)和",
+          "originalExcerpt": "3. Award: The manager selects the winning bid (or multiple bids for parallel subtasks) and"
+        },
+        {
+          "id": "s-24-6-1-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.6.1",
+            "pages": "456"
+          },
+          "text": "授予合同。",
+          "originalExcerpt": "awards the contract."
+        },
+        {
+          "id": "s-24-6-1-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.6.1",
+            "pages": "456"
+          },
+          "text": "4. 执行和报告:承包商执行这项任务，并向承包者报告结果。",
+          "originalExcerpt": "4. Execution and Reporting: The contractor executes the task and reports results back to the"
+        },
+        {
+          "id": "s-24-6-1-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.6.1",
+            "pages": "456"
+          },
+          "text": "合同净额协议执行",
+          "originalExcerpt": "Contract Net Protocol Implementation"
+        },
+        {
+          "id": "s-24-6-1-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.6.1",
+            "pages": "456"
+          },
+          "text": "导入数据类",
+          "originalExcerpt": "import dataclasses"
+        },
+        {
+          "id": "s-24-6-1-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.6.1",
+            "pages": "456"
+          },
+          "text": "C类 上划线网络管理器: \" 执行合同网络协议，分配任务。 \"",
+          "originalExcerpt": "class C ontractNetManager : \" \" \" Implements the Contract Net Protocol for task allocation . \" \" \""
+        },
+        {
+          "id": "s-24-6-1-b13",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.6.1",
+            "pages": "456"
+          },
+          "language": "python",
+          "code": "async def allocate_task ( self , task : Task , candidate_agents : list [ AgentCard ]) -> AgentCard : # Phase 1: Announce task to all candidates announcement = { \" type \" : \" task - announcement \" , \" task \" : dataclasses . asdict ( task ) , \" deadline \" : ( datetime . now ( timezone . utc ) + timedelta ( seconds =10) ) . isoformat () , \" evaluationCriteria \" : [ \" confidence \" , \" estimatedTime \" , \" cost \" ] }",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-24-6-1-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.6.1",
+            "pages": "456"
+          },
+          "text": "# 第二阶段: 收集出价=等待 Ayncio。收集(*[自我。 请求 投标(Agent，公告)) 候选人 Agent中Agent， return unitions= true) 互联网档案馆的存檔，存档日期2013-03-02.",
+          "originalExcerpt": "# Phase 2: Collect bids bids = await asyncio . gather (*[ self . _request_bid ( agent , announcement ) for agent in candidate_agents ] , return_exceptions = True )"
+        },
+        {
+          "id": "s-24-6-1-b15",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.6.1",
+            "pages": "456"
+          },
+          "text": "有效 投标=[(Agent，出价)，如果不是串通投标(出价，例外)和投标不是无",
+          "originalExcerpt": "valid_bids = [( agent , bid ) for agent , bid in zip ( candidate_agents , bids ) if not isinstance ( bid , Exception ) and bid is not None ]"
+        },
+        {
+          "id": "s-24-6-1-b16",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.6.1",
+            "pages": "456"
+          },
+          "text": "如果无效 bids : 提高运行时错误( f \" 任务{ id } 上没有Agent竞标 \" )",
+          "originalExcerpt": "if not valid_bids : raise RuntimeError ( f \" No agents bid on task { task . id } \" )"
+        },
+        {
+          "id": "s-24-6-1-b17",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.6.1",
+            "pages": "456"
+          },
+          "text": "# 第三阶段: 向最佳出价者( 最高信任度， 最低时间) 得分 bid( Agent bid) :， 出价=Agent bid",
+          "originalExcerpt": "# Phase 3: Award to best bidder ( highest confidence , lowest time ) def score_bid ( agent_bid ) : _ , bid = agent_bid"
+        },
+        {
+          "id": "s-24-6-1-b18",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.6.1",
+            "pages": "457"
+          },
+          "text": "返回出价[ \" 信任 \" ] - 0.1 * 出价[ \" 估计第二",
+          "originalExcerpt": "return bid [ \" confidence \" ] - 0.1 * bid [ \" estimatedSeconds \" ]"
+        },
+        {
+          "id": "s-24-6-1-b19",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.6.1",
+            "pages": "457"
+          },
+          "text": "得分 Agent， 得分 bid = 最大( 有效 bids， 键= 得分 bid)",
+          "originalExcerpt": "winner_agent , winning_bid = max ( valid_bids , key = score_bid )"
+        },
+        {
+          "id": "s-24-6-1-b20",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.6.1",
+            "pages": "457"
+          },
+          "text": "# 通知赢家和输家等待自己。 addition contract( wind Agent， task ) 等待 Ayncio 集合 (* [self。 reject bid( Agent， ship。 id )) Agent， 如果Agent， 有效 bids != window Agent) )",
+          "originalExcerpt": "# Notify winner and losers await self . _award_contract ( winner_agent , task ) await asyncio . gather (*[ self . _reject_bid ( agent , task . id ) for agent , _ in valid_bids if agent != winner_agent ])"
+        },
+        {
+          "id": "s-24-6-1-b21",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.6.1",
+            "pages": "457"
+          },
+          "text": "返回赢家 Agent",
+          "originalExcerpt": "return winner_agent"
+        },
+        {
+          "id": "s-24-6-1-b22",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.6.1",
+            "pages": "457"
+          },
+          "language": "python",
+          "code": "async def _request_bid ( self , agent : AgentCard , announcement : dict ) -> dict | None : \" \" \" Ask an agent to bid on a task . \" \" \" try : result = await self . client . send_task ( agent_url = agent . url , message ={ \" role \" : \" user \" , \" parts \" : [{ \" type \" : \" data \" , \" data \" : announcement }]} ) return result . artifacts [0]. parts [0][ \" data \" ] except Exception : return None",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        }
+      ]
+    },
+    {
+      "id": "s-24-6-2",
+      "number": "24.6.2",
+      "level": 2,
+      "enTitle": "Blackboard Systems",
+      "zhTitle": "Blackboard Systems",
+      "pages": "457",
+      "blocks": [
+        {
+          "id": "s-24-6-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.6.2",
+            "pages": "457"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.6.2「Blackboard Systems」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-24-6-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.6.2",
+            "pages": "457"
+          },
+          "text": "黑板系统[135]提供了一个共享的工作空间(即\"黑板\")， Agent在此张贴部分解决方案，观测结果，以及假设。其他Agent监测黑板，并在它们能够增加价值时作出贡献——一种机会性解决问题的办法。黑板系统非常适合那些事先不知道溶液路径，不同的剂在不同阶段可能作出贡献的问题——例如科学假设生成，复杂的调试，或多源智能分析。",
+          "originalExcerpt": "A blackboard system [135] provides a shared workspace (the “blackboard”) where agents post partial solutions, observations, and hypotheses. Other agents monitor the blackboard and contribute when they can add value—an opportunistic problem-solving approach. Blackboard systems are well-suited to problems where the solution path is not known in advance and dif..."
+        }
+      ]
+    },
+    {
+      "id": "s-24-6-3",
+      "number": "24.6.3",
+      "level": 2,
+      "enTitle": "Consensus Protocols",
+      "zhTitle": "Consensus Protocols",
+      "pages": "457-458",
+      "blocks": [
+        {
+          "id": "s-24-6-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.6.3",
+            "pages": "457-458"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.6.3「Consensus Protocols」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-24-6-3-b1",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.6.3",
+            "pages": "457"
+          },
+          "language": "python",
+          "code": "When multiple agents must agree on a decision (e.g., which plan to execute, whether a result is correct), consensus protocols provide structured voting mechanisms: Simple Majority Voting Each agent votes; the option with > 50% of votes wins. Fast but vulnerable to correlated errors if agents share the same base model. Weighted Voting Votes are weighted by agent confidence or historical accuracy. More robust but requires calibrated confidence estimates. Quorum-Based A decision requires agreement from at least k of n agents. Provides fault tolerance: up to n − k agents can fail or disagree without blocking. Delphi Method Agents vote, see anonymized results, revise their votes, and repeat until convergence. Reduces anchoring bias and encourages genuine deliberation. async def quorum_vote ( agents : list [ AgentCard ] , question : str , options : list [ str ] , quorum : int ) -> str | None : \" \" \" Run a quorum vote across agents . Returns winning option or None . \" \" \" votes = await asyncio . gather (*[ ask_agent_to_vote ( agent , question , options ) for agent in agents ])",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-24-6-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.6.3",
+            "pages": "458"
+          },
+          "text": "计数: dict [str， int] = = = = = 投票票数: 如果在选项中投票: 计数 [票] = 计数。获得(票数: 0) + 1",
+          "originalExcerpt": "counts : dict [ str , int ] = {} for vote in votes : if vote in options : counts [ vote ] = counts . get ( vote , 0) + 1"
+        },
+        {
+          "id": "s-24-6-3-b3",
+          "type": "paragraph",
+          "origin": "source_unspecified",
+          "source": {
+            "chapter": 24,
+            "section": "24.6.3",
+            "pages": "458"
+          },
+          "text": "这一段原文包含从 PDF 抽取的公式、符号或表格结构，自动转写无法可靠恢复其数学排版。为避免把受损字符当作正文，网页保留了可折叠英文原文与具体页码；中文公式化改写仍处于人工校订中。",
+          "originalExcerpt": "# Return first option that reaches quorum for option , count in sorted ( counts . items () , key = lambda x : -x [1]) : if count >= quorum : return option return None # No quorum reached"
+        }
+      ]
+    },
+    {
+      "id": "s-24-6-4",
+      "number": "24.6.4",
+      "level": 2,
+      "enTitle": "Leader Election",
+      "zhTitle": "Leader Election",
+      "pages": "458",
+      "blocks": [
+        {
+          "id": "s-24-6-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.6.4",
+            "pages": "458"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.6.4「Leader Election」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-24-6-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.6.4",
+            "pages": "458"
+          },
+          "text": "在动态的多Agent系统中，领导者(orchestrator)可能需要在运行时选出——例如，当最初的管弦乐演奏者失败时，或者当Agent者在没有预先指定的协调员的情况下自行组织时。经典分布式系统算法(Bully， Ring)可以适应Agent网络， Agent交换能力分数或优先符，以选择最有能力的可用Agent作为领跑者。",
+          "originalExcerpt": "In dynamic multi-agent systems, a leader (orchestrator) may need to be elected at runtime—for example, when the original orchestrator fails or when agents self-organize without a pre-assigned coordinator. Classic distributed systems algorithms (Bully, Ring) can be adapted for agent networks, with agents exchanging capability scores or priority tokens to elec..."
+        }
+      ]
+    },
+    {
+      "id": "s-24-7",
+      "number": "24.7",
+      "level": 1,
+      "enTitle": "A2A vs. MCP: Complementary Protocols",
+      "zhTitle": "A2A vs. MCP: Complementary Protocols",
+      "pages": "458",
+      "blocks": [
+        {
+          "id": "s-24-7-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.7",
+            "pages": "458"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.7「A2A vs. MCP: Complementary Protocols」 时，不要寻找脱离场景的“最佳方案”。应在质量、latency、计算与存储成本、数据要求、可控性和运维复杂度上逐项比较，并保留原书说明的适用前提与例外。"
+        },
+        {
+          "id": "s-24-7-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.7",
+            "pages": "458"
+          },
+          "text": "造成混淆的一个常见来源是A2A与\"示范背景协议\"[9]之间的关系。这些协议是互补的，而不是相互竞争的:核心区别。",
+          "originalExcerpt": "A common source of confusion is the relationship between A2A and the Model Context Protocol (MCP) [9]. These protocols are complementary, not competing: The Core Distinction"
+        },
+        {
+          "id": "s-24-7-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.7",
+            "pages": "458"
+          },
+          "text": "· MCP是纵向协议:它将一种Agent向下延伸到数据库的世界，",
+          "originalExcerpt": "• MCP is the vertical protocol: it extends an agent downward into the world of databases,"
+        },
+        {
+          "id": "s-24-7-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.7",
+            "pages": "458"
+          },
+          "text": "API，文件系统，和代码执行器。只有Agent原因; MCP 端点是决定性服务。",
+          "originalExcerpt": "APIs, file systems, and code executors. Only the agent reasons; MCP endpoints are deterministic services."
+        },
+        {
+          "id": "s-24-7-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.7",
+            "pages": "458"
+          },
+          "text": "• A2A是横向协议:它将一个推理Agent与另一个推理Agent联系起来。",
+          "originalExcerpt": "• A2A is the horizontal protocol: it links one reasoning agent to another. Both sides are"
+        },
+        {
+          "id": "s-24-7-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.7",
+            "pages": "458"
+          },
+          "text": "聪明的演员，能够推理，规划和工具使用。",
+          "originalExcerpt": "intelligent actors capable of reasoning, planning, and tool use."
+        },
+        {
+          "id": "s-24-7-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.7",
+            "pages": "458"
+          },
+          "text": "双方是智能状态 通常称为状态状态 使用生命周期流化有限责任公司(工具结果) 首级SSE流化发现工具 显示Agent卡 Auth 模型服务器控制 共通 OAuth 2.0 典型的懒散 秒秒到分钟 使用案例“搜索网络 ”， “运行 SQL ” “ 切换到专家”",
+          "originalExcerpt": "Dimension MCP A2A Participants Agent ↔ Tool/Resource Agent ↔ Agent Intelligence One side (agent) is intelligent Both sides are intelligent Statefulness Typically stateless tool calls Stateful tasks with lifecycle Streaming Limited (tool results) First-class SSE streaming Discovery Tool manifests Agent Cards Auth model Server-controlled Mutual, OAuth 2.0 Typi..."
+        }
+      ]
+    },
+    {
+      "id": "s-24-7-1",
+      "number": "24.7.1",
+      "level": 2,
+      "enTitle": "When to Use Which",
+      "zhTitle": "When to Use Which",
+      "pages": "458",
+      "blocks": [
+        {
+          "id": "s-24-7-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.7.1",
+            "pages": "458"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.7.1「When to Use Which」 时，不要寻找脱离场景的“最佳方案”。应在质量、latency、计算与存储成本、数据要求、可控性和运维复杂度上逐项比较，并保留原书说明的适用前提与例外。"
+        },
+        {
+          "id": "s-24-7-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.7.1",
+            "pages": "458"
+          },
+          "text": "• 当远程端点是一个确定函数时使用 MCP:一个数据库查询，一个API",
+          "originalExcerpt": "• Use MCP when the remote endpoint is a deterministic function: a database query, an API"
+        },
+        {
+          "id": "s-24-7-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.7.1",
+            "pages": "458"
+          },
+          "text": "调用，一个代码执行沙盒。 Agent完全控制了交互。",
+          "originalExcerpt": "call, a code execution sandbox. The agent controls the interaction entirely."
+        },
+        {
+          "id": "s-24-7-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.7.1",
+            "pages": "458"
+          },
+          "text": "• 当远程终点需要说明请求时使用A2A:解释模糊不清",
+          "originalExcerpt": "• Use A2A when the remote endpoint needs to reason about the request: interpret ambiguous"
+        },
+        {
+          "id": "s-24-7-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.7.1",
+            "pages": "458"
+          },
+          "text": "指示、作出判断、使用自己的工具或参与多回合对话。",
+          "originalExcerpt": "instructions, make judgment calls, use its own tools, or engage in multi-turn dialogue."
+        },
+        {
+          "id": "s-24-7-1-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.7.1",
+            "pages": "458"
+          },
+          "text": "• 在同一系统中使用两者:管弦乐器Agent使用A2A将权力委托给专家Agent，",
+          "originalExcerpt": "• Use both in the same system: an orchestrator agent uses A2A to delegate to specialist agents,"
+        },
+        {
+          "id": "s-24-7-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.7.1",
+            "pages": "458"
+          },
+          "text": "并且每个专家Agent都使用MCP来获取其工具。",
+          "originalExcerpt": "and each specialist agent uses MCP to access its tools."
+        }
+      ]
+    },
+    {
+      "id": "s-24-7-2",
+      "number": "24.7.2",
+      "level": 2,
+      "enTitle": "Combined Architecture",
+      "zhTitle": "Combined Architecture",
+      "pages": "459",
+      "blocks": [
+        {
+          "id": "s-24-7-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.7.2",
+            "pages": "459"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.7.2「Combined Architecture」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-24-7-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.7.2",
+            "pages": "459"
+          },
+          "text": "在生产多剂系统方面， A2A和MCP在不同层次上合作:A2A处理Agent方之间的授权和协调(同行之间的横向交流)，而MCP处理每个Agent方与其工具和数据源的连接(垂直与能力结合)。这种对关注的分离是建设可扩展的Agent建筑的关键。",
+          "originalExcerpt": "In production multi-agent systems, A2A and MCP work together at different layers: A2A handles inter-agent delegation and coordination (horizontal communication between peers), while MCP handles each agent’s connection to its tools and data sources (vertical integration with capabilities). This separation of concerns is key to building scalable agentic archit..."
+        },
+        {
+          "id": "s-24-7-2-b2",
+          "type": "figure",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.7.2",
+            "pages": "459",
+            "figure": "Figure 24.1"
+          },
+          "src": null,
+          "alt": "图24.1:组合A2A+MCP架构。管弦乐代表通过A2A向专家AgentAgent;每个Agent通过MCP服务器访问其工具。",
+          "caption": "图24.1:组合A2A+MCP架构。管弦乐代表通过A2A向专家AgentAgent;每个Agent通过MCP服务器访问其工具。",
+          "adapted": false
+        },
+        {
+          "id": "s-24-7-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.7.2",
+            "pages": "459"
+          },
+          "text": "· A2A 授权:当Agent需要能力时，它就将代表派往",
+          "originalExcerpt": "• A2A for delegation: When an agent needs capabilities it doesn’t have, it delegates to"
+        },
+        {
+          "id": "s-24-7-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.7.2",
+            "pages": "459"
+          },
+          "text": "其它Agent通过 A2A 任务信息。每个Agent都是自成一体的服务，并有自己的Agent卡。",
+          "originalExcerpt": "another agent via A2A task messages. Each agent is a self-contained service with its own Agent Card."
+        },
+        {
+          "id": "s-24-7-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.7.2",
+            "pages": "459"
+          },
+          "text": "• 工具访问的MCP:每个Agent通过MCP服务器连接到其工具。这意味着",
+          "originalExcerpt": "• MCP for tool access: Each agent connects to its tools through MCP servers. This means"
+        },
+        {
+          "id": "s-24-7-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.7.2",
+            "pages": "459"
+          },
+          "text": "工具从不直接接触其他Agent，而只能通过自有Agent的接口。",
+          "originalExcerpt": "tools are never exposed directly to other agents — only through the owning agent’s interface."
+        },
+        {
+          "id": "s-24-7-2-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.7.2",
+            "pages": "459"
+          },
+          "text": "• 划分信任界限:指挥员信任专家Agent(通过下列程序核实):",
+          "originalExcerpt": "• Separation of trust boundaries: The orchestrator trusts specialist agents (verified via"
+        },
+        {
+          "id": "s-24-7-2-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.7.2",
+            "pages": "459"
+          },
+          "text": "A2A认证。 每个专家都信任自己的MCP服务器(本地或认证)。没有中转工具访问权限。",
+          "originalExcerpt": "A2A authentication). Each specialist trusts its own MCP servers (local or authenticated). No transitive tool access."
+        },
+        {
+          "id": "s-24-7-2-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.7.2",
+            "pages": "459"
+          },
+          "text": "• 独立规模:代码重的工作量可以规模化代码Agent实例;数据工作-",
+          "originalExcerpt": "• Independent scaling: Code-heavy workloads can scale CodeAgent instances; data work-"
+        },
+        {
+          "id": "s-24-7-2-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.7.2",
+            "pages": "459"
+          },
+          "text": "装入比例尺 Data Agent。 管弦乐器仍然轻量级。",
+          "originalExcerpt": "loads scale DataAgent. The orchestrator remains lightweight."
+        }
+      ]
+    },
+    {
+      "id": "s-24-8",
+      "number": "24.8",
+      "level": 1,
+      "enTitle": "Security and Trust in Multi-Agent Systems",
+      "zhTitle": "Security and Trust in Multi-Agent Systems",
+      "pages": "459",
+      "blocks": [
+        {
+          "id": "s-24-8-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.8",
+            "pages": "459"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.8「Security and Trust in Multi-Agent Systems」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-24-8-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.8",
+            "pages": "459"
+          },
+          "text": "多Agent系统带来了独特的安全挑战，当AAgent代表给CAgent代表的BAgent时，必须谨慎管理信任链。",
+          "originalExcerpt": "Multi-agent systems introduce unique security challenges. When Agent A delegates to Agent B, which delegates to Agent C, the chain of trust must be carefully managed."
+        }
+      ]
+    },
+    {
+      "id": "s-24-8-1",
+      "number": "24.8.1",
+      "level": 2,
+      "enTitle": "Agent Identity Verification",
+      "zhTitle": "Agent Identity Verification",
+      "pages": "459",
+      "blocks": [
+        {
+          "id": "s-24-8-1-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.8.1",
+            "pages": "459"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.8.1「Agent Identity Verification」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
+        },
+        {
+          "id": "s-24-8-1-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.8.1",
+            "pages": "459"
+          },
+          "text": "每种Agent必须具有可核查的身份。",
+          "originalExcerpt": "Each agent must have a verifiable identity. Options include:"
+        },
+        {
+          "id": "s-24-8-1-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.8.1",
+            "pages": "459"
+          },
+          "text": "· JWT 证书[172]，由可信任的身份提供商签字，携带Agent的身份证、签发人和",
+          "originalExcerpt": "• JWT tokens [172] signed by a trusted identity provider, carrying the agent’s ID, issuer, and"
+        },
+        {
+          "id": "s-24-8-1-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.8.1",
+            "pages": "459"
+          },
+          "text": "过期。由接收Agent使用提供者的公用钥匙进行验证。",
+          "originalExcerpt": "expiry. Verified by the receiving agent using the provider’s public key."
+        },
+        {
+          "id": "s-24-8-1-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.8.1",
+            "pages": "459"
+          },
+          "text": "• 内部CA签发的mTLS证书[36]，提供认证和运输",
+          "originalExcerpt": "• mTLS certificates [36] issued by an internal CA, providing both authentication and transport"
+        },
+        {
+          "id": "s-24-8-1-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.8.1",
+            "pages": "459"
+          },
+          "text": "• 分散识别资料[61]，用于没有单一的跨组织假设",
+          "originalExcerpt": "• Decentralized identifiers (DIDs) [61] for cross-organization scenarios where no single"
+        },
+        {
+          "id": "s-24-8-1-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.8.1",
+            "pages": "459"
+          },
+          "text": "信任的权威存在。",
+          "originalExcerpt": "trusted authority exists."
+        }
+      ]
+    },
+    {
+      "id": "s-24-8-2",
+      "number": "24.8.2",
+      "level": 2,
+      "enTitle": "Message Integrity and Encryption",
+      "zhTitle": "Message Integrity and Encryption",
+      "pages": "460",
+      "blocks": [
+        {
+          "id": "s-24-8-2-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.8.2",
+            "pages": "460"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.8.2「Message Integrity and Encryption」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-24-8-2-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.8.2",
+            "pages": "460"
+          },
+          "text": "• 所有A2A通信均应在TLS 1.3 [307] 上进行，以防止窃听和",
+          "originalExcerpt": "• All A2A communication should occur over TLS 1.3 [307] to prevent eavesdropping and"
+        },
+        {
+          "id": "s-24-8-2-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.8.2",
+            "pages": "460"
+          },
+          "text": "中途攻击",
+          "originalExcerpt": "man-in-the-middle attacks."
+        },
+        {
+          "id": "s-24-8-2-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.8.2",
+            "pages": "460"
+          },
+          "text": "• 对于敏感有效载荷，端到端加密(例如JWE)确保中间内含-",
+          "originalExcerpt": "• For sensitive payloads, end-to-end encryption (e.g., JWE) ensures that intermediate infras-"
+        },
+        {
+          "id": "s-24-8-2-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.8.2",
+            "pages": "460"
+          },
+          "text": "短路( 负载平衡器， Agent) 无法读取信件内容。",
+          "originalExcerpt": "tructure (load balancers, proxies) cannot read message content."
+        },
+        {
+          "id": "s-24-8-2-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.8.2",
+            "pages": "460"
+          },
+          "text": "• 信件签名(JWS)提供不否认:接收Agent可以证明:",
+          "originalExcerpt": "• Message signing (JWS) provides non-repudiation: the receiving agent can prove that a"
+        },
+        {
+          "id": "s-24-8-2-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.8.2",
+            "pages": "460"
+          },
+          "text": "特定消息来自特定发送者。",
+          "originalExcerpt": "specific message came from a specific sender."
+        }
+      ]
+    },
+    {
+      "id": "s-24-8-3",
+      "number": "24.8.3",
+      "level": 2,
+      "enTitle": "Authorization Scopes",
+      "zhTitle": "Authorization Scopes",
+      "pages": "460",
+      "blocks": [
+        {
+          "id": "s-24-8-3-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.8.3",
+            "pages": "460"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.8.3「Authorization Scopes」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-24-8-3-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.8.3",
+            "pages": "460"
+          },
+          "text": "并不是每个Agent都能够要求其他Agent做任何事情。 OAuth 2.0授权范围[133]定义了边界:# DataAgent SOSPES = { \" 数据: 读 \" 的示例 OAuth 2.0权限:\" 从连接的数据库读取数据 \"， \" 数据:写 \" : \" 撰写或修改连接的数据库中的数据 \"， \" 数据:导出 \" : \" 向外部系统输出数据 \"， \" 分析:运行 \" : \" 执行统计分析 \"， \" 分析:附表 \" : \" 经常性分析时间表 \"， \" 管理员:配置 \" : \" 修改Agent配置 \" ;",
+          "originalExcerpt": "Not every agent should be able to ask every other agent to do anything. OAuth 2.0 authorization scopes [133] define the boundaries: # Example OAuth 2.0 scopes for a DataAgent SCOPES = { \" data : read \" : \" Read data from connected databases \" , \" data : write \" : \" Write or modify data in connected databases \" , \" data : export \" : \" Export data to external ..."
+        },
+        {
+          "id": "s-24-8-3-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.8.3",
+            "pages": "460"
+          },
+          "text": "# 报告Agent可能只持有: 数据: 读， 分析: 运行 # ETL 管道Agent可能持有: 数据: 读， 数据: 写， 数据: 输出 # 只有一个人的管理员持有: 管理: 配置",
+          "originalExcerpt": "# A ReportingAgent might hold only : data : read , analysis : run # An ETL pipeline agent might hold : data : read , data : write , data : export # Only a human admin holds : admin : config"
+        },
+        {
+          "id": "s-24-8-3-b3",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.8.3",
+            "pages": "460"
+          },
+          "language": "python",
+          "code": "class A2AServer : def v e rify_authorization ( self , token : str , required_scope : str ) -> bool : \" \" \" Verify that the calling agent holds the required scope . \" \" \" claims = jwt . decode ( token , self . public_key , algorithms =[ \" RS256 \" ]) granted_scopes = claims . get ( \" scope \" , \" \" ) . split () if required_scope not in granted_scopes : raise PermissionError ( f \" Caller lacks required scope ’{ required_scope } ’. \" f \" Granted : { granted_scopes } \" ) return True",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        }
+      ]
+    },
+    {
+      "id": "s-24-8-4",
+      "number": "24.8.4",
+      "level": 2,
+      "enTitle": "Audit Trails and Accountability",
+      "zhTitle": "Audit Trails and Accountability",
+      "pages": "460-461",
+      "blocks": [
+        {
+          "id": "s-24-8-4-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.8.4",
+            "pages": "460-461"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.8.4「Audit Trails and Accountability」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-24-8-4-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.8.4",
+            "pages": "460"
+          },
+          "text": "在一个Agent授权链中，责任漏洞可能变得不明确，谁对某项行动负责。 如果AgentA要求AgentB删除一个文件，而AgentB这样做，谁负责?每一个A2A的交互都必须记录:呼叫Agent的身份、任务描述、使用的授权符、时间戳和结果。 这一审计线索对于事件反应、合规和调试至关重要。每个 A2A 服务器应发布结构化的审计日志 : @ dataclass class A2AAAuditEvent : timestamp : str # ISO 8601工作流程 id : str # 关联ID 用于顶级 - 级别工作流程 salend id : str # 此任务的跨度父进程 span id :str # 调用任务的跨度( 用于代表团链) 调用者 Agent id : str # 调用者身份认证 Agent id : str # 此Agent的身份任务 id : str",
+          "originalExcerpt": "The Accountability Gap In a chain of agent delegations, it can become unclear who is responsible for an action. If Agent A asks Agent B to delete a file, and Agent B does so, who is accountable? Every A2A interaction must be logged with: the calling agent’s identity, the task description, the authorization token used, the timestamp, and the outcome. This aud..."
+        },
+        {
+          "id": "s-24-8-4-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.8.4",
+            "pages": "461"
+          },
+          "text": "tipple invoked : str a u t h o r ization scopes : list [str] results: str # \" 已完成 \" : \" 失败 \" : 拒绝 \" 期限 ms: int 错误 code: st %无",
+          "originalExcerpt": "skill_invoked : str a u t h o r ization_scopes : list [ str ] outcome : str # \" completed \" | \" failed \" | \" rejected \" duration_ms : int error_code : str | None"
+        }
+      ]
+    },
+    {
+      "id": "s-24-9",
+      "number": "24.9",
+      "level": 1,
+      "enTitle": "Implementation Example: Multi-Agent Research Workflow",
+      "zhTitle": "Implementation Example: Multi-Agent Research Workflow",
+      "pages": "461-466",
+      "blocks": [
+        {
+          "id": "s-24-9-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "461-466"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.9「Implementation Example: Multi-Agent Research Workflow」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
+        },
+        {
+          "id": "s-24-9-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "461"
+          },
+          "text": "以下实例表明，使用A2A进行完整的多Agent研究的工作流程:a Orchestrator Agent 分解一个研究问题，代表专家Agent，并综合其结果。\"\" 多剂研究工作流程使用 A2A 协议。演示:Agent卡， A2A 客户端/ 服务器，任务生命周期， 多种 - 转动交互， Agent交接。 \"\"",
+          "originalExcerpt": "The following example demonstrates a complete multi-agent research workflow using A2A: an OrchestratorAgent decomposes a research question, delegates to specialist agents, and synthesizes their results. \"\"\" Multi - agent research workflow using A2A protocol . Demonstrates : Agent Cards , A2A client / server , task lifecycle , multi - turn interaction , and a..."
+        },
+        {
+          "id": "s-24-9-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "461"
+          },
+          "text": "导入 ayncio 导入 json 从收藏中导入 uuid。 abc 从日期导入日期导入 AsyncIterator 时间段， 时间段， 时段",
+          "originalExcerpt": "import asyncio import json import uuid from collections . abc import AsyncIterator from datetime import datetime , timedelta , timezone"
+        },
+        {
+          "id": "s-24-9-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "461"
+          },
+          "text": "导入 httpx 从 fastapi 导入 FastAPI， HTTP Exception， 请从 fastapi 中求取。 response 导入 流回覆 从 pydantic 导入 BaseModel 中导入。",
+          "originalExcerpt": "import httpx from fastapi import FastAPI , HTTPException , Request from fastapi . responses import StreamingResponse from pydantic import BaseModel , Field"
+        },
+        {
+          "id": "s-24-9-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "461"
+          },
+          "text": "数据模型 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -",
+          "originalExcerpt": "# -- Data Models - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
+        },
+        {
+          "id": "s-24-9-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "461"
+          },
+          "text": "类 部分 (BaseModel) : 类型 : str # \" text \" ++x 文件 =+x \" 数据 \" 文本 : str ==== 无 数据 : dict ====== === === ========================================================================================================================================================================================",
+          "originalExcerpt": "class Part ( BaseModel ) : type : str # \" text \" | \" file \" | \" data \" text : str | None = None data : dict | None = None mimeType : str | None = None uri : str | None = None"
+        },
+        {
+          "id": "s-24-9-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "461"
+          },
+          "text": "类 消息 (BaseModel ) : 角色 : str # \" 用户 \" +QAgent : 部件 : 列表 [Part]",
+          "originalExcerpt": "class Message ( BaseModel ) : role : str # \" user \" | \" agent \" parts : list [ Part ]"
+        },
+        {
+          "id": "s-24-9-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "461"
+          },
+          "text": "类任务状态( BaseModel ) : state: str #提交 \\\\ 工作 \\ \\ 输入 - 需要 \\ \\ \\ 完成 \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\",
+          "originalExcerpt": "class TaskStatus ( BaseModel ) : state : str # submitted | working | input - required | completed | failed message : str | None = None timestamp : str = Field ( default_factory = lambda : datetime . now ( timezone . utc ) . isoformat () )"
+        },
+        {
+          "id": "s-24-9-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "461"
+          },
+          "text": "类 艺术 (BaseModel ) : 部分 : 列表 [部分] 索引 : int = 0 附加 : bul = False lastChunk : bul = true",
+          "originalExcerpt": "class Artifact ( BaseModel ) : parts : list [ Part ] index : int = 0 append : bool = False lastChunk : bool = True"
+        },
+        {
+          "id": "s-24-9-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "461"
+          },
+          "text": "类任务(BaseModel) : id: status status : Task status 消息:列表 [消息]=[] 文物:列表 [Artifact]=[]元数据:dict=== {}。",
+          "originalExcerpt": "class Task ( BaseModel ) : id : str status : TaskStatus messages : list [ Message ] = [] artifacts : list [ Artifact ] = [] metadata : dict = {}"
+        },
+        {
+          "id": "s-24-9-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "461"
+          },
+          "text": "# -- A2A客户端(HTTP/REST绑定) - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -",
+          "originalExcerpt": "# -- A2A Client ( HTTP / REST binding ) - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
+        },
+        {
+          "id": "s-24-9-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "462"
+          },
+          "text": "# 注: A2A v1. 0定义了三种协议绑定: JSON - RPC 2.0， gRPC，和 # HTTP + JSON / REST。此示例使用 REST 绑定可读性。",
+          "originalExcerpt": "# Note : A2A v1 .0 defines three protocol bindings : JSON - RPC 2.0 , gRPC , and # HTTP + JSON / REST . This example uses the REST binding for readability ."
+        },
+        {
+          "id": "s-24-9-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "462"
+          },
+          "text": "类 A2AClient: \" \" 向A2A发送任务的客户 - 符合要求的Agent \"。 \"",
+          "originalExcerpt": "class A2AClient : \" \" \" Client for sending tasks to A2A - compliant agents . \" \" \""
+        },
+        {
+          "id": "s-24-9-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "462"
+          },
+          "text": "def init (自， Agent url: str， auth token: str) : 自我。 Agent url= Agent url( \" / \" ) 自我。 headers= { 授权 \" : f \" 熊鼠{ aut token} \"， \" 内容 - 类型 \" : \" 应用程序/json \" )",
+          "originalExcerpt": "def __init__ ( self , agent_url : str , auth_token : str ) : self . agent_url = agent_url . rstrip ( \" / \" ) self . headers = { \" Authorization \" : f \" Bearer { auth_token } \" , \" Content - Type \" : \" application / json \" }"
+        },
+        {
+          "id": "s-24-9-b14",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "462"
+          },
+          "language": "python",
+          "code": "async def get_agent_card ( self ) -> dict : \" \" \" Fetch the agent ’s capability card . \" \" \" async with httpx . AsyncClient () as client : resp = await client . get ( f \" { self . agent_url }/. well - known / agent . json \" , headers = self . headers ) resp . raise_for_status () return resp . json ()",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-24-9-b15",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "462"
+          },
+          "language": "python",
+          "code": "async def send_task ( self , message : Message , task_id : str | None = None , metadata : dict | None = None ) -> Task : \" \" \" Submit a task and return the initial task object . \" \" \" payload = { \" id \" : task_id or str ( uuid . uuid4 () ) , \" message \" : message . model_dump () , \" metadata \" : metadata or {} } async with httpx . AsyncClient () as client : resp = await client . post ( f \" { self . agent_url }/ tasks / send \" , json = payload , headers = self . headers , timeout =30.0 ) resp . raise_for_status () return Task (** resp . json () )",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-24-9-b16",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "462"
+          },
+          "language": "python",
+          "code": "async def stream_task ( self , message : Message , metadata : dict | None = None ) -> AsyncIterator [ dict ]: \" \" \" Submit a task and stream SSE events . \" \" \" payload = { \" id \" : str ( uuid . uuid4 () ) , \" message \" : message . model_dump () , \" metadata \" : metadata or {} } async with httpx . AsyncClient () as client : async with client . stream ( \" POST \" , f \" { self . agent_url }/ tasks / sendSubscribe \" , json = payload , headers ={** self . headers , \" Accept \" : \" text / event - stream \" } , timeout =300.0 ) as response : async for line in response . aiter_lines () : if line . startswith ( \" data : \" ) : event_data = json . loads ( line [6:]) yield event_data if event_data . get ( \" final \" ) : break",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-24-9-b17",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "462"
+          },
+          "text": "aync def 获得 任务( 自己， 任务 id : str) - > 任务 :",
+          "originalExcerpt": "async def get_task ( self , task_id : str ) -> Task :"
+        },
+        {
+          "id": "s-24-9-b18",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "463"
+          },
+          "language": "text",
+          "code": "\" \" \" Poll for task status . \" \" \" async with httpx . AsyncClient () as client : resp = await client . get ( f \" { self . agent_url }/ tasks /{ task_id } \" , headers = self . headers ) resp . raise_for_status () return Task (** resp . json () )",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-24-9-b19",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "463"
+          },
+          "language": "python",
+          "code": "async def wait_for_completion ( self , task : Task , poll_interval : float = 2.0) -> Task : \" \" \" Poll until task reaches a terminal state . \" \" \" terminal_states = { \" completed \" , \" failed \" , \" canceled \" } while task . status . state not in terminal_states : await asyncio . sleep ( poll_interval ) task = await self . get_task ( task . id ) return task",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-24-9-b20",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "463"
+          },
+          "text": "# -- A2A 服务器(FastAPI) - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -",
+          "originalExcerpt": "# -- A2A Server ( FastAPI ) - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
+        },
+        {
+          "id": "s-24-9-b21",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "463"
+          },
+          "text": "类研究Agent:\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"",
+          "originalExcerpt": "class ResearchAgent : \"\"\" A specialist research agent that searches literature and summarizes findings on a given topic . \"\"\""
+        },
+        {
+          "id": "s-24-9-b22",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "463"
+          },
+          "text": "Agent CARD = { \" 名称 \" : \" 研究Agent \"， \" 描述 \" : \" 搜索学术文献并综合研究成果 \"， \" url \" : \" https:// Research - Agent。 example.com / A2A \"， \" 版本 \" :\" 1.0.0 \"， \" 能力 \" :{ \" 流派 \" :真， \" 推动通知 \" :假， \" St at eT run si ti on His to ry \" :真， \" 认证 \" :{ \" 计划 \" :[ \" 承接者 \" ]， \" 技能 \" :[{ \" id \" :\" 文献-搜索 \"， \" 名称 \" : \" 文献搜索 \"， \" 描述 \" : \" 搜索和总结关于某一专题的学术论文 \"， \" 标记 \" :[ \" 研究 \"， \" 文献 \"， \" 学术 \"， \" 论文 \" ]， \" 实例 \" :[ \" 总结最近关于Transformer注意机制的论文。\"， \" 文献对RLHF对代码生成有何看法？\" ]， \" 输入模式 \" :[ \" 文本 \" ]， \" 输出模式 \" :[ \" 文本 \"， \" 数据 \" ]}]]",
+          "originalExcerpt": "AGENT_CARD = { \" name \" : \" ResearchAgent \" , \" description \" : \" Searches academic literature and synthesizes research findings . \" , \" url \" : \" https :// research - agent . example . com / a2a \" , \" version \" : \" 1.0.0 \" , \" capabilities \" : { \" streaming \" : True , \" pushNotifications \" : False , \" st at eT ran si ti on His to ry \" : True }, \" authentica..."
+        },
+        {
+          "id": "s-24-9-b23",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "463"
+          },
+          "text": "def init (自 ) : self。任务: dict [str， Task] = {} 自我。 app = FastAPI(标题= \" Research Agent A2A Server \" ) 自我。 register routes ()",
+          "originalExcerpt": "def __init__ ( self ) : self . tasks : dict [ str , Task ] = {} self . app = FastAPI ( title = \" ResearchAgent A2A Server \" ) self . _register_routes ()"
+        },
+        {
+          "id": "s-24-9-b24",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "463"
+          },
+          "language": "python",
+          "code": "def _register_routes ( self ) : @self . app . get ( \" /. well - known / agent . json \" ) async def agent_card () : return self . AGENT_CARD",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-24-9-b25",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "463"
+          },
+          "language": "python",
+          "code": "@self . app . post ( \" / tasks / send \" ) async def send_task ( request : Request ) : body = await request . json () task = await self . _create_and_run_task ( body )",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-24-9-b26",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "464"
+          },
+          "text": "返回任务。 model dump ()",
+          "originalExcerpt": "return task . model_dump ()"
+        },
+        {
+          "id": "s-24-9-b27",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "464"
+          },
+          "language": "python",
+          "code": "@self . app . post ( \" / tasks / sendSubscribe \" ) async def send_subscribe ( request : Request ) : body = await request . json () return StreamingResponse ( self . _stream_task ( body ) , media_type = \" text / event - stream \" )",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-24-9-b28",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "464"
+          },
+          "language": "python",
+          "code": "@self . app . get ( \" / tasks /{ task_id } \" ) async def get_task ( task_id : str ) : if task_id not in self . tasks : raise HTTPException ( status_code =404 , detail = \" Task not found \" ) return self . tasks [ task_id ]. model_dump ()",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-24-9-b29",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "464"
+          },
+          "language": "python",
+          "code": "async def _create_and_run_task ( self , body : dict ) -> Task : task_id = body . get ( \" id \" , str ( uuid . uuid4 () ) ) message = Message (** body [ \" message \" ])",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-24-9-b30",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "464"
+          },
+          "text": "tory=任务 (id=任务 id， status=任务状态 (状态=\"提交\")，消息=[消息]，元数据=正文。 get ( \"元数据\"， {}) self。 tories [officiation id]=任务。",
+          "originalExcerpt": "task = Task ( id = task_id , status = TaskStatus ( state = \" submitted \" ) , messages =[ message ] , metadata = body . get ( \" metadata \" , {}) ) self . tasks [ task_id ] = task"
+        },
+        {
+          "id": "s-24-9-b31",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "464"
+          },
+          "text": "# 运行同步的 Ayncio。创建 任务( 自我。 execution task( 任务 id)) 返回任务",
+          "originalExcerpt": "# Run asynchronously asyncio . create_task ( self . _execute_task ( task_id ) ) return task"
+        },
+        {
+          "id": "s-24-9-b32",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "464"
+          },
+          "language": "python",
+          "code": "async def _execute_task ( self , task_id : str ) : task = self . tasks [ task_id ] task . status = TaskStatus ( state = \" working \" )",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-24-9-b33",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "464"
+          },
+          "text": "尝试 : # 从信件问题 = 任务中提取研究问题。 消息 [0] 部分 [0]。 text",
+          "originalExcerpt": "try : # Extract the research question from the message question = task . messages [0]. parts [0]. text"
+        },
+        {
+          "id": "s-24-9-b34",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "464"
+          },
+          "text": "# 模拟文献搜索( 替换为真实搜索工具) 等待 Ayncio。 sleep (1) # 模拟的延迟发现 = 等待自我。 search literature(问题)",
+          "originalExcerpt": "# Simulate literature search ( replace with real search tool ) await asyncio . sleep (1) # Simulated latency findings = await self . _search_literature ( question )"
+        },
+        {
+          "id": "s-24-9-b35",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "464"
+          },
+          "text": "# 生产文物任务。文物=[ 文物(部分=[部分(类型= \" 文本 \"，文本=发现[ \" 摘要 \" )，部分(类型= \" 数据 \"，数据=[文件]:调查结果[ \" 文件 \"， \" 查询 \" :问题 })]任务 状态 = 任务状态(状态 = \" 已完成 \" )",
+          "originalExcerpt": "# Produce artifact task . artifacts = [ Artifact ( parts =[ Part ( type = \" text \" , text = findings [ \" summary \" ]) , Part ( type = \" data \" , data ={ \" papers \" : findings [ \" papers \" ] , \" query \" : question }) ]) ] task . status = TaskStatus ( state = \" completed \" )"
+        },
+        {
+          "id": "s-24-9-b36",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "464"
+          },
+          "text": "除e例外:任务.状态=任务状态(状态= \" 失败 \"，消息=str (e))",
+          "originalExcerpt": "except Exception as e : task . status = TaskStatus ( state = \" failed \" , message = str ( e ) )"
+        },
+        {
+          "id": "s-24-9-b37",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "464"
+          },
+          "text": "本身。任务 [任务 id] = 任务",
+          "originalExcerpt": "self . tasks [ task_id ] = task"
+        },
+        {
+          "id": "s-24-9-b38",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "464"
+          },
+          "language": "python",
+          "code": "async def _search_literature ( self , question : str ) -> dict : \" \" \" Placeholder : in production , calls a real search API . \" \" \" return { \" summary \" : f \" Based on a search of recent literature regarding \" f \" ’{ question } ’ , key findings include : ... \" , \" papers \" : [ { \" title \" : \" Attention Is All You Need \" , \" year \" : 2017 , \" relevance \" : 0.95} , { \" title \" : \" RLHF : Training Language Models to Follow Instructions \" ,",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-24-9-b39",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "465"
+          },
+          "text": "\" 年份 \" :2022年， \" 相关性 \" :0.88}}}",
+          "originalExcerpt": "\" year \" : 2022 , \" relevance \" : 0.88} ] }"
+        },
+        {
+          "id": "s-24-9-b40",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "465"
+          },
+          "language": "python",
+          "code": "async def _stream_task ( self , body : dict ) -> AsyncIterator [ str ]: task = await self . _create_and_run_task ( body )",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-24-9-b41",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "465"
+          },
+          "text": "#流态更新输出 f \" 数据 : {json。 dulls({ ' id ': jobs。 id， ' status ' : { ' 提交 '， ' 最终 ' : False }}}}\\ n \" dulls f \" 数据 : {json。 dulls({ ' id ': jobs。 id， ' status ' : { ' status ' :' '工作， ' 最终 ' : False }，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，",
+          "originalExcerpt": "# Stream status updates yield f \" data : { json . dumps ({ ’ id ’: task . id , ’ status ’: { ’ state ’: ’ submitted ’} , ’ final ’: False }) }\\ n \\ n \" yield f \" data : { json . dumps ({ ’ id ’: task . id , ’ status ’: { ’ state ’: ’ working ’} , ’ final ’: False }) }\\ n \\ n \""
+        },
+        {
+          "id": "s-24-9-b42",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "465"
+          },
+          "text": "# 在任务时等待完成.状态。状态不处于( \" 已完成 \"， \" 失败 \"， \" 取消 \" ) : 等待 Ayncio。 sleep( 0.5) 任务=自定任务 [任务。 id]",
+          "originalExcerpt": "# Wait for completion while task . status . state not in ( \" completed \" , \" failed \" , \" canceled \" ) : await asyncio . sleep (0.5) task = self . tasks [ task . id ]"
+        },
+        {
+          "id": "s-24-9-b43",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "465"
+          },
+          "text": "# 如果任务流出文物 : 部分任务 : 文物 [0]。部分:事件={ id: 任务 : id: 文物 :{ 部分: 部分: [部分。型号 dump (]， \" 索引 \" : 0， \" 附录 \" : 假， \" 最后的春克 \" :True }， \" Final \" : False } 生成 f \" 数据 : {json。垃圾堆(事件) {{ n\\ n >",
+          "originalExcerpt": "# Stream the artifact if task . artifacts : for part in task . artifacts [0]. parts : event = { \" id \" : task . id , \" artifact \" : { \" parts \" : [ part . model_dump () ] , \" index \" : 0 , \" append \" : False , \" lastChunk \" : True }, \" final \" : False } yield f \" data : { json . dumps ( event ) }\\ n \\ n \""
+        },
+        {
+          "id": "s-24-9-b44",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "465"
+          },
+          "text": "# 最终状态 生成 f \" 数据 : {json。 dumps ({ ' id ' : 任务。 id， 状态 : 任务。状态。 model dump ()， ' final : true }}\\ n\\ n \"",
+          "originalExcerpt": "# Final status yield f \" data : { json . dumps ({ ’ id ’: task . id , ’ status ’: task . status . model_dump () , ’ final ’: True }) }\\ n \\ n \""
+        },
+        {
+          "id": "s-24-9-b45",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "465"
+          },
+          "text": "—— 兽师:多——Agent工作流——————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————",
+          "originalExcerpt": "# -- Orchestrator : Multi - Agent Workflow - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
+        },
+        {
+          "id": "s-24-9-b46",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "465"
+          },
+          "text": "R e e er chorchestrator :\"\"\" Orchestrators a multiple - Agent研究工作流程:",
+          "originalExcerpt": "class R e s e ar chOrchestrator : \"\"\" Orchestrates a multi - agent research workflow :"
+        },
+        {
+          "id": "s-24-9-b47",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "465"
+          },
+          "text": "1. 将研究问题分为次级问题",
+          "originalExcerpt": "1. Decomposes the research question into sub - questions"
+        },
+        {
+          "id": "s-24-9-b48",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "465"
+          },
+          "text": "2. 向研究人员发送每个分小组的问题",
+          "originalExcerpt": "2. Dispatches each sub - question to a ResearchAgent"
+        },
+        {
+          "id": "s-24-9-b49",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "465"
+          },
+          "text": "3. 将结果合成最后报告",
+          "originalExcerpt": "3. Synthesizes results into a final report"
+        },
+        {
+          "id": "s-24-9-b51",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "465"
+          },
+          "text": "def init (自， 研究 Agent url: str， auty token: str) : 自我。研究 客户端= A2AClient(研究 Agent url， auty token) 自我。工作流程 id= str(uid。 uid4()) 互联网档案馆的存檔，存档日期2011-09-02.",
+          "originalExcerpt": "def __init__ ( self , research_agent_url : str , auth_token : str ) : self . research_client = A2AClient ( research_agent_url , auth_token ) self . workflow_id = str ( uuid . uuid4 () )"
+        },
+        {
+          "id": "s-24-9-b52",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "465"
+          },
+          "language": "python",
+          "code": "async def run ( self , research_question : str ) -> str : print ( f \" [ Orchestrator ] Starting workflow { self . workflow_id } \" ) print ( f \" [ Orchestrator ] Question : { research_question } \" )",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-24-9-b53",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "465"
+          },
+          "text": "# 步骤1: 分解为子 - 问题子 问题=自。 分解(研究 问题) 打印(f \" [Orchestrator]) 分解为{len(sub 问题)}子 - 问题 \" )。",
+          "originalExcerpt": "# Step 1: Decompose into sub - questions sub_questions = self . _decompose ( research_question ) print ( f \" [ Orchestrator ] Decomposed into { len ( sub_questions ) } sub - questions \" )"
+        },
+        {
+          "id": "s-24-9-b54",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "465"
+          },
+          "text": "# Step2: 调度子 - 并行任务中的问题 = 等待 Ayncio。收集 (*[self。 Research client。发送 任务(消息=消息(作用= \" 用户 \" )， 部分= [部分(类型= \" 文本 \"，文本= q)])，元数据 === \" 工作流程ID \" :本身。工作流程 id， \" 子问题 \" : i } )",
+          "originalExcerpt": "# Step 2: Dispatch sub - questions in parallel tasks = await asyncio . gather (*[ self . research_client . send_task ( message = Message ( role = \" user \" , parts =[ Part ( type = \" text \" , text = q ) ]) , metadata ={ \" workflowId \" : self . workflow_id , \" subQuestion \" : i } )"
+        },
+        {
+          "id": "s-24-9-b55",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "466"
+          },
+          "text": "为i， q in lockete (sub 问题)) )。",
+          "originalExcerpt": "for i , q in enumerate ( sub_questions ) ])"
+        },
+        {
+          "id": "s-24-9-b56",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "466"
+          },
+          "text": "# 第3步:等待所有任务完成 任务=等待 Ayncio 收集(*[自。研究 客户端。等待 任务完成(任务))",
+          "originalExcerpt": "# Step 3: Wait for all tasks to complete completed_tasks = await asyncio . gather (*[ self . research_client . wait_for_completion ( task ) for task in tasks ])"
+        },
+        {
+          "id": "s-24-9-b57",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "466"
+          },
+          "text": "# Step 4: 检查失败 = [t for t in finished task if t。 status。 state = ==== =======================================================================================================================================================================================================================",
+          "originalExcerpt": "# Step 4: Check for failures failed = [ t for t in completed_tasks if t . status . state == \" failed \" ] if failed : print ( f \" [ Orchestrator ] Warning : { len ( failed ) } sub - tasks failed \" )"
+        },
+        {
+          "id": "s-24-9-b58",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "466"
+          },
+          "text": "# 第5步:合成结果结果结果=[]任务，问题在zip(已完成 任务，子 问题)中:如果任务.状态===============================================================================================================================================================================================================================summary = = = = = = = = = = = = = = = = = = = = = = = = = }\\ }\\ }\\ }\\ }\\ }\\ }\\ }\\ }\\ }\\ }\\ }\\ }\\ }\\ }\\ }\\ }\\ }\\ }\\ }\\ }\\ }\\ } } } } } } } } } } } } } } } } } } } }",
+          "originalExcerpt": "# Step 5: Synthesize results findings = [] for task , question in zip ( completed_tasks , sub_questions ) : if task . status . state == \" completed \" and task . artifacts : summary = task . artifacts [0]. parts [0]. text findings . append ( f \" ### { question }\\ n { summary } \" )"
+        },
+        {
+          "id": "s-24-9-b59",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "466"
+          },
+          "text": "报表 = 自。 合成大小( 研究 提问， 调查结果 ) 打印 (f \" [ Orchestrator ] 工作流程完成。 报表 : { len ( report) } 字符 \" ) 返回报告",
+          "originalExcerpt": "report = self . _synthesize ( research_question , findings ) print ( f \" [ Orchestrator ] Workflow complete . Report : { len ( report ) } chars \" ) return report"
+        },
+        {
+          "id": "s-24-9-b60",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "466"
+          },
+          "language": "python",
+          "code": "def _decompose ( self , question : str ) -> list [ str ]: \" \" \" Decompose a complex question into focused sub - questions . \" \" \" # In production : use an LLM to decompose return [ f \" What are the foundational methods for : { question }? \" , f \" What are the most recent advances in : { question }? \" , f \" What are the open challenges and limitations in : { question }? \" ]",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-24-9-b61",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "466"
+          },
+          "language": "python",
+          "code": "def _synthesize ( self , question : str , findings : list [ str ]) -> str : \" \" \" Synthesize sub - findings into a coherent report . \" \" \" # In production : use an LLM to synthesize sections = \" \\ n \\ n \" . join ( findings ) return f \" # Research Report : { question }\\ n \\ n { sections } \"",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-24-9-b62",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "466"
+          },
+          "text": "——进士点——————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————",
+          "originalExcerpt": "# -- Entry Point - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
+        },
+        {
+          "id": "s-24-9-b63",
+          "type": "code",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "466"
+          },
+          "language": "python",
+          "code": "async def main () : orchestrator = ResearchOrchestrator ( re search_agent_url = \" https :// research - agent . example . com / a2a \" , auth_token = \" eyJhbGciOiJSUzI1NiJ9 ... \" ) report = await orchestrator . run ( \" Reinforcement learning from human feedback for large language models \" ) print ( report )",
+          "explanation": "原书代码转写为可复制文本；请结合本节上下文核对依赖、权限和版本。"
+        },
+        {
+          "id": "s-24-9-b64",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.9",
+            "pages": "466"
+          },
+          "text": "如果 名 == \" main \" : Ayncio。运行(主())",
+          "originalExcerpt": "if __name__ == \" __main__ \" : asyncio . run ( main () )"
+        }
+      ]
+    },
+    {
+      "id": "s-24-10",
+      "number": "24.10",
+      "level": 1,
+      "enTitle": "Summary",
+      "zhTitle": "Summary",
+      "pages": "466-467",
+      "blocks": [
+        {
+          "id": "s-24-10-editorial-reading-guide",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": {
+            "chapter": 24,
+            "section": "24.10",
+            "pages": "466-467"
+          },
+          "title": "编者阅读提示",
+          "text": "阅读 §24.10「Summary」 时，以页面标注的原文范围为证据边界：先确认术语定义，再追踪机制、前提、例子与限制，最后检查结论能否迁移到不同规模或不同数据条件。以下译述保留这些层次，不把编者判断混入原文。"
+        },
+        {
+          "id": "s-24-10-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.10",
+            "pages": "466"
+          },
+          "text": "关键外卖:AgentAgent通信",
+          "originalExcerpt": "Key Takeaways: Agent-to-Agent Communication"
+        },
+        {
+          "id": "s-24-10-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.10",
+            "pages": "466"
+          },
+          "text": "1. A2A使专业化能够大规模地进行:通过向专家Agent机构分配任务，实现多种形式的专业化。",
+          "originalExcerpt": "1. A2A enables specialization at scale: By routing tasks to specialist agents, multi-"
+        },
+        {
+          "id": "s-24-10-b3",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.10",
+            "pages": "466"
+          },
+          "text": "Agent系统同时实现深度和广度。 (第25章涵盖深度的多Agent架构。 )",
+          "originalExcerpt": "agent systems achieve depth and breadth simultaneously. (Chapter 25 covers multi-agent architectures in depth.)"
+        },
+        {
+          "id": "s-24-10-b4",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.10",
+            "pages": "467"
+          },
+          "text": "2. Google的A2A协议为互操作提供了生产准备的开放标准",
+          "originalExcerpt": "2. Google’s A2A Protocol provides a production-ready, open standard for interoperable"
+        },
+        {
+          "id": "s-24-10-b5",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.10",
+            "pages": "467"
+          },
+          "text": "Agent通信，与Agent卡，任务生命周期管理， SSE流线，以及企业认证。",
+          "originalExcerpt": "agent communication, with Agent Cards, task lifecycle management, SSE streaming, and enterprise authentication."
+        },
+        {
+          "id": "s-24-10-b6",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.10",
+            "pages": "467"
+          },
+          "text": "3. 通信模式从简单的请求-答复到复杂的谈判和",
+          "originalExcerpt": "3. Communication patterns range from simple request-response to complex negotiation and"
+        },
+        {
+          "id": "s-24-10-b7",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.10",
+            "pages": "467"
+          },
+          "text": "以拍卖为基础的分配——根据任务的复杂性和耐久性需要作出选择。",
+          "originalExcerpt": "auction-based allocation—choose based on task complexity and latency needs."
+        },
+        {
+          "id": "s-24-10-b8",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.10",
+            "pages": "467"
+          },
+          "text": "4. A2A和MCP是互补的:A2A连接Agent物剂;MCP连接物剂。",
+          "originalExcerpt": "4. A2A and MCP are complementary: A2A connects agents to agents; MCP connects"
+        },
+        {
+          "id": "s-24-10-b9",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.10",
+            "pages": "467"
+          },
+          "text": "工具的Agent，大多数生产系统都使用两者。",
+          "originalExcerpt": "agents to tools. Most production systems use both."
+        },
+        {
+          "id": "s-24-10-b10",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.10",
+            "pages": "467"
+          },
+          "text": "5. 安全是不容谈判的:Agent身份核查、授权范围和审计",
+          "originalExcerpt": "5. Security is non-negotiable: Agent identity verification, authorization scopes, and audit"
+        },
+        {
+          "id": "s-24-10-b11",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.10",
+            "pages": "467"
+          },
+          "text": "任何多Agent部署都须有线索。",
+          "originalExcerpt": "trails are essential in any multi-agent deployment."
+        },
+        {
+          "id": "s-24-10-b12",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.10",
+            "pages": "467"
+          },
+          "text": "6。协调协议(合同网、黑板、共识)提供结构化的网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网间网",
+          "originalExcerpt": "6. Coordination protocols (Contract Net, Blackboard, Consensus) provide structured mech-"
+        },
+        {
+          "id": "s-24-10-b13",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.10",
+            "pages": "467"
+          },
+          "text": "集体决策的无动于衷，不能仅仅授权。",
+          "originalExcerpt": "anisms for collective decision-making beyond simple delegation."
+        },
+        {
+          "id": "s-24-10-b14",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.10",
+            "pages": "467"
+          },
+          "text": "7。通过相关ID的可观察性对于调试和审计综合体至关重要",
+          "originalExcerpt": "7. Observability through correlation IDs is critical for debugging and auditing complex"
+        },
+        {
+          "id": "s-24-10-b15",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.10",
+            "pages": "467"
+          },
+          "text": "涉及许多Agent和工具的多Agent工作流程。",
+          "originalExcerpt": "multi-agent workflows spanning many agents and tools. Open Research Questions in A2A"
+        },
+        {
+          "id": "s-24-10-b16",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.10",
+            "pages": "467"
+          },
+          "text": "• Agent应如何在等级上处理多个指挥者的相互矛盾的指示?",
+          "originalExcerpt": "• How should agents handle conflicting instructions from multiple orchestrators in a hierarchy?"
+        },
+        {
+          "id": "s-24-10-b17",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.10",
+            "pages": "467"
+          },
+          "text": "哪些解决冲突的机制最为有效?",
+          "originalExcerpt": "What conflict resolution mechanisms are most effective?"
+        },
+        {
+          "id": "s-24-10-b18",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.10",
+            "pages": "467"
+          },
+          "text": "• Agent能够通过经验而不是通过经验学习更好的路线和授权战略;",
+          "originalExcerpt": "• Can agents learn better routing and delegation strategies through experience, rather than"
+        },
+        {
+          "id": "s-24-10-b19",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.10",
+            "pages": "467"
+          },
+          "text": "依赖静态能力申报?",
+          "originalExcerpt": "relying on static capability declarations?"
+        },
+        {
+          "id": "s-24-10-b20",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.10",
+            "pages": "467"
+          },
+          "text": "如何防止恶意毒剂操纵下毒的即时注射攻击..。",
+          "originalExcerpt": "• How do we prevent prompt injection attacks where a malicious agent manipulates a down-"
+        },
+        {
+          "id": "s-24-10-b21",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.10",
+            "pages": "467"
+          },
+          "text": "将对抗性指令嵌入到其消息中，从而产生流派Agent?",
+          "originalExcerpt": "stream agent by embedding adversarial instructions in its messages?"
+        },
+        {
+          "id": "s-24-10-b22",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.10",
+            "pages": "467"
+          },
+          "text": "• 如何正确限定隐私，以进行背景交流——对话的历史",
+          "originalExcerpt": "• What are the right privacy boundaries for context passing—how much conversation history"
+        },
+        {
+          "id": "s-24-10-b23",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.10",
+            "pages": "467"
+          },
+          "text": "副Agent应该知道，我们如何在技术上执行这些界限?",
+          "originalExcerpt": "should a sub-agent see, and how do we enforce these boundaries technically?"
+        },
+        {
+          "id": "s-24-10-b24",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.10",
+            "pages": "467"
+          },
+          "text": "• 随着Agent网络发展到数百或数千名Agent，我们如何保持协调一致",
+          "originalExcerpt": "• As agent networks grow to hundreds or thousands of agents, how do we maintain coherent"
+        },
+        {
+          "id": "s-24-10-b25",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "source": {
+            "chapter": 24,
+            "section": "24.10",
+            "pages": "467"
+          },
+          "text": "· 是否在不造成瓶颈或一致性违反的情况下建立全球状态?",
+          "originalExcerpt": "global state without creating bottlenecks or consistency violations?"
+        }
+      ]
+    }
+  ],
+  "glossary": [
+    {
+      "term": "Agent",
+      "zh": "智能体",
+      "meaning": "由模型、状态、工具和运行循环共同构成的目标导向系统。"
+    },
+    {
+      "term": "MCP",
+      "zh": "MCP",
+      "meaning": "连接 AI application 与外部 tools、resources、prompts 的标准协议。"
+    },
+    {
+      "term": "A2A",
+      "zh": "Agent 间协议",
+      "meaning": "用于异构 Agent 发现能力、委派任务和交换 artifact 的协议。"
+    },
+    {
+      "term": "context window",
+      "zh": "context window",
+      "meaning": "单次模型调用可直接读取的 token 范围。"
+    },
+    {
+      "term": "Transformer",
+      "zh": "Transformer",
+      "meaning": "以 attention 为核心的序列建模架构。"
+    },
+    {
+      "term": "token",
+      "zh": "词元",
+      "meaning": "模型处理和生成文本时使用的离散单位。"
+    }
+  ],
+  "summary": [
+    "随着LLM从孤立的助手演变成专业Agent的合作网络， Agent如何相互交谈的问题变得与内部如何解释一样重要。本节涵盖使多Agent系统能够协调、授权和集体解决任何单一Agent都无法单独处理的问题的协议、模式和工程做法。",
+    "专门化的必然性 一个单一的通论Agent面临一个根本的紧张:知识的广度与能力的深度。现实世界的任务——法律文件审查、多步骤科学研究、企业软件开发——两者都要求。 Agent与Agent通信通过允许专家网络合作解决了这一紧张关系，这些专家网络在下放弱点的同时贡献其优势。",
+    "认知负载和上下文限制。 每个 LLM 运行在一个有限的context window中。 复杂的工作流程 — 扩展了数百个文档、 tool calling和推理步骤 — 快速超过单个Agent在内存中所能持有的。通过将任务分解到各Agent之间，每个Agent在可管理的范围内运作，而管弦乐Agent只维持高层状态。"
+  ],
+  "metrics": {
+    "chineseCharacters": 11901,
+    "sourceCoverage": 88,
+    "sectionCount": 43,
+    "blockCount": 286
+  }
+}
