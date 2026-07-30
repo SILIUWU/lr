@@ -53,8 +53,9 @@ for (const chapter of chapters) {
     `invalid status on Ch.${chapter.chapter}`,
   );
 
-  let chapterVerifiedSections = 0;
-  for (const section of chapter.sections) {
+  let chapterVerifiedLeaves = 0;
+  let chapterLeaves = 0;
+  for (const [sectionIndex, section] of chapter.sections.entries()) {
     const sectionKey = `${chapter.chapter}:${section.id}`;
     assert.ok(!sectionIds.has(sectionKey), `duplicate section ${sectionKey}`);
     sectionIds.add(sectionKey);
@@ -66,12 +67,17 @@ for (const chapter of chapters) {
     const sectionIsVerified = sourceBlocks.some(
       (block) => block.reviewStatus === "verified",
     );
+    const hasChildren =
+      chapter.sections[sectionIndex + 1]?.level > section.level;
+    if (!hasChildren) {
+      chapterLeaves += 1;
+    }
     if (sectionIsVerified) {
-      chapterVerifiedSections += 1;
+      if (!hasChildren) chapterVerifiedLeaves += 1;
       verifiedSections += 1;
     }
 
-    if (chapter.status === "complete") {
+    if (chapter.status === "complete" && !hasChildren) {
       assert.ok(
         sectionIsVerified,
         `complete chapter contains unverified section ${sectionKey}`,
@@ -108,8 +114,8 @@ for (const chapter of chapters) {
 
   if (chapter.status === "complete") {
     assert.equal(
-      chapterVerifiedSections,
-      chapter.sections.length,
+      chapterVerifiedLeaves,
+      chapterLeaves,
       `Ch.${chapter.chapter} cannot be complete`,
     );
   }
@@ -117,7 +123,9 @@ for (const chapter of chapters) {
 
 assert.equal(chapters[14].status, "complete");
 assert.equal(chapters[14].sections.length, 10);
-assert.ok(verifiedBlocks >= 11);
+assert.equal(chapters[15].status, "in_progress");
+assert.equal(chapters[15].sections.length, 54);
+assert.ok(verifiedBlocks >= 100);
 
 const chapter16 = chapters[15];
 assert.ok(
@@ -133,6 +141,7 @@ const keySources = await Promise.all(
     "components/lesson-view.tsx",
     "components/chapter-reader.tsx",
     "lib/chapter-content.ts",
+    "content/chapters/ch-16.json",
   ].map((path) => readFile(resolve(path), "utf8")),
 );
 const combined = keySources.join("\n");

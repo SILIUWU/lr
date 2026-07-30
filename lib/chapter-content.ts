@@ -40,47 +40,6 @@ const importedChapters = [
 ] as unknown as ChapterContent[];
 
 const curatedBlocks: Record<string, ReadingBlock[]> = {
-  "16:s-16-5-3": [
-    {
-      id: "s-16-5-3-verified-translation",
-      type: "paragraph",
-      origin: "source_translation",
-      reviewStatus: "verified",
-      source: {
-        chapter: 16,
-        section: "16.5.3",
-        pages: "317",
-      },
-      text:
-        "初次检索返回的 chunk 往往会在真正相关的段落周围夹带无关句子。Contextual compression 使用 LLM，只抽取其中与当前查询相关的部分，从而减少送入生成模型的无效 context。",
-      originalExcerpt:
-        "Retrieved chunks often contain irrelevant sentences surrounding the relevant passage.",
-    },
-    {
-      id: "s-16-5-3-verified-code",
-      type: "code",
-      origin: "source_translation",
-      reviewStatus: "verified",
-      source: {
-        chapter: 16,
-        section: "16.5.3",
-        pages: "317",
-      },
-      title: "Listing 16.7 · 基于 LLM 的 Contextual Compression",
-      language: "python",
-      code:
-        "from langchain.retrievers import ContextualCompressionRetriever\n" +
-        "from langchain.retrievers.document_compressors import LLMChainExtractor\n\n" +
-        "compressor = LLMChainExtractor.from_llm(llm)\n" +
-        "compression_retriever = ContextualCompressionRetriever(\n" +
-        "    base_compressor=compressor,\n" +
-        "    base_retriever=vectorstore.as_retriever()\n" +
-        ")\n" +
-        "compressed_docs = compression_retriever.get_relevant_documents(query)",
-      explanation:
-        "代码先用 LLMChainExtractor 构造 compressor，再把它与原有 retriever 组合成 ContextualCompressionRetriever。检索候选仍由 base retriever 提供；LLM compressor 负责从候选内容中保留与 query 相关的片段。",
-    },
-  ],
   "16:s-16-3-6": [
     {
       id: "s-16-3-6-retrieval-table",
@@ -321,11 +280,8 @@ function withCuratedBlocks(chapter: ChapterContent): ChapterContent {
   const guide = chapterReadings.find((item) => item.chapter === chapter.chapter);
   const isSourceBacked = (block: ReadingBlock) =>
     ["source_translation", "source_definition"].includes(block.origin);
-  const isPublishable = (block: ReadingBlock) => {
-    if (block.id.endsWith("-editorial-reading-guide")) return false;
-    if (isSourceBacked(block)) return block.reviewStatus === "verified";
-    return block.reviewStatus !== "machine_draft";
-  };
+  const isPublishable = (block: ReadingBlock) =>
+    block.reviewStatus === "verified";
   const countChinese = (block: ReadingBlock) => {
     const values =
       block.type === "paragraph"
@@ -372,11 +328,18 @@ function withCuratedBlocks(chapter: ChapterContent): ChapterContent {
       (block) => isSourceBacked(block) && block.reviewStatus === "verified",
     ),
   );
-  const verifiedSectionCount = sections.filter((section) =>
-    section.blocks.some(
-      (block) => isSourceBacked(block) && block.reviewStatus === "verified",
-    ),
-  ).length;
+  const coverage = sections.reduce(
+    (result, section, index) => {
+      const hasVerifiedSource = section.blocks.some(
+        (block) => isSourceBacked(block) && block.reviewStatus === "verified",
+      );
+      const hasChildren = sections[index + 1]?.level > section.level;
+      if (hasVerifiedSource || !hasChildren) result.denominator += 1;
+      if (hasVerifiedSource) result.numerator += 1;
+      return result;
+    },
+    { numerator: 0, denominator: 0 },
+  );
   const visibleBlockCount = sections.reduce(
     (total, section) => total + section.blocks.length,
     0,
@@ -385,10 +348,10 @@ function withCuratedBlocks(chapter: ChapterContent): ChapterContent {
     ...chapter,
     zhTitle: guide?.zhTitle ?? chapter.zhTitle,
     overview:
-      chapter.chapter === 15
+      verifiedSourceBlocks.length > 0
         ? chapter.overview
         : (guide?.overview ?? chapter.overview),
-    status: chapter.chapter === 15 ? "complete" : "in_progress",
+    status: chapter.status,
     sections,
     metrics: {
       ...chapter.metrics,
@@ -397,9 +360,9 @@ function withCuratedBlocks(chapter: ChapterContent): ChapterContent {
         0,
       ),
       sourceCoverage:
-        sections.length === 0
+        coverage.denominator === 0
           ? 0
-          : Math.round((verifiedSectionCount / sections.length) * 100),
+          : Math.round((coverage.numerator / coverage.denominator) * 100),
       blockCount: visibleBlockCount,
     },
   };

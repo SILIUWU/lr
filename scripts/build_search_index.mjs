@@ -11,13 +11,7 @@ for (let chapter = 1; chapter <= 30; chapter += 1) {
   for (const section of content.sections) {
     const searchable = section.blocks
       .filter((block) => {
-        if (block.id.endsWith("-editorial-reading-guide")) return false;
-        if (
-          ["source_translation", "source_definition"].includes(block.origin)
-        ) {
-          return block.reviewStatus === "verified";
-        }
-        return block.reviewStatus !== "machine_draft";
+        return block.reviewStatus === "verified";
       })
       .flatMap((block) => {
         if (block.type === "paragraph") return [block.text, block.originalExcerpt];

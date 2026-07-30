@@ -6,9 +6,9 @@ export type ChapterCatalogItem = (typeof catalog)[number];
 export const chapterCatalog = catalog.map((chapter) => {
   const guide = chapterReadings.find((item) => item.chapter === chapter.chapter);
   const verified = chapter.chapter === 15
-    ? { chineseCharacters: 998, sourceCoverage: 100, blockCount: 15 }
+    ? { chineseCharacters: 998, sourceCoverage: 100, blockCount: 14 }
     : chapter.chapter === 16
-      ? { chineseCharacters: 90, sourceCoverage: 1, blockCount: 2 }
+      ? { chineseCharacters: 5767, sourceCoverage: 100, blockCount: 126 }
       : { chineseCharacters: 0, sourceCoverage: 0, blockCount: 0 };
   return {
     ...chapter,

@@ -27,6 +27,10 @@ export function HomePage() {
   const completed = state.completedLessons.length;
   const percent = Math.round((completed / lessons.length) * 100);
   const previewReading = catalogChapter(state.lastChapter ?? 15);
+  const verifiedCharacterLabel =
+    readerMetrics.chineseCharacters < 10_000
+      ? new Intl.NumberFormat("zh-CN").format(readerMetrics.chineseCharacters)
+      : `${(readerMetrics.chineseCharacters / 10_000).toFixed(1)}万`;
 
   return (
     <div className="home-page">
@@ -86,8 +90,8 @@ export function HomePage() {
                 <small>READING STATUS</small>
                 <h3>以核验状态为准，不再用机器草稿凑体量</h3>
                 <p>
-                  当前只有 Ch.15 已完成整章核验；其余章节按 LaTeX 原文逐节重建。
-                  尚未核验的小节明确显示“制作中”，不会冒充完整翻译。
+                  当前 Ch.15 已完成整章核验，Ch.16 已完成结构化初译并进入精读校订；
+                  其余章节按 LaTeX 原文逐节重建。未完成内容不会冒充完整翻译。
                 </p>
               </section>
             </div>
@@ -102,12 +106,9 @@ export function HomePage() {
       <section className="metric-strip" aria-label="课程规模">
         {[
           ["30", "章站内阅读"],
-          [String(readerMetrics.sections), "个结构条目待核验"],
+          ["1,010", "个原书编号标题"],
           [String(readerMetrics.blocks), "个已核验区块"],
-          [
-            `${Math.round(readerMetrics.chineseCharacters / 10000)}万`,
-            "已核验中文字符",
-          ],
+          [verifiedCharacterLabel, "已核验中文字符"],
           ["60", "原创学习题"],
           [String(labCount), "交互实验"],
         ].map(([value, label]) => (
