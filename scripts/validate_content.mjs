@@ -123,7 +123,7 @@ for (const chapter of chapters) {
 
 assert.equal(chapters[14].status, "complete");
 assert.equal(chapters[14].sections.length, 10);
-assert.equal(chapters[15].status, "in_progress");
+assert.equal(chapters[15].status, "complete");
 assert.equal(chapters[15].sections.length, 54);
 assert.ok(verifiedBlocks >= 100);
 
@@ -160,8 +160,8 @@ assert.deepEqual(
   ["/paper/figure-16-1.webp", "/paper/figure-16-2.webp"],
 );
 assert.ok(
-  chapter16.metrics.chineseCharacters < 10_000,
-  "Ch.16 must remain in_progress until a substantially fuller translation is published",
+  chapter16.metrics.chineseCharacters >= 12_000,
+  "Ch.16 cannot be complete below the full-rendition character floor",
 );
 
 const keySources = await Promise.all(

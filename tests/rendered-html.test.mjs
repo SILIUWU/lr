@@ -116,11 +116,8 @@ test("native reader corpus maps all 30 chapters and source sections", async () =
       .every((chapter) => chapter.sections.length >= 14),
   );
   assert.equal(chapters[14].status, "complete");
-  assert.ok(
-    chapters
-      .filter((chapter) => chapter.chapter !== 15)
-      .every((chapter) => chapter.status === "in_progress"),
-  );
+  assert.equal(chapters[15].status, "complete");
+  assert.ok(chapters.slice(16).every((chapter) => chapter.status === "in_progress"));
 });
 
 test("v1 learning state migrates without losing notes, cards or theme", () => {
@@ -240,12 +237,12 @@ test("chapter route renders section anchors, source pages and native rich blocks
   assert.match(ragHtml, /原文译述/);
   assert.match(ragHtml, /编者解释/);
   assert.match(ragHtml, /工程延伸/);
-  assert.match(ragHtml, /精读重建中/);
+  assert.match(ragHtml, /精读完成/);
   assert.match(ragHtml, /目录结构映射/);
   assert.match(ragHtml, /figure-16-1\.webp/);
   assert.match(ragHtml, /Eq\.[\s\S]{0,20}16\.1–16\.2/);
   assert.match(ragHtml, /katex/);
-  assert.match(ragHtml, /你已读完的是当前公开内容，不是原章全文/);
+  assert.doesNotMatch(ragHtml, /你已读完的是当前公开内容，不是原章全文/);
   assert.doesNotMatch(
     ragHtml,
     /变量含义与适用条件仍在逐式补充校订|原书公式 [1-9]/,

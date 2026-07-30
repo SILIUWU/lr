@@ -1,5 +1,10 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import {
+  codeNotes,
+  formulaNotes,
+  paragraphAdditions,
+} from "./ch16_full_translation.mjs";
 
 const T = (zhTitle, paragraphs, extra = {}) => ({
   zhTitle,
@@ -558,6 +563,18 @@ const translations = {
   )
 };
 
+function completeEntry(number, baseEntry) {
+  return {
+    ...baseEntry,
+    paragraphs: [
+      ...baseEntry.paragraphs,
+      ...(paragraphAdditions[number] ?? []),
+    ],
+    formulaNotes: formulaNotes[number] ?? baseEntry.formulaNotes,
+    codeNotes: codeNotes[number] ?? baseEntry.codeNotes,
+  };
+}
+
 const sourcePath = resolve("tmp/pdfs/source-v2/book.tex");
 const inventoryPath = resolve("content/source-structure.json");
 const outputPath = resolve("content/chapters/ch-16.json");
@@ -686,7 +703,9 @@ function enrichBlocks(entry, number, pages, segment) {
       title: listing.caption,
       language: "python",
       code: listing.code,
-      explanation: "原书代码按 LaTeX source 原样转写；上方译述说明其目的、数据流与限制。",
+      explanation:
+        entry.codeNotes?.[codeIndex] ??
+        "原书代码按 LaTeX source 原样转写；本节正文说明其目的、数据流与限制。",
     });
   }
   for (const [tableIndex, table] of (entry.tables ?? []).entries()) {
@@ -736,8 +755,9 @@ function enrichBlocks(entry, number, pages, segment) {
 
 const headingLines = chapterInventory.headings.map((heading) => heading.sourceLine);
 const sections = chapterInventory.headings.map((heading, index) => {
-  const entry = translations[heading.number];
-  if (!entry) throw new Error(`missing translation for §${heading.number}`);
+  const baseEntry = translations[heading.number];
+  if (!baseEntry) throw new Error(`missing translation for §${heading.number}`);
+  const entry = completeEntry(heading.number, baseEntry);
   const start = heading.sourceLine;
   const end = headingLines[index + 1] ?? 15412;
   const segment = texLines.slice(start - 1, end - 1).join("\n");
@@ -753,7 +773,7 @@ const sections = chapterInventory.headings.map((heading, index) => {
   };
 });
 
-const introEntry = translations.intro;
+const introEntry = completeEntry("intro", translations.intro);
 const introSegment = texLines.slice(14011, 14016).join("\n");
 sections.unshift({
   id: "s-16-introduction",
@@ -801,8 +821,8 @@ const chapter = {
   pages: "308-332",
   minutes: 90,
   overview:
-    "本章从 RAG 的知识边界问题出发，系统展开 indexing、retrieval、chunking、reranking、contextual compression、Agentic RAG、evaluation、production indexing，以及 RAG 与 fine-tuning 的协同。所有已发布正文均已重新对照 arXiv LaTeX source；公式与代码从源文件独立提取。",
-  status: "in_progress",
+    "本章按原书全部 54 个结构条目完整译述 RAG 的知识边界、indexing、retrieval、chunking、reranking、contextual compression、Agentic RAG、evaluation、production indexing，以及 RAG 与 fine-tuning 协同。正文逐节对照 arXiv LaTeX source 与 PDF；公式、代码、表格和图从源文件独立提取并配有中文解释。",
+  status: "complete",
   sections,
   glossary: [
     { term: "RAG", zh: "检索增强生成", meaning: "在生成前或生成过程中检索外部证据，并把证据作为 context 提供给模型。" },

@@ -14,9 +14,9 @@ export const chapterCatalog = catalog.map((chapter) => {
       }
     : chapter.chapter === 16
       ? {
-          chineseCharacters: 5779,
+          chineseCharacters: 12363,
           sourceCoverage: 100,
-          blockCount: 154,
+          blockCount: 240,
           sectionCount: 54,
         }
       : {
@@ -28,7 +28,10 @@ export const chapterCatalog = catalog.map((chapter) => {
   return {
     ...chapter,
     zhTitle: guide?.zhTitle ?? chapter.zhTitle,
-    status: chapter.chapter === 15 ? "complete" : "in_progress",
+    status:
+      chapter.chapter === 15 || chapter.chapter === 16
+        ? "complete"
+        : "in_progress",
     metrics: {
       ...chapter.metrics,
       ...verified,
