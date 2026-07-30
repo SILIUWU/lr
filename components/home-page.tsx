@@ -8,6 +8,7 @@ import {
   lessons,
   totalMinutes,
 } from "@/lib/course-data";
+import { chapterReadings, readingsForLesson } from "@/lib/reading-content";
 import { useCourse } from "./course-provider";
 
 function routeFor(state: ReturnType<typeof useCourse>["state"]) {
@@ -19,63 +20,85 @@ export function HomePage() {
   const { state, hydrated } = useCourse();
   const completed = state.completedLessons.length;
   const percent = Math.round((completed / lessons.length) * 100);
+  const activeLesson =
+    lessons.find((lesson) => lesson.slug === state.lastLesson) ?? lessons[0];
+  const activeReadings = readingsForLesson(activeLesson.slug);
+  const previewReading = activeReadings[0];
+  const translatedParagraphs = chapterReadings.reduce(
+    (total, reading) =>
+      total +
+      reading.sections.reduce(
+        (sectionTotal, section) => sectionTotal + section.paragraphs.length,
+        0,
+      ),
+    0,
+  );
 
   return (
     <div className="home-page">
       <section className="hero">
         <div className="hero-copy">
-          <div className="eyebrow">636 PAGES · 30 CHAPTERS · ONE SYSTEMS VIEW</div>
+          <div className="eyebrow">WEB READER · 30 CHAPTERS · BILINGUAL</div>
           <h1>
-            不只会用 Agent。
+            打开一章，
             <br />
-            <span>理解它为什么有效，又会在哪里失灵。</span>
+            <span>直接开始读。</span>
           </h1>
           <p>
-            基于 <em>The Hitchhiker&apos;s Guide to Agentic AI</em>{" "}
-            的中英双语分层精读。把 LLM、RL、Harness、Memory、Protocol、
-            Multi-Agent 与 UI 串成一条可运行、可验证的工程链路。
+            <em>The Hitchhiker&apos;s Guide to Agentic AI</em> 的 30 章内容已经
+            重组为适合网页阅读的中文忠实译述。保留关键 English terms、原文页码、
+            思考检查点与练习，不需要先打开 636 页 PDF。
           </p>
           <div className="hero-actions">
             <Link className="primary-button" href={routeFor(state)}>
-              {hydrated && state.lastLesson ? "继续学习" : "开始能力诊断"}
+              {hydrated && state.lastLesson ? "继续上次阅读" : "从导读开始"}
               <span aria-hidden="true">→</span>
             </Link>
-            <a
-              className="secondary-button"
-              href="https://arxiv.org/abs/2606.24937"
-              target="_blank"
-              rel="noreferrer"
-            >
-              阅读原文 ↗
+            <a className="secondary-button" href="#chapter-directory">
+              浏览 30 章目录 ↓
             </a>
           </div>
         </div>
-        <div className="hero-system" aria-label="Agentic AI 系统分层示意">
-          <div className="orbit orbit-one" />
-          <div className="orbit orbit-two" />
-          <div className="system-core">
-            <small>SYSTEM LOOP</small>
-            <strong>Agent</strong>
-            <span>observe · reason · act</span>
-          </div>
-          {[
-            ["MODEL", "LLM + RL"],
-            ["CONTEXT", "RAG + Memory"],
-            ["RUNTIME", "Harness + Tools"],
-            ["NETWORK", "MCP + A2A"],
-          ].map(([label, value], index) => (
-            <div key={label} className={`system-node node-${index + 1}`}>
-              <small>{label}</small>
-              <strong>{value}</strong>
+
+        {previewReading && (
+          <aside className="reader-desk" aria-label="当前阅读预览">
+            <header>
+              <div>
+                <span className="live-dot" aria-hidden="true" />
+                {state.lastLesson ? "继续阅读" : "推荐起点"}
+              </div>
+              <small>
+                {previewReading.chapter === 0
+                  ? "导读"
+                  : `CH.${String(previewReading.chapter).padStart(2, "0")}`}
+              </small>
+            </header>
+            <div className="reader-desk-body">
+              <p>{previewReading.title}</p>
+              <h2>{previewReading.zhTitle}</h2>
+              <div className="reader-desk-meta">
+                <span>原书 pp. {previewReading.pages}</span>
+                <span>约 {previewReading.minutes} 分钟</span>
+              </div>
+              <blockquote>{previewReading.overview}</blockquote>
+              <section>
+                <small>{previewReading.sections[0].english}</small>
+                <h3>{previewReading.sections[0].title}</h3>
+                <p>{previewReading.sections[0].paragraphs[0]}</p>
+              </section>
             </div>
-          ))}
-        </div>
+            <footer>
+              <span>{activeLesson.title}</span>
+              <Link href={routeFor(state)}>进入完整正文 →</Link>
+            </footer>
+          </aside>
+        )}
       </section>
 
       <section className="metric-strip" aria-label="课程规模">
         {[
-          ["12", "学习单元"],
           ["30", "章站内精读"],
+          [String(translatedParagraphs), "段译述正文"],
           ["60", "原创学习题"],
           [String(labCount), "交互实验"],
           [`${Math.round(totalMinutes / 60)}h`, "预计精读时间"],
@@ -87,11 +110,71 @@ export function HomePage() {
         ))}
       </section>
 
+      <section className="section-block chapter-directory" id="chapter-directory">
+        <div className="section-heading">
+          <div>
+            <span className="eyebrow">CHAPTER DIRECTORY</span>
+            <h2>按原书章节，直接进入正文</h2>
+          </div>
+          <p>
+            这里不是 PDF 跳转目录。点击任一章会直接定位到本站译述正文；每章均保留
+            English title、中文标题、阅读时间与原书页码。
+          </p>
+        </div>
+        <div className="chapter-shelves">
+          {courseParts.map((part) => {
+            const [start, endValue] = part.chapterRange
+              .replace("Ch.", "")
+              .split("–")
+              .map(Number);
+            const end = endValue || start;
+            const readings = chapterReadings.filter(
+              (reading) => reading.chapter >= start && reading.chapter <= end,
+            );
+
+            return (
+              <section className="chapter-shelf" key={part.id}>
+                <header>
+                  <span>PART {part.roman}</span>
+                  <div>
+                    <h3>{part.title}</h3>
+                    <p>{part.zh}</p>
+                  </div>
+                  <small>{part.chapterRange}</small>
+                </header>
+                <div>
+                  {readings.map((reading) => {
+                    const mapping = chapterMap.find(
+                      (chapter) => chapter.chapter === reading.chapter,
+                    );
+                    if (!mapping) return null;
+
+                    return (
+                      <Link
+                        href={`/learn/${mapping.lessonSlug}#chapter-${reading.chapter}`}
+                        key={reading.chapter}
+                      >
+                        <span>CH.{String(reading.chapter).padStart(2, "0")}</span>
+                        <div>
+                          <small>{reading.title}</small>
+                          <strong>{reading.zhTitle}</strong>
+                        </div>
+                        <em>{reading.minutes} MIN →</em>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      </section>
+
       <section className="section-block course-roadmap">
         <div className="section-heading">
           <div>
             <span className="eyebrow">LEARNING ROUTE</span>
-            <h2>从模型底座，到可以被信任的自主系统</h2>
+            <h2>需要系统学习时，再按 12 个单元推进</h2>
           </div>
           <div className="progress-ring" style={{ "--progress": `${percent}%` } as React.CSSProperties}>
             <span>{percent}%</span>
@@ -123,43 +206,6 @@ export function HomePage() {
               </Link>
             );
           })}
-        </div>
-      </section>
-
-      <section className="section-block map-section">
-        <div className="section-heading">
-          <div>
-            <span className="eyebrow">SOURCE MAP</span>
-            <h2>六个 Part，30 章，全部有去处</h2>
-          </div>
-          <p>
-            每章都有无需跳转的中文忠实译述；核心 Ch.15–27 深讲，其余章节采用
-            高密度基础路径，并保留 chapter 与 PDF page 范围。
-          </p>
-        </div>
-        <div className="part-list">
-          {courseParts.map((part) => (
-            <article key={part.id}>
-              <div className="part-number">{part.roman}</div>
-              <div>
-                <small>{part.chapterRange}</small>
-                <h3>{part.title}</h3>
-                <p>{part.zh}</p>
-              </div>
-              <span>
-                {
-                  chapterMap.filter((chapter) => {
-                    const [start, end] = part.chapterRange
-                      .replace("Ch.", "")
-                      .split("–")
-                      .map(Number);
-                    return chapter.chapter >= start && chapter.chapter <= (end || start);
-                  }).length
-                }{" "}
-                CHAPTERS
-              </span>
-            </article>
-          ))}
         </div>
       </section>
 

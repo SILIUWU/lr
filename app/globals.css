@@ -429,6 +429,139 @@ button:disabled {
   font-style: italic;
 }
 
+.reader-desk {
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--orange) 7%, transparent), transparent 45%),
+    var(--paper-strong);
+  box-shadow: var(--shadow);
+}
+
+.reader-desk > header,
+.reader-desk > footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1.1rem;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.62rem;
+}
+
+.reader-desk > header > div {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--green);
+  font-weight: 750;
+}
+
+.reader-desk > header small {
+  color: var(--orange);
+  font-family: ui-monospace, monospace;
+  font-size: 0.58rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+}
+
+.live-dot {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 0.28rem color-mix(in srgb, var(--green) 12%, transparent);
+}
+
+.reader-desk-body {
+  padding: 2rem;
+}
+
+.reader-desk-body > p {
+  margin: 0;
+  color: var(--orange);
+  font-family: Georgia, serif;
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.reader-desk-body > h2 {
+  margin: 0.45rem 0 0.85rem;
+  font-family: Georgia, "Noto Serif SC", serif;
+  font-size: clamp(2rem, 3.4vw, 3.1rem);
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  line-height: 1.14;
+}
+
+.reader-desk-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  color: var(--ink-soft);
+  font-size: 0.6rem;
+}
+
+.reader-desk blockquote {
+  margin: 1.5rem 0;
+  padding: 0 0 0 1rem;
+  border-left: 2px solid var(--orange);
+  color: var(--ink-soft);
+  font-family: Georgia, "Noto Serif SC", serif;
+  font-size: 0.82rem;
+  line-height: 1.8;
+}
+
+.reader-desk-body > section {
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--line);
+}
+
+.reader-desk-body > section small {
+  color: var(--orange);
+  font-family: ui-monospace, monospace;
+  font-size: 0.54rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.reader-desk-body > section h3 {
+  margin: 0.35rem 0 0.65rem;
+  font-family: Georgia, "Noto Serif SC", serif;
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.reader-desk-body > section p {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: var(--ink-soft);
+  font-family: Georgia, "Noto Serif SC", serif;
+  font-size: 0.75rem;
+  line-height: 1.75;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.reader-desk > footer {
+  border-top: 1px solid var(--line);
+  border-bottom: 0;
+  color: var(--ink-soft);
+}
+
+.reader-desk > footer span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reader-desk > footer a {
+  flex: none;
+  color: var(--orange);
+  font-weight: 750;
+}
+
 .hero-actions,
 .utility-actions,
 .quiz-actions,
@@ -752,6 +885,121 @@ button:disabled {
 
 .map-section {
   border-top: 1px solid var(--line);
+}
+
+.chapter-directory {
+  border-top: 1px solid var(--line);
+}
+
+.chapter-shelves {
+  display: grid;
+  gap: 2rem;
+}
+
+.chapter-shelf {
+  border: 1px solid var(--line-strong);
+  background: color-mix(in srgb, var(--paper-strong) 60%, transparent);
+}
+
+.chapter-shelf > header {
+  display: grid;
+  grid-template-columns: 86px 1fr auto;
+  align-items: center;
+  gap: 1.2rem;
+  padding: 1rem 1.2rem;
+  border-bottom: 1px solid var(--line-strong);
+  background: color-mix(in srgb, var(--navy) 4%, transparent);
+}
+
+.chapter-shelf > header > span {
+  color: var(--orange);
+  font-family: ui-monospace, monospace;
+  font-size: 0.62rem;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+}
+
+.chapter-shelf > header h3 {
+  margin: 0;
+  font-family: Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 500;
+}
+
+.chapter-shelf > header p {
+  margin: 0.16rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.65rem;
+}
+
+.chapter-shelf > header small {
+  color: var(--ink-soft);
+  font-family: ui-monospace, monospace;
+  font-size: 0.58rem;
+}
+
+.chapter-shelf > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.chapter-shelf a {
+  display: grid;
+  min-height: 92px;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1rem 1.15rem;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  transition: background 150ms ease;
+}
+
+.chapter-shelf a:nth-child(2n) {
+  border-right: 0;
+}
+
+.chapter-shelf a:hover {
+  background: var(--paper-strong);
+}
+
+.chapter-shelf a > span {
+  color: var(--orange);
+  font-family: ui-monospace, monospace;
+  font-size: 0.58rem;
+  font-weight: 750;
+}
+
+.chapter-shelf a > div {
+  min-width: 0;
+}
+
+.chapter-shelf a small,
+.chapter-shelf a strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chapter-shelf a small {
+  color: var(--ink-soft);
+  font-family: Georgia, serif;
+  font-size: 0.62rem;
+}
+
+.chapter-shelf a strong {
+  margin-top: 0.32rem;
+  font-family: Georgia, "Noto Serif SC", serif;
+  font-size: 0.92rem;
+  font-weight: 550;
+}
+
+.chapter-shelf a em {
+  color: var(--ink-soft);
+  font-family: ui-monospace, monospace;
+  font-size: 0.52rem;
+  font-style: normal;
 }
 
 .part-list {
@@ -2877,6 +3125,7 @@ input[type="range"] {
     grid-template-columns: 1fr;
     padding-top: 4rem;
   }
+  .reader-desk { width: min(100%, 620px); }
   .hero-system { width: min(100%, 480px); margin: 0 auto; }
   .metric-strip { grid-template-columns: repeat(3, 1fr); }
   .metric-strip div:nth-child(3) { border-right: 0; }
@@ -2918,6 +3167,15 @@ input[type="range"] {
   .part-list article { grid-template-columns: 58px 1fr; }
   .part-list article > span { grid-column: 2; }
   .part-number { height: 65px; }
+  .chapter-shelf > div { grid-template-columns: 1fr; }
+  .chapter-shelf a,
+  .chapter-shelf a:nth-child(2n) { border-right: 0; }
+  .chapter-shelf > header {
+    grid-template-columns: 72px 1fr;
+  }
+  .chapter-shelf > header small {
+    grid-column: 2;
+  }
   .method-note { padding: 1.5rem; }
   .lesson-hero { padding: 3.5rem 0 2.5rem; }
   .lesson-hero h1,
@@ -2962,6 +3220,14 @@ input[type="range"] {
   .utility-stats { gap: 1rem; }
   .utility-stats div { min-width: 0; }
   .utility-actions { align-items: stretch; flex-direction: column; }
+  .reader-desk-body { padding: 1.35rem; }
+  .reader-desk-body > h2 { font-size: 2rem; }
+  .chapter-shelf a {
+    grid-template-columns: 52px minmax(0, 1fr);
+  }
+  .chapter-shelf a em {
+    grid-column: 2;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

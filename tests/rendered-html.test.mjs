@@ -100,7 +100,9 @@ test("server renders the branded course without starter remnants", async () => {
   const html = await response.text();
   assert.match(html, /Agentic AI 全栈指南/);
   assert.match(html, /知识地图/);
-  assert.match(html, /不只会用 Agent/);
+  assert.match(html, /打开一章/);
+  assert.match(html, /按原书章节，直接进入正文/);
+  assert.match(html, /\/learn\/agentic-stack#chapter-15/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 });
 
