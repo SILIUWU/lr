@@ -20,6 +20,7 @@ export function ReaderTools({
 }) {
   const {
     state,
+    hydrated,
     addNote,
     rememberChapter,
     markSectionComplete,
@@ -49,26 +50,25 @@ export function ReaderTools({
   }, [chapter, currentSection, rememberChapter]);
 
   useEffect(() => {
+    if (!hydrated || restoredChapter.current === chapter) return;
+
     const restoreLocation = () => {
       const hashId = decodeURIComponent(window.location.hash.slice(1));
       const target = hashId ? document.getElementById(hashId) : null;
       if (target) {
+        restoredChapter.current = chapter;
         setCurrentSection(hashId);
         requestAnimationFrame(() => {
           target.scrollIntoView({ block: "start" });
         });
-        window.setTimeout(() => {
-          target.scrollIntoView({ block: "start" });
-        }, 350);
-        restoredChapter.current = chapter;
         return true;
       }
       return false;
     };
 
     if (restoreLocation()) return;
-    if (restoredChapter.current === chapter) return;
     const savedPosition = state.readingPositions[String(chapter)];
+    restoredChapter.current = chapter;
     if (typeof savedPosition === "number" && savedPosition > 0) {
       requestAnimationFrame(() => {
         const scrollable =
@@ -76,9 +76,8 @@ export function ReaderTools({
         window.scrollTo({ top: scrollable * savedPosition });
       });
       lastPosition.current = savedPosition;
-      restoredChapter.current = chapter;
     }
-  }, [chapter, state.readingPositions]);
+  }, [chapter, hydrated, state.readingPositions]);
 
   useEffect(() => {
     const followHash = () => {

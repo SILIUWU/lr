@@ -282,3 +282,16 @@ test("paper figures and social preview are wired from local assets", async () =>
   assert.match(layoutSource, /Haggai Roitman/);
   assert.doesNotMatch(layoutSource, /Guo et al/);
 });
+
+test("reader restores an anchor only once instead of fighting user scroll", async () => {
+  const source = await readFile(
+    new URL("../components/reader-tools.tsx", import.meta.url),
+    "utf8",
+  );
+  const effectStart = source.indexOf(
+    "if (!hydrated || restoredChapter.current === chapter) return;",
+  );
+  const hashRestore = source.indexOf("const restoreLocation = () =>");
+  assert.ok(effectStart >= 0 && effectStart < hashRestore);
+  assert.doesNotMatch(source, /setTimeout\([\s\S]{0,160}scrollIntoView/);
+});
