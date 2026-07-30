@@ -7,14 +7,14 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL ??
-      "https://agentic-ai-guide-cn.nobobeluong.chatgpt.site",
+      "https://siliuwu.github.io/lr",
   ),
   title: {
     default: "Agentic AI 全栈指南 · From Foundations to Systems",
     template: "%s · Agentic AI 全栈指南",
   },
   description:
-    "Haggai Roitman《The Hitchhiker’s Guide to Agentic AI》的逐节中文网页译读：30 章原生正文、精确页码、交互实验与学习题。",
+    "Haggai Roitman《The Hitchhiker’s Guide to Agentic AI》的中文学习网页：已核验译文、精确页码、交互实验与学习题；其余章节持续校订中。",
   applicationName: "Agentic AI 全栈指南",
   authors: [
     { name: "Haggai Roitman", url: "https://arxiv.org/abs/2606.24937" },

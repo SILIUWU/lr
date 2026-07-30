@@ -40,8 +40,8 @@ export function HomePage() {
           </h1>
           <p>
             Haggai Roitman 的 <em>The Hitchhiker&apos;s Guide to Agentic AI</em>{" "}
-            已按原书 section/subsection 建立站内网页正文。中文逐节译读、关键
-            English terms、公式、代码和具体页码直接在页面展开；PDF 只用于核对来源。
+            正在依据 arXiv LaTeX 原文重做为中文站内精读。旧版未经校订的机器翻译
+            已下线；只有经过逐页核验的正文才会发布为“原文译述”。
           </p>
           <div className="hero-actions">
             <Link className="primary-button" href={routeFor(state)}>
@@ -77,22 +77,23 @@ export function HomePage() {
                 <span>约 {previewReading.minutes} 分钟</span>
               </div>
               <blockquote>
-                已映射 {previewReading.metrics.sectionCount} 个原书小节，
-                展开为 {previewReading.metrics.blockCount} 个原生阅读区块。
-                当前状态：逐句校订中。
+                当前目录含 {previewReading.metrics.sectionCount} 个结构条目；
+                已发布 {previewReading.metrics.blockCount} 个核验区块。
+                当前状态：
+                {previewReading.status === "complete" ? "精读完成" : "重新校订中"}。
               </blockquote>
               <section>
                 <small>READING STATUS</small>
-                <h3>结构完整上线，完成度如实标记</h3>
+                <h3>以核验状态为准，不再用机器草稿凑体量</h3>
                 <p>
-                  已经写入正文的内容可直接阅读；尚未完成逐句校订的章节不会显示
-                  “精读完成”，也不会用 PDF 跳转替代正文。
+                  当前只有 Ch.15 已完成整章核验；其余章节按 LaTeX 原文逐节重建。
+                  尚未核验的小节明确显示“制作中”，不会冒充完整翻译。
                 </p>
               </section>
             </div>
             <footer>
               <span>CH.{String(previewReading.chapter).padStart(2, "0")}</span>
-              <Link href={routeFor(state)}>进入完整正文 →</Link>
+              <Link href={routeFor(state)}>进入章节阅读页 →</Link>
             </footer>
           </aside>
         )}
@@ -101,11 +102,11 @@ export function HomePage() {
       <section className="metric-strip" aria-label="课程规模">
         {[
           ["30", "章站内阅读"],
-          [String(readerMetrics.sections), "个原书小节"],
-          [String(readerMetrics.blocks), "个原生区块"],
+          [String(readerMetrics.sections), "个结构条目待核验"],
+          [String(readerMetrics.blocks), "个已核验区块"],
           [
             `${Math.round(readerMetrics.chineseCharacters / 10000)}万`,
-            "中文正文字符",
+            "已核验中文字符",
           ],
           ["60", "原创学习题"],
           [String(labCount), "交互实验"],
@@ -124,8 +125,8 @@ export function HomePage() {
             <h2>按原书章节，直接进入正文</h2>
           </div>
           <p>
-            点击任一章会进入原生网页正文，而不是 PDF 列表。每章公开显示
-            section 数、正文区块数、页码和校订状态。
+            点击任一章进入站内阅读页。每章公开显示目录条目、已核验区块、
+            页码和校订状态；暂缺的内容不会用错误译文填充。
           </p>
         </div>
         <div className="chapter-shelves">
@@ -162,7 +163,9 @@ export function HomePage() {
                           <strong>{reading.zhTitle}</strong>
                         </div>
                         <em>
-                          {reading.metrics.sectionCount} 节 · 校订中 →
+                          {reading.status === "complete"
+                            ? "整章已核验"
+                            : `${reading.metrics.blockCount} 个核验区块 · 制作中`} →
                         </em>
                       </Link>
                     );
@@ -226,8 +229,8 @@ export function HomePage() {
         </div>
         <p>
           每个区块都标明“原文译述 / 编者解释 / 工程延伸”和具体 PDF 页码。
-          当前章节按实际完成情况显示“导读 / 校订中 / 精读完成”；只有逐句校订和
-          内容核验通过后才会切换为“精读完成”。所有改编内容沿用 CC BY-SA 4.0。
+          “原文译述”还会显示核验标记；只有整章逐节校订和内容核验通过后才会切换为
+          “精读完成”。所有改编内容沿用 CC BY-SA 4.0。
         </p>
       </section>
     </div>

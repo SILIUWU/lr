@@ -3,40 +3,233 @@
   "title": "Introduction to Agentic AI",
   "zhTitle": "Agentic AI 导论",
   "pages": "305-307",
-  "minutes": 16,
-  "overview": "前面的部分为我们配备了算法工具包——如何与法学硕士进行训练、校对和讲解。我们涉及Transformer结构和GPU系统(第一部分)、使模型与人类意图相一致的强化学习方法(第二部分)、从RL培训中产生的推理能力(第三部分)和评估方法(第四部分)。这一部分转而谈到现代AI工程的核心问题:我们如何将这些模型作为自主的Agent，在开放的环境中感知，计划，行动，学习?AgentAI系统是LLM在环形运行的系统:它接收环境(用户消息，工具输出，传感器数据)的观测，下一步要做什么的理由，采取行动(tool calling，代码执行， API请求)，并延展到目标实现或明确要求人类输入为止。这与“单回合聊天员”模式形成一个响应和等待形成对比。 从聊天员到Agent的转变带来了几个基本挑战，而单一的模型调用无法解决: • 持久性:Agent必须记住自己做了什么、什么失败了、什么背景了 已确立的轮廓、会话、日记。 • 基础:Agent必须获取没有的最新、特定领域知识 在其培训数据中。 · 行动:Agent必须与外部系统——数据库、API、文件系统、 浏览器——通过定义明确的界面。 • 协调:复杂的任务往往超过单一Agent所能处理的范围;多种专门性 Agent必须合作、授权和谈判。 • 安全:自主行动需要护栏、人的监督以及优雅的退化 当Agent不确定时。为了应对这些挑战，生产Agent系统被构建为分层架构。每层解决一个具体问题，后面的章节覆盖从下到上的全部堆栈: • 第16章:RAG(检索-增强的一代)——知识层。 通过在查询时间检索相关文档，使Agent机能够访问动态外部知识。这解决了地基问题:Agent可以回答关于专有数据，最近的事件，或者模型在训练期间从未见过的域特定内容的问题。我们覆盖嵌入模型，矢量数据库，块化策略，混合检索，以及高级模式，如AgentRAG，在Agent决定何时和什么检索的地方。 • 第17章:记忆——持久性层。记忆使Agent能够回顾信息。 包括各种相互作用——从一项单一任务中的短期工作记忆，到持续数月的长期零星记忆。我们涵盖内存架构(缓冲，汇总，向量索引，知识图)，内存整合，以及如何设计能不淹没context window而缩放的内存系统。",
-  "status": "in_progress",
+  "minutes": 18,
+  "overview": "本章把全书从“如何训练、对齐和评估 LLM”转向“如何把模型部署为能够观察、推理、行动并持续迭代的 Agent”。原书的核心判断是：Agentic AI 不是一次模型调用，而是由知识、记忆、运行时、协议、协作与用户监督共同构成的闭环系统。",
+  "status": "complete",
   "sections": [
     {
-      "id": "s-15-chapter-introduction",
+      "id": "s-15-transition",
       "number": null,
       "level": 1,
-      "enTitle": "From language models to Agents",
-      "zhTitle": "从语言模型到 Agent",
+      "enTitle": "From Model Foundations to Agentic Systems",
+      "zhTitle": "从模型基础走向 Agentic System",
       "pages": "305",
       "blocks": [
         {
-          "id": "s-15-chapter-introduction-editorial-reading-guide",
-          "type": "callout",
-          "origin": "editorial_explanation",
-          "source": {
-            "chapter": 15,
-            "section": null,
-            "pages": "305"
-          },
-          "title": "编者阅读提示",
-          "text": "阅读 本章导入「从语言模型到 Agent」 时，区分 model 产生的决策、Harness 负责的执行、protocol 规定的消息边界，以及环境返回的 observation。把这些责任混在一起，会让权限、错误恢复和审计问题无法定位。"
-        },
-        {
-          "id": "s-15-chapter-introduction-source-translation",
+          "id": "s-15-transition-b1",
           "type": "paragraph",
           "origin": "source_translation",
-          "source": {
-            "chapter": 15,
-            "pages": "305"
-          },
-          "text": "前面的部分为我们配备了算法工具包——如何与法学硕士进行训练、校对和讲解。我们涉及Transformer结构和GPU系统(第一部分)、使模型与人类意图相一致的强化学习方法(第二部分)、从RL培训中产生的推理能力(第三部分)和评估方法(第四部分)。这一部分转而谈到现代AI工程的核心问题:我们如何将这些模型作为自主的Agent，在开放的环境中感知，计划，行动，学习?AgentAI系统是LLM在环形运行的系统:它接收环境(用户消息，工具输出，传感器数据)的观测，下一步要做什么的理由，采取行动(tool calling，代码执行， API请求)，并延展到目标实现或明确要求人类输入为止。这与“单回合聊天员”模式形成一个响应和等待形成对比。 从聊天员到Agent的转变带来了几个基本挑战，而单一的模型调用无法解决: • 持久性:Agent必须记住自己做了什么、什么失败了、什么背景了 已确立的轮廓、会话、日记。 • 基础:Agent必须获取没有的最新、特定领域知识 在其培训数据中。 · 行动:Agent必须与外部系统——数据库、API、文件系统、 浏览器——通过定义明确的界面。 • 协调:复杂的任务往往超过单一Agent所能处理的范围;多种专门性 Agent必须合作、授权和谈判。 • 安全:自主行动需要护栏、人的监督以及优雅的退化 当Agent不确定时。为了应对这些挑战，生产Agent系统被构建为分层架构。每层解决一个具体问题，后面的章节覆盖从下到上的全部堆栈: • 第16章:RAG(检索-增强的一代)——知识层。 通过在查询时间检索相关文档，使Agent机能够访问动态外部知识。这解决了地基问题:Agent可以回答关于专有数据，最近的事件，或者模型在训练期间从未见过的域特定内容的问题。我们覆盖嵌入模型，矢量数据库，块化策略，混合检索，以及高级模式，如AgentRAG，在Agent决定何时和什么检索的地方。 • 第17章:记忆——持久性层。记忆使Agent能够回顾信息。 包括各种相互作用——从一项单一任务中的短期工作记忆，到持续数月的长期零星记忆。我们涵盖内存架构(缓冲，汇总，向量索引，知识图)，内存整合，以及如何设计能不淹没context window而缩放的内存系统。",
-          "originalExcerpt": "Introduction to Agentic AI The previous parts equipped us with the algorithmic toolkit—how to train, align, and reason with LLMs. We covered transformer architectures and GPU systems (Part I), the reinforcement learning methods that align models with human intent (Part II), the reasoning capabilities that emerge from RL training (Part III), and evaluation me"
+          "reviewStatus": "verified",
+          "source": { "chapter": 15, "pages": "305" },
+          "text": "前四个 Part 已经给出了训练、对齐与推理所需的算法工具：Part I 讨论 Transformer architecture 与 GPU systems；Part II 介绍使模型行为贴近人类意图的 reinforcement learning 方法；Part III 说明 RL training 中涌现和强化的 reasoning capabilities；Part IV 则建立 evaluation methodology。本章由此转向现代 AI engineering 的核心问题：怎样把这些模型部署成能够在开放环境中感知、规划、行动与学习的 autonomous agents？",
+          "originalExcerpt": "This part turns to the central question of modern AI engineering: how do we deploy these models as autonomous agents?"
+        }
+      ]
+    },
+    {
+      "id": "s-15-agentic-definition",
+      "number": null,
+      "level": 1,
+      "enTitle": "What Is an Agentic AI System?",
+      "zhTitle": "什么是 Agentic AI System",
+      "pages": "305",
+      "blocks": [
+        {
+          "id": "s-15-agentic-definition-b1",
+          "type": "paragraph",
+          "origin": "source_definition",
+          "reviewStatus": "verified",
+          "source": { "chapter": 15, "pages": "305" },
+          "title": "原书定义",
+          "text": "Agentic AI system 的关键特征，是让 LLM 工作在一个循环中：系统从环境接收 observation，例如用户消息、tool output 或 sensor data；模型据此判断下一步该做什么；系统再执行 tool call、code execution 或 API request 等 action，并把结果送回下一轮。这个过程持续到目标完成，或者 Agent 明确请求人类输入。",
+          "originalExcerpt": "An agentic AI system is one where an LLM operates in a loop."
+        },
+        {
+          "id": "s-15-agentic-definition-b2",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": { "chapter": 15, "pages": "305" },
+          "text": "它与 single-turn chatbot 的区别不在于回复写得更长，而在于是否存在“观察—推理—行动—再观察”的状态循环。单轮 chatbot 生成一次 response 后便等待下一条输入；Agent 则会根据环境反馈主动推进任务，直到满足终止条件。"
+        },
+        {
+          "id": "s-15-agentic-definition-editorial",
+          "type": "callout",
+          "origin": "editorial_explanation",
+          "source": { "chapter": 15, "pages": "305" },
+          "title": "编者解释：循环不只发生在模型内部",
+          "text": "LLM 负责提出下一步判断，但真正的 tool execution、状态保存、超时、权限检查和终止判断通常由 Harness 承担。因此“Agent 等于一个会思考的模型”是不完整的系统描述。"
+        }
+      ]
+    },
+    {
+      "id": "s-15-five-challenges",
+      "number": null,
+      "level": 1,
+      "enTitle": "Five Challenges Introduced by Agents",
+      "zhTitle": "从 Chatbot 到 Agent 的五项基础挑战",
+      "pages": "305",
+      "blocks": [
+        {
+          "id": "s-15-five-challenges-b1",
+          "type": "list",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": { "chapter": 15, "pages": "305" },
+          "items": [
+            "Persistence（持久性）：Agent 必须记住自己已经做过什么、哪些尝试失败，以及此前建立了哪些 context；时间跨度可能跨越多轮、多个 session，甚至数天。",
+            "Grounding（外部知识落地）：Agent 必须访问训练数据中没有的最新信息与领域知识，不能只依赖模型参数中的旧知识。",
+            "Action（行动能力）：Agent 需要通过定义清楚的 interface 操作 database、API、file system 与 browser 等外部系统。",
+            "Coordination（协调）：复杂任务可能超出单个 Agent 的能力边界，需要多个 specialist agents 协作、委派与协商。",
+            "Safety（安全）：自主行动必须配套 guardrails、human oversight，以及在不确定时能够安全降级的机制。"
+          ]
+        },
+        {
+          "id": "s-15-five-challenges-failure",
+          "type": "failure",
+          "origin": "failure_analysis",
+          "source": { "chapter": 15, "pages": "305" },
+          "title": "失败模式：把五项挑战压回一次 prompt",
+          "text": "如果系统没有持久状态、外部知识、受控 action、协调规则和监督边界，再长的 prompt 也不会自动获得这些能力；它只会把更多责任塞进一次不可观察的生成。"
+        }
+      ]
+    },
+    {
+      "id": "s-15-knowledge-persistence",
+      "number": null,
+      "level": 1,
+      "enTitle": "Knowledge and Persistence Layers",
+      "zhTitle": "Knowledge 与 Persistence 两层",
+      "pages": "305",
+      "blocks": [
+        {
+          "id": "s-15-knowledge-persistence-b1",
+          "type": "list",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": { "chapter": 15, "pages": "305" },
+          "items": [
+            "Ch.16 的 RAG 是 knowledge layer。它在 query time 检索相关文档，使 Agent 能够使用 proprietary data、recent events 与 domain-specific content。该章将展开 embedding model、vector database、chunking、hybrid retrieval，以及由 Agent 自主决定何时检索、检索什么的 agentic RAG。",
+            "Ch.17 的 Memory 是 persistence layer。它让 Agent 能够跨 interaction 回忆信息，范围从单个任务内的 working memory 到跨越数月的 long-term episodic memory。该章讨论 buffer、summary、vector-indexed memory、knowledge graph 与 memory consolidation，并处理 memory 扩张时如何避免淹没 context window。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s-15-runtime-architecture",
+      "number": null,
+      "level": 1,
+      "enTitle": "Runtime, Loop and Architecture Layers",
+      "zhTitle": "Runtime、Loop 与 Architecture 三层",
+      "pages": "306",
+      "blocks": [
+        {
+          "id": "s-15-runtime-architecture-b1",
+          "type": "list",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": { "chapter": 15, "pages": "306" },
+          "items": [
+            "Ch.18 的 Harness & Orchestration 是 runtime layer，也是 Agent 的“operating system”。它管理 agent loop、context window budget、tool dispatch、error recovery、state persistence 与 observability，并覆盖 summarization、sliding window、hierarchical context、顺序/并行/分支执行、guardrail 和 human-in-the-loop。",
+            "Ch.19 的 Loop Engineering 是 inference-time RL layer。它把运行期的 generate–verify–retry 循环视为一种不更新权重的优化过程，并用 generator、verifier、terminator、state manager 与 escalator 五个结构原语讨论收敛、验证层级和预算分配。",
+            "Ch.20 的 Design Patterns 是 architecture layer。它整理 ReAct、plan-then-execute、reflection loop、tool-augmented generation 与 multi-step workflow 等模式，比较适用条件、failure mode 与组合方式。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s-15-evaluation-protocol",
+      "number": null,
+      "level": 1,
+      "enTitle": "Evaluation, Protocol and Capability Layers",
+      "zhTitle": "Evaluation、Protocol 与 Capability 三层",
+      "pages": "306",
+      "blocks": [
+        {
+          "id": "s-15-evaluation-protocol-b1",
+          "type": "list",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": { "chapter": 15, "pages": "306" },
+          "items": [
+            "Ch.21 的 Environments & Benchmarks 是 evaluation layer，讨论 Web navigation、coding environment、tool-use suite，以及 partial credit、trajectory quality 与 safety violation 等多步自主系统特有的评估问题。",
+            "Ch.22 的 MCP（Model Context Protocol）是 tool integration standard。它标准化 Agent 如何发现与调用工具，类似硬件领域的 USB，并通过统一的 server/client architecture 与 resource management 缓解 Agent 和工具之间的 N×M integration problem。",
+            "Ch.23 的 Agent Skills 是 capability layer，关注 Agent 如何获取、选择与组合基本 tool use 之外的专门能力。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s-15-collaboration-interface",
+      "number": null,
+      "level": 1,
+      "enTitle": "Collaboration, Implementation and Interaction Layers",
+      "zhTitle": "协作、实现与交互三层",
+      "pages": "306",
+      "blocks": [
+        {
+          "id": "s-15-collaboration-interface-b1",
+          "type": "list",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": { "chapter": 15, "pages": "306" },
+          "items": [
+            "Ch.24 的 A2A（Agent-to-Agent Communication）是 inter-agent protocol。它标准化 agent discovery、task delegation、progress streaming 与 result aggregation，使来自不同 vendor、framework 或 organization 的异构 Agent 能够协作。",
+            "Ch.25 的 Multi-Agent Systems 是 coordination layer，讨论 hierarchical delegation、peer-to-peer negotiation、debate and consensus、swarm intelligence 与 emergent behaviour，并比较何时应使用 single-agent 或 multi-agent design。",
+            "Ch.26 的 Frameworks 是 implementation layer，比较 LangGraph、CrewAI、OpenAI Agents SDK、AutoGen 等生产工具包的架构取舍与适用场景。",
+            "Ch.27 的 Agentic UI 是 interaction layer，讨论 streaming interface、progressive disclosure、approval workflow、status dashboard，以及帮助用户对自主系统形成适当信任的 UX pattern。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s-15-integrated-system",
+      "number": null,
+      "level": 1,
+      "enTitle": "How the Layers Work Together",
+      "zhTitle": "各层如何组成一个系统",
+      "pages": "306-307",
+      "blocks": [
+        {
+          "id": "s-15-integrated-system-b1",
+          "type": "list",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": { "chapter": 15, "pages": "306-307" },
+          "items": [
+            "具备 Part II–III 推理能力的 LLM 位于 agent core，执行 perceive–reason–act loop。",
+            "RAG 在每次 reasoning step 前提供相关知识，Memory 则维持跨 step 与跨 session 的连续性。",
+            "Orchestration Harness 负责决定何时检索、何时调用工具、何时委派给 sub-agent、何时向人类求助；Loop Engineering 把 retry-and-verify 过程形式化为 inference-time optimization，以控制收敛与成本。",
+            "MCP 提供访问外部工具的标准接口；A2A 为 inter-agent communication 提供对应接口。",
+            "Design Patterns 定义 ReAct、plan-and-execute、reflection 等高层策略，Frameworks 给出这些模式的具体实现。",
+            "UI layer 把 Agent 重新连接到人类，使监督、纠正与协作式问题求解闭合整个循环。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s-15-systems-perspective",
+      "number": null,
+      "level": 1,
+      "enTitle": "A Systems Perspective",
+      "zhTitle": "必须采用 Systems Perspective",
+      "pages": "307",
+      "blocks": [
+        {
+          "id": "s-15-systems-perspective-b1",
+          "type": "paragraph",
+          "origin": "source_translation",
+          "reviewStatus": "verified",
+          "source": { "chapter": 15, "pages": "307" },
+          "text": "原书在本章结尾再次强调 systems perspective：Agentic AI 远不只是 prompting。一个可用系统必须在每一层认真设计 context management、error handling、safety guardrail 与 observability。各层彼此依赖，任何局部设计都会通过数据流与控制流影响其他部分。"
+        },
+        {
+          "id": "s-15-systems-perspective-engineering",
+          "type": "callout",
+          "origin": "engineering_extension",
+          "source": { "chapter": 15, "pages": "307" },
+          "title": "工程延伸：按责任与数据流排查故障",
+          "text": "调试 Agent 时，不要只问“模型为什么答错”。应同时追踪 observation 是否完整、context 是否被截断、tool schema 是否准确、外部 action 是否成功、state 是否持久化，以及 UI 是否向用户暴露了必要的确认与恢复操作。"
         }
       ]
     },
@@ -44,115 +237,61 @@
       "id": "s-15-architecture-stack",
       "number": null,
       "level": 1,
-      "enTitle": "The Agentic AI architecture stack",
-      "zhTitle": "Agentic AI 的分层架构",
-      "pages": "306",
-      "blocks": [
-        {
-          "id": "s-15-architecture-stack-editorial-reading-guide",
-          "type": "callout",
-          "origin": "editorial_explanation",
-          "source": {
-            "chapter": 15,
-            "section": null,
-            "pages": "306"
-          },
-          "title": "编者阅读提示",
-          "text": "阅读 本章导入「Agentic AI 的分层架构」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
-        },
-        {
-          "id": "s-15-architecture-stack-source-translation",
-          "type": "paragraph",
-          "origin": "source_translation",
-          "source": {
-            "chapter": 15,
-            "pages": "306"
-          },
-          "text": "• 第18章:调和管弦乐——运行时层。 Agent的“操作系统”:它管理Agent环路、context window预算、工具发送、错误恢复、状态持续和可观察性。我们涵盖上下文管理战略(摘要、滑动窗口、等级)、执行控制(顺序、平行、分支)、护栏和人行走模式。 • 第19章:循环工程——推断时的RL层。 Agent机的运行时间循环作为优化过程:生成-验证-重试周期，这些周期在结构上相当于政策优化，无需更新权重。我们涵盖五个结构原始(生成者，验证者，终结者，国家管理者，扶梯)，核查等级，适应性预算分配，以及现代循环是如何从早期的AutoGPTtyle系统演变成有纪律的趋同过程的。 • 第20章:设计模式——建筑层。 Agent:ReAct(正因+行为互离)，计划时执行，反射循环，工具增强生成，以及多步工作流程。我们分析每种模式何时适用，它们的失败模式，以及如何将它们结合起来，以完成复杂的现实世界任务。 • 第21章:环境和基准——评估层。 来评估Agent行为我们涉及网络导航基准、编码环境、工具使用评估套件、评估多步骤自主系统的独特挑战(部分信用、轨迹质量、安全违规)。 • 第22章:MCP(模式背景协议)——工具集成标准。 使Agent如何发现和援引工具——类似USB的硬件。我们涵盖协议规格，服务器/客户端架构，资源管理，以及MCP如何消除Agent和工具之间的N×M整合问题。 • 第23章:Agent技能——能力层。 基本工具使用以外的专门能力，包括技能库、技能选择和组成任务解决。 • 第24章:A2A(Agent对Agent的通信)——Agent间协议。 A2A为发现Agent、任务授权、进展流和结果汇总提供了标准协议，使(来自不同供应商、框架或组织的)各种Agent能够进行合作。 • 第25章:多Agent系统——协调层。多Agent结构 合作:分级授权、对等谈判、辩论和共识、群集智能和突发行为。我们涵盖何时使用单一Agent对多Agent的设计以及如何调试协调失败。 • 第26章:框架——执行层:执行工具箱的生产 上述概念: LangGraph(基于图表的清晰数字)， CrewAI(基于作用的多剂)， OpenAI Agents SDK， AutoGen 等。 我们比较了它们的权衡、架构决定和适合不同使用案例的情况。 • 第27章:Agent用户界面——互动层。用户如何与用户互动和监督 Agent:流线接口，渐进披露，审批工作流程，状态仪表板，以及建立自主系统适当信任的UX模式。这些层不是孤立运作，而是形成一个紧密的集成系统，每个部分依赖并加强其他部分: • Agent核心(具有第二至第三部分推理能力的LLM)位于中心， 执行感知 - 理性 - 动作循环。",
-          "originalExcerpt": "• Chapter 18: Harness & Orchestration — The runtime layer. The orchestration harness is the “operating system” for agents: it manages the agent loop, context window budget, tool dispatch, error recovery, state persistence, and observability. We cover context management strategies (summarization, sliding window, hierarchical), execution control (sequential, p"
-        }
-      ]
-    },
-    {
-      "id": "s-15-closed-loop-system",
-      "number": null,
-      "level": 1,
-      "enTitle": "A closed-loop system",
-      "zhTitle": "观察、行动与反馈构成的闭环",
+      "enTitle": "The Agentic AI Architecture Stack",
+      "zhTitle": "Agentic AI 分层架构图",
       "pages": "307",
       "blocks": [
         {
-          "id": "s-15-closed-loop-system-editorial-reading-guide",
-          "type": "callout",
-          "origin": "editorial_explanation",
-          "source": {
-            "chapter": 15,
-            "section": null,
-            "pages": "307"
-          },
-          "title": "编者阅读提示",
-          "text": "阅读 本章导入「观察、行动与反馈构成的闭环」 时，先按“输入—状态—控制流—输出”还原原书描述，再追踪每个组件由谁执行、数据写到哪里、失败会怎样向下游传播。这样可以避免只记住组件名称，却无法解释完整运行路径。"
-        },
-        {
-          "id": "s-15-closed-loop-system-source-translation",
-          "type": "paragraph",
+          "id": "s-15-architecture-stack-source-figure",
+          "type": "figure",
           "origin": "source_translation",
-          "source": {
-            "chapter": 15,
-            "pages": "307"
-          },
-          "text": "• RAG在每一推理步骤之前向Agent提供相关知识，同时提供内存 提供跨步骤和届会的连续性。 • 管弦乐协调一切:决定何时回收，何时回收 循环工程将电源的再试和验证循环作为推论时间优化，确保了趋同和成本控制。 • MCP提供标准化接口， Agent通过该接口访问所有外部工具， 和A2A为Agent通信提供等效接口。 • 设计模式界定高级别战略(重新制定、计划和执行、反思)，同时 框架提供了这些模式的具体实施。 · 用户界面层通过将Agent与人连接起来以进行监督，从而关闭循环， 纠正，以及合作解决问题。系统角度:AgentAI不仅仅是促进， 需要仔细设计环境管理、错误处理、安全护栏，下图显示了这些组件在建筑上如何组合。图15.1: Agentic AI 架构堆栈。 Agent核心执行一个感知的 - 理性 - 动作循环， 由管理上下文、状态、护栏和可观察性的Harness & Orchestration 层协调。 Agent与外部系统(RAG)进行向下的互动，用于知识检索、记忆、通过MCP提供工具，以及通过A2A提供其他Agent。 用户提供目标、反馈和上面的监督。箭头表示双向数据流;蓝环箭头显示迭代Agent循环。",
-          "originalExcerpt": "• RAG feeds the agent with relevant knowledge before each reasoning step, while Memory provides continuity across steps and sessions. • The Orchestration Harness coordinates everything: it decides when to retrieve, when to call tools, when to delegate to sub-agents, and when to ask the human for guidance. Loop Engineering formalizes the harness’s retry-and-v"
+          "reviewStatus": "verified",
+          "source": { "chapter": 15, "pages": "307", "figure": "Figure 15.1" },
+          "src": "/paper/figure-15-1.webp",
+          "alt": "Agentic AI architecture stack：Agent Core 在 Harness & Orchestration 的协调下执行 perceive–reason–act loop，并连接 RAG、Memory、MCP tools、A2A agents、Environment 与 User。",
+          "caption": "Figure 15.1：Agent Core 执行 perceive–reason–act loop；Harness & Orchestration 管理 context、state、guardrail 与 observability。Agent 向下连接 RAG、Memory、经 MCP 接入的 Tools、经 A2A 协作的其他 Agents，并处于 Environment 中；User 从上方提供目标、反馈与监督。箭头表示双向数据流，蓝色环形箭头表示迭代的 agentic cycle。",
+          "adapted": false
         }
       ]
     }
   ],
   "glossary": [
     {
-      "term": "Agent",
-      "zh": "智能体",
-      "meaning": "由模型、状态、工具和运行循环共同构成的目标导向系统。"
+      "term": "Agentic AI system",
+      "zh": "智能体式 AI 系统",
+      "meaning": "让 LLM 在观察、推理、行动与反馈循环中持续工作，直到达成目标或请求人类输入的系统。"
     },
     {
-      "term": "Agentic AI",
-      "zh": "智能体式 AI",
-      "meaning": "能够观察环境、采取行动、检查结果并持续迭代的 AI 系统。"
+      "term": "Agent Harness",
+      "zh": "Agent 运行时框架",
+      "meaning": "管理上下文、状态、工具执行、错误恢复、终止条件与可观测性的运行时层。"
     },
     {
-      "term": "RAG",
-      "zh": "RAG",
-      "meaning": "在生成前检索外部证据，并把相关上下文交给模型。"
+      "term": "Grounding",
+      "zh": "基于外部证据落地",
+      "meaning": "让模型回答建立在可更新、可追溯的外部知识与环境 observation 上。"
     },
     {
       "term": "MCP",
-      "zh": "MCP",
-      "meaning": "连接 AI application 与外部 tools、resources、prompts 的标准协议。"
+      "zh": "Model Context Protocol",
+      "meaning": "标准化 Agent 发现与调用外部 tools、resources 等能力的协议。"
     },
     {
       "term": "A2A",
-      "zh": "Agent 间协议",
-      "meaning": "用于异构 Agent 发现能力、委派任务和交换 artifact 的协议。"
-    },
-    {
-      "term": "context window",
-      "zh": "context window",
-      "meaning": "单次模型调用可直接读取的 token 范围。"
-    },
-    {
-      "term": "Transformer",
-      "zh": "Transformer",
-      "meaning": "以 attention 为核心的序列建模架构。"
+      "zh": "Agent-to-Agent Communication",
+      "meaning": "支持异构 Agent 发现、任务委派、进度传输与结果聚合的通信协议。"
     }
   ],
   "summary": [
-    "前面的部分为我们配备了算法工具包——如何与法学硕士进行训练、校对和讲解。我们涉及Transformer结构和GPU系统(第一部分)、使模型与人类意图相一致的强化学习方法(第二部分)、从RL培训中产生的推理能力(第三部分)和评估方法(第四部分)。这一部分转而谈到现代AI工程的核心问题:我们如何将这些模型作为自主的Agent，在开放的环境中感知，计划，行动，学习?AgentAI系统是LLM在环形运行的系统:它接收环境(用户消息，工具输出，传感器数据)的观测，下一步要做什么的理由，采取行动(tool calling，代码执行， API请求)，并延展到目标实现或明确要求人类输入为止。这与“单回合聊天员”模式形成一个响应和等待形成对比。 从聊天员到Agent的转变带来了几个基本挑战，而单一的模型调用无法解决: • 持久性:Agent必须记住自己做了什么、什么失败了、什么背景了 已确立的轮廓、会话、日记。 • 基础:Agent必须获取没有的最新、特定领域知识 在其培训数据中。 · 行动:Agent必须与外部系统——数据库、API、文件系统、 浏览器——通过定义明确的界面。 • 协调:复杂的任务往往超过单一Agent所能处理的范围;多种专门性 Agent必须合作、授权和谈判。 • 安全:自主行动需要护栏、人的监督以及优雅的退化 当Agent不确定时。为了应对这些挑战，生产Agent系统被构建为分层架构。每层解决一个具体问题，后面的章节覆盖从下到上的全部堆栈: • 第16章:RAG(检索-增强的一代)——知识层。 通过在查询时间检索相关文档，使Agent机能够访问动态外部知识。这解决了地基问题:Agent可以回答关于专有数据，最近的事件，或者模型在训练期间从未见过的域特定内容的问题。我们覆盖嵌入模型，矢量数据库，块化策略，混合检索，以及高级模式，如AgentRAG，在Agent决定何时和什么检索的地方。 • 第17章:记忆——持久性层。记忆使Agent能够回顾信息。 包括各种相互作用——从一项单一任务中的短期工作记忆，到持续数月的长期零星记忆。我们涵盖内存架构(缓冲，汇总，向量索引，知识图)，内存整合，以及如何设计能不淹没context window而缩放的内存系统。",
-    "• 第18章:调和管弦乐——运行时层。 Agent的“操作系统”:它管理Agent环路、context window预算、工具发送、错误恢复、状态持续和可观察性。我们涵盖上下文管理战略(摘要、滑动窗口、等级)、执行控制(顺序、平行、分支)、护栏和人行走模式。 • 第19章:循环工程——推断时的RL层。 Agent机的运行时间循环作为优化过程:生成-验证-重试周期，这些周期在结构上相当于政策优化，无需更新权重。我们涵盖五个结构原始(生成者，验证者，终结者，国家管理者，扶梯)，核查等级，适应性预算分配，以及现代循环是如何从早期的AutoGPTtyle系统演变成有纪律的趋同过程的。 • 第20章:设计模式——建筑层。 Agent:ReAct(正因+行为互离)，计划时执行，反射循环，工具增强生成，以及多步工作流程。我们分析每种模式何时适用，它们的失败模式，以及如何将它们结合起来，以完成复杂的现实世界任务。 • 第21章:环境和基准——评估层。 来评估Agent行为我们涉及网络导航基准、编码环境、工具使用评估套件、评估多步骤自主系统的独特挑战(部分信用、轨迹质量、安全违规)。 • 第22章:MCP(模式背景协议)——工具集成标准。 使Agent如何发现和援引工具——类似USB的硬件。我们涵盖协议规格，服务器/客户端架构，资源管理，以及MCP如何消除Agent和工具之间的N×M整合问题。 • 第23章:Agent技能——能力层。 基本工具使用以外的专门能力，包括技能库、技能选择和组成任务解决。 • 第24章:A2A(Agent对Agent的通信)——Agent间协议。 A2A为发现Agent、任务授权、进展流和结果汇总提供了标准协议，使(来自不同供应商、框架或组织的)各种Agent能够进行合作。 • 第25章:多Agent系统——协调层。多Agent结构 合作:分级授权、对等谈判、辩论和共识、群集智能和突发行为。我们涵盖何时使用单一Agent对多Agent的设计以及如何调试协调失败。 • 第26章:框架——执行层:执行工具箱的生产 上述概念: LangGraph(基于图表的清晰数字)， CrewAI(基于作用的多剂)， OpenAI Agents SDK， AutoGen 等。 我们比较了它们的权衡、架构决定和适合不同使用案例的情况。 • 第27章:Agent用户界面——互动层。用户如何与用户互动和监督 Agent:流线接口，渐进披露，审批工作流程，状态仪表板，以及建立自主系统适当信任的UX模式。这些层不是孤立运作，而是形成一个紧密的集成系统，每个部分依赖并加强其他部分: • Agent核心(具有第二至第三部分推理能力的LLM)位于中心， 执行感知 - 理性 - 动作循环。",
-    "• RAG在每一推理步骤之前向Agent提供相关知识，同时提供内存 提供跨步骤和届会的连续性。 • 管弦乐协调一切:决定何时回收，何时回收 循环工程将电源的再试和验证循环作为推论时间优化，确保了趋同和成本控制。 • MCP提供标准化接口， Agent通过该接口访问所有外部工具， 和A2A为Agent通信提供等效接口。 • 设计模式界定高级别战略(重新制定、计划和执行、反思)，同时 框架提供了这些模式的具体实施。 · 用户界面层通过将Agent与人连接起来以进行监督，从而关闭循环， 纠正，以及合作解决问题。系统角度:AgentAI不仅仅是促进， 需要仔细设计环境管理、错误处理、安全护栏，下图显示了这些组件在建筑上如何组合。图15.1: Agentic AI 架构堆栈。 Agent核心执行一个感知的 - 理性 - 动作循环， 由管理上下文、状态、护栏和可观察性的Harness & Orchestration 层协调。 Agent与外部系统(RAG)进行向下的互动，用于知识检索、记忆、通过MCP提供工具，以及通过A2A提供其他Agent。 用户提供目标、反馈和上面的监督。箭头表示双向数据流;蓝环箭头显示迭代Agent循环。"
+    "Agentic AI 的分界线是闭环：系统不仅生成文本，还会读取环境 observation、执行 action、检查结果并继续迭代。",
+    "从 chatbot 走向 Agent 会引入 Persistence、Grounding、Action、Coordination 与 Safety 五类系统问题。",
+    "RAG、Memory、Harness、Loop Engineering、MCP、A2A、Multi-Agent、Framework 与 UI 分别承担不同责任，但必须通过统一的数据流和控制流协同。",
+    "可靠的 Agentic system 不是“LLM 加一个 prompt”，而是可观察、可恢复、可约束并有人类监督的完整系统。"
   ],
   "metrics": {
-    "chineseCharacters": 4418,
+    "chineseCharacters": 0,
     "sourceCoverage": 100,
-    "sectionCount": 3,
-    "blockCount": 6
+    "sectionCount": 10,
+    "blockCount": 14
   }
 }

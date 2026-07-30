@@ -10,11 +10,20 @@ for (let chapter = 1; chapter <= 30; chapter += 1) {
   const content = JSON.parse(await readFile(path, "utf8"));
   for (const section of content.sections) {
     const searchable = section.blocks
+      .filter((block) => {
+        if (block.id.endsWith("-editorial-reading-guide")) return false;
+        if (
+          ["source_translation", "source_definition"].includes(block.origin)
+        ) {
+          return block.reviewStatus === "verified";
+        }
+        return block.reviewStatus !== "machine_draft";
+      })
       .flatMap((block) => {
         if (block.type === "paragraph") return [block.text, block.originalExcerpt];
         if (block.type === "list") return block.items;
         if (block.type === "formula") return [block.expression, block.reading];
-        if (block.type === "code") return [block.explanation];
+        if (block.type === "code") return [block.code, block.explanation];
         if (block.type === "figure") return [block.caption, block.alt];
         if (block.type === "example") {
           return [block.scenario, ...block.steps, block.result, block.limitation];

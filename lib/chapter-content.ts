@@ -40,6 +40,47 @@ const importedChapters = [
 ] as unknown as ChapterContent[];
 
 const curatedBlocks: Record<string, ReadingBlock[]> = {
+  "16:s-16-5-3": [
+    {
+      id: "s-16-5-3-verified-translation",
+      type: "paragraph",
+      origin: "source_translation",
+      reviewStatus: "verified",
+      source: {
+        chapter: 16,
+        section: "16.5.3",
+        pages: "317",
+      },
+      text:
+        "初次检索返回的 chunk 往往会在真正相关的段落周围夹带无关句子。Contextual compression 使用 LLM，只抽取其中与当前查询相关的部分，从而减少送入生成模型的无效 context。",
+      originalExcerpt:
+        "Retrieved chunks often contain irrelevant sentences surrounding the relevant passage.",
+    },
+    {
+      id: "s-16-5-3-verified-code",
+      type: "code",
+      origin: "source_translation",
+      reviewStatus: "verified",
+      source: {
+        chapter: 16,
+        section: "16.5.3",
+        pages: "317",
+      },
+      title: "Listing 16.7 · 基于 LLM 的 Contextual Compression",
+      language: "python",
+      code:
+        "from langchain.retrievers import ContextualCompressionRetriever\n" +
+        "from langchain.retrievers.document_compressors import LLMChainExtractor\n\n" +
+        "compressor = LLMChainExtractor.from_llm(llm)\n" +
+        "compression_retriever = ContextualCompressionRetriever(\n" +
+        "    base_compressor=compressor,\n" +
+        "    base_retriever=vectorstore.as_retriever()\n" +
+        ")\n" +
+        "compressed_docs = compression_retriever.get_relevant_documents(query)",
+      explanation:
+        "代码先用 LLMChainExtractor 构造 compressor，再把它与原有 retriever 组合成 ContextualCompressionRetriever。检索候选仍由 base retriever 提供；LLM compressor 负责从候选内容中保留与 query 相关的片段。",
+    },
+  ],
   "16:s-16-3-6": [
     {
       id: "s-16-3-6-retrieval-table",
@@ -278,85 +319,88 @@ const curatedBlocks: Record<string, ReadingBlock[]> = {
 
 function withCuratedBlocks(chapter: ChapterContent): ChapterContent {
   const guide = chapterReadings.find((item) => item.chapter === chapter.chapter);
-  const guideParagraphs = (paragraphs: string[]) =>
-    chapter.chapter === 15 ? paragraphs.slice(0, 1) : paragraphs;
-  const guideTargets = guide
-    ? guide.sections.map((section, index) => {
-        const targetIndex =
-          guide.sections.length === 1
-            ? 0
-            : Math.round(
-                (index / (guide.sections.length - 1)) *
-                  Math.max(0, chapter.sections.length - 1),
-              );
-        return {
-          targetId: chapter.sections[targetIndex]?.id,
-          section,
-          index,
-        };
-      })
-    : [];
-  const editorialCharacterCount =
-    guide?.sections.reduce(
-      (total, section) =>
-        total +
-        guideParagraphs(section.paragraphs).reduce(
-          (paragraphTotal, paragraph) =>
-            paragraphTotal +
-            (paragraph.match(/[\u3400-\u9fff]/g)?.length ?? 0),
-          0,
-        ),
+  const isSourceBacked = (block: ReadingBlock) =>
+    ["source_translation", "source_definition"].includes(block.origin);
+  const isPublishable = (block: ReadingBlock) => {
+    if (block.id.endsWith("-editorial-reading-guide")) return false;
+    if (isSourceBacked(block)) return block.reviewStatus === "verified";
+    return block.reviewStatus !== "machine_draft";
+  };
+  const countChinese = (block: ReadingBlock) => {
+    const values =
+      block.type === "paragraph"
+        ? [block.title, block.text]
+        : block.type === "list"
+          ? [block.title, ...block.items]
+          : block.type === "formula"
+            ? [block.title, block.reading]
+            : block.type === "code"
+              ? [block.title, block.explanation]
+              : block.type === "figure"
+                ? [block.title, block.caption]
+                : block.type === "table"
+                  ? [
+                      block.title,
+                      block.caption,
+                      ...block.columns,
+                      ...block.rows.flat(),
+                    ]
+                  : block.type === "example"
+                    ? [
+                        block.title,
+                        block.scenario,
+                        ...block.steps,
+                        block.result,
+                        block.limitation,
+                      ]
+                    : [block.title, block.text];
+    return values.reduce(
+      (total, value) =>
+        total + (value?.match(/[\u3400-\u9fff]/g)?.length ?? 0),
       0,
-    ) ?? 0;
-  const editorialBlockCount =
-    guide?.sections.reduce(
-      (total, section) => total + guideParagraphs(section.paragraphs).length,
-      0,
-    ) ?? 0;
+    );
+  };
+  const sections = chapter.sections.map((section) => {
+    const additions = curatedBlocks[`${chapter.chapter}:${section.id}`] ?? [];
+    return {
+      ...section,
+      blocks: [...additions, ...section.blocks].filter(isPublishable),
+    };
+  });
+  const verifiedSourceBlocks = sections.flatMap((section) =>
+    section.blocks.filter(
+      (block) => isSourceBacked(block) && block.reviewStatus === "verified",
+    ),
+  );
+  const verifiedSectionCount = sections.filter((section) =>
+    section.blocks.some(
+      (block) => isSourceBacked(block) && block.reviewStatus === "verified",
+    ),
+  ).length;
+  const visibleBlockCount = sections.reduce(
+    (total, section) => total + section.blocks.length,
+    0,
+  );
   return {
     ...chapter,
     zhTitle: guide?.zhTitle ?? chapter.zhTitle,
-    overview: guide?.overview ?? chapter.overview,
-    sections: chapter.sections.map((section) => {
-      const additions = curatedBlocks[`${chapter.chapter}:${section.id}`] ?? [];
-      const editorial = guideTargets
-        .filter((item) => item.targetId === section.id)
-        .flatMap(({ section: guideSection, index }) =>
-          guideParagraphs(guideSection.paragraphs).map(
-            (paragraph, paragraphIndex): ReadingBlock => ({
-              id: `${section.id}-editorial-${index + 1}-${paragraphIndex + 1}`,
-              type: "paragraph",
-              origin: "editorial_explanation",
-              source: {
-                chapter: chapter.chapter,
-                section: section.number,
-                pages: section.pages,
-              },
-              title:
-                paragraphIndex === 0
-                  ? `${guideSection.title} · 编者解释`
-                  : undefined,
-              text: paragraph,
-            }),
-          ),
-        );
-      return additions.length || editorial.length
-        ? {
-            ...section,
-            blocks: [...additions, ...editorial, ...section.blocks],
-          }
-        : section;
-    }),
+    overview:
+      chapter.chapter === 15
+        ? chapter.overview
+        : (guide?.overview ?? chapter.overview),
+    status: chapter.chapter === 15 ? "complete" : "in_progress",
+    sections,
     metrics: {
       ...chapter.metrics,
-      chineseCharacters:
-        chapter.metrics.chineseCharacters + editorialCharacterCount,
-      blockCount:
-        chapter.metrics.blockCount +
-        editorialBlockCount +
-        Object.entries(curatedBlocks)
-          .filter(([key]) => key.startsWith(`${chapter.chapter}:`))
-          .reduce((total, [, blocks]) => total + blocks.length, 0),
+      chineseCharacters: verifiedSourceBlocks.reduce(
+        (total, block) => total + countChinese(block),
+        0,
+      ),
+      sourceCoverage:
+        sections.length === 0
+          ? 0
+          : Math.round((verifiedSectionCount / sections.length) * 100),
+      blockCount: visibleBlockCount,
     },
   };
 }

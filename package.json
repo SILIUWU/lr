@@ -13,6 +13,8 @@
     "test": "npm run build && node --experimental-strip-types --test tests/rendered-html.test.mjs",
     "content:index": "node scripts/build_search_index.mjs",
     "content:validate": "node scripts/validate_content.mjs",
+    "content:audit": "node scripts/audit_translation_quality.mjs",
+    "content:structure": "python3 scripts/build_source_structure.py",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next"
   },

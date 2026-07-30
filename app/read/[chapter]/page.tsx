@@ -23,7 +23,7 @@ export async function generateMetadata({
   if (!chapter) return {};
   return {
     title: `Ch.${chapter.chapter} ${chapter.zhTitle}`,
-    description: `${chapter.title} 的站内逐节中文译读，映射 ${chapter.metrics.sectionCount} 个原书小节，并保留 PDF 页码、英文术语、公式、代码与解释边界。`,
+    description: `${chapter.title} 的中文学习页；当前发布 ${chapter.metrics.blockCount} 个已核验区块，并保留 PDF 页码、英文术语与内容边界。`,
   };
 }
 

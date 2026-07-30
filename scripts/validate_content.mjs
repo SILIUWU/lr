@@ -20,82 +20,110 @@ assert.deepEqual(
   Array.from({ length: 30 }, (_, index) => index + 1),
 );
 
+const extractionArtifactPattern =
+  /QQ|XX|×{3,}||(?:otherwise\s*){4,}|([\u3400-\u9fff])\1{3,}|\u0001|(?:\b[A-Za-z]\s+){8,}[A-Za-z]\b|i i i i|o o o o/iu;
+const sourceOrigins = new Set(["source_translation", "source_definition"]);
 const sectionIds = new Set();
 const blockIds = new Set();
-let sectionCount = 0;
-let blockCount = 0;
-let chineseCharacters = 0;
-const extractionArtifactPattern =
-  /QQ|XX|×{3,}||(?:otherwise\s*){4,}|([\u3400-\u9fff])\1{3,}|\u0001/u;
+let verifiedBlocks = 0;
+let verifiedSections = 0;
+let verifiedChineseCharacters = 0;
+
+function blockTextValues(block) {
+  return [
+    block.title,
+    block.text,
+    block.originalExcerpt,
+    block.reading,
+    block.explanation,
+    block.caption,
+    block.alt,
+    block.scenario,
+    block.result,
+    block.limitation,
+    ...(block.items ?? []),
+    ...(block.steps ?? []),
+  ].filter((value) => typeof value === "string");
+}
 
 for (const chapter of chapters) {
   assert.ok(chapter.title && chapter.zhTitle && chapter.pages);
-  assert.equal(chapter.status, "in_progress");
-  chineseCharacters += chapter.metrics.chineseCharacters;
+  assert.ok(
+    ["guide", "in_progress", "complete"].includes(chapter.status),
+    `invalid status on Ch.${chapter.chapter}`,
+  );
+
+  let chapterVerifiedSections = 0;
   for (const section of chapter.sections) {
-    sectionCount += 1;
     const sectionKey = `${chapter.chapter}:${section.id}`;
     assert.ok(!sectionIds.has(sectionKey), `duplicate section ${sectionKey}`);
     sectionIds.add(sectionKey);
     assert.ok(section.pages && section.blocks.length > 0, sectionKey);
-    assert.ok(
-      section.blocks.some((block) =>
-        ["source_translation", "source_definition"].includes(block.origin),
-      ),
-      `missing source-backed block on ${sectionKey}`,
+
+    const sourceBlocks = section.blocks.filter((block) =>
+      sourceOrigins.has(block.origin),
     );
+    const sectionIsVerified = sourceBlocks.some(
+      (block) => block.reviewStatus === "verified",
+    );
+    if (sectionIsVerified) {
+      chapterVerifiedSections += 1;
+      verifiedSections += 1;
+    }
+
+    if (chapter.status === "complete") {
+      assert.ok(
+        sectionIsVerified,
+        `complete chapter contains unverified section ${sectionKey}`,
+      );
+    }
+
     for (const block of section.blocks) {
-      blockCount += 1;
       const blockKey = `${chapter.chapter}:${block.id}`;
       assert.ok(!blockIds.has(blockKey), `duplicate block ${blockKey}`);
       blockIds.add(blockKey);
       assert.equal(block.source.chapter, chapter.chapter, blockKey);
       assert.ok(block.source.pages, `missing source page on ${blockKey}`);
-      for (const [field, value] of Object.entries({
-        title: block.title,
-        text: block.text,
-        alt: block.alt,
-        caption: block.caption,
-        reading: block.reading,
-      })) {
-        if (typeof value === "string") {
-          assert.doesNotMatch(
-            value,
-            extractionArtifactPattern,
-            `${blockKey}.${field} contains extraction artifacts`,
-          );
-        }
+
+      if (sourceOrigins.has(block.origin)) {
+        assert.ok(
+          ["verified", undefined].includes(block.reviewStatus),
+          `invalid review status on ${blockKey}`,
+        );
+      }
+      if (block.reviewStatus !== "verified") continue;
+
+      verifiedBlocks += 1;
+      for (const value of blockTextValues(block)) {
+        assert.doesNotMatch(
+          value,
+          extractionArtifactPattern,
+          `${blockKey} contains extraction artifacts`,
+        );
+        verifiedChineseCharacters +=
+          value.match(/[\u3400-\u9fff]/g)?.length ?? 0;
       }
     }
   }
+
+  if (chapter.status === "complete") {
+    assert.equal(
+      chapterVerifiedSections,
+      chapter.sections.length,
+      `Ch.${chapter.chapter} cannot be complete`,
+    );
+  }
 }
 
-assert.ok(sectionCount >= 900, `only ${sectionCount} source sections`);
-assert.ok(blockCount >= 8_000, `only ${blockCount} reading blocks`);
+assert.equal(chapters[14].status, "complete");
+assert.equal(chapters[14].sections.length, 10);
+assert.ok(verifiedBlocks >= 11);
+
+const chapter16 = chapters[15];
 assert.ok(
-  chineseCharacters >= 300_000,
-  `only ${chineseCharacters} Chinese source-rendition characters`,
+  chapter16.sections.some((section) => section.number === "16.5.3"),
+  "missing Ch.16 §16.5.3",
 );
-assert.equal(chapters[14].sections.length, 3);
-for (const chapter of chapters.slice(15, 27)) {
-  assert.ok(
-    chapter.sections.length >= 14,
-    `Ch.${chapter.chapter} has too few mapped sections`,
-  );
-}
-
-for (const [chapterNumber, sectionNumber] of [
-  [16, "16.7.4"],
-  [18, "18.5.1"],
-  [22, "22.2.3"],
-  [27, "27.3.6"],
-]) {
-  const chapter = chapters[chapterNumber - 1];
-  assert.ok(
-    chapter.sections.some((section) => section.number === sectionNumber),
-    `missing Ch.${chapterNumber} §${sectionNumber}`,
-  );
-}
 
 const keySources = await Promise.all(
   [
@@ -103,15 +131,31 @@ const keySources = await Promise.all(
     "app/layout.tsx",
     "components/home-page.tsx",
     "components/lesson-view.tsx",
+    "components/chapter-reader.tsx",
+    "lib/chapter-content.ts",
   ].map((path) => readFile(resolve(path), "utf8")),
 );
 const combined = keySources.join("\n");
-assert.doesNotMatch(combined, /Guo et al|本站阅读到这里已经完整|全书精读完成/);
+assert.doesNotMatch(
+  combined,
+  /Guo et al|本站阅读到这里已经完整|全书精读完成|结构完整上线/,
+);
 assert.match(combined, /Haggai Roitman/);
+assert.match(combined, /reviewStatus === "verified"/);
+assert.match(combined, /ContextualCompressionRetriever/);
 
 console.log(
   JSON.stringify(
-    { chapters: 30, sections: sectionCount, blocks: blockCount, chineseCharacters },
+    {
+      chapters: 30,
+      publishedCompleteChapters: chapters.filter(
+        (chapter) => chapter.status === "complete",
+      ).length,
+      verifiedSections,
+      verifiedBlocks,
+      verifiedChineseCharacters,
+      integrityGate: "passed",
+    },
     null,
     2,
   ),

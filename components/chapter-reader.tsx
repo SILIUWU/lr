@@ -31,6 +31,10 @@ function SourceLine({ block }: { block: ReadingBlock }) {
       <span className={`origin-label origin-${block.origin}`}>
         {block.type === "failure" ? "失败模式" : originLabels[block.origin]}
       </span>
+      {block.reviewStatus === "verified" &&
+        ["source_translation", "source_definition"].includes(block.origin) && (
+          <span className="review-verified">已对照原文核验</span>
+        )}
       <span>Ch.{source.chapter}</span>
       {source.section && <span>§{source.section}</span>}
       {source.equation && <span>Eq.{source.equation}</span>}
@@ -255,11 +259,11 @@ export function ChapterReader({ chapter }: { chapter: ChapterContent }) {
           <dl>
             <div>
               <dt>{chapter.metrics.sectionCount}</dt>
-              <dd>个原书小节</dd>
+              <dd>个结构条目</dd>
             </div>
             <div>
               <dt>{chapter.metrics.blockCount}</dt>
-              <dd>个阅读区块</dd>
+              <dd>个已发布区块</dd>
             </div>
             <div>
               <dt>
@@ -267,17 +271,18 @@ export function ChapterReader({ chapter }: { chapter: ChapterContent }) {
                   chapter.metrics.chineseCharacters,
                 )}
               </dt>
-              <dd>中文字符</dd>
+              <dd>已核验中文字符</dd>
             </div>
             <div>
               <dt>{chapter.metrics.sourceCoverage}%</dt>
-              <dd>正文转写覆盖</dd>
+              <dd>小节核验覆盖</dd>
             </div>
           </dl>
           {chapter.status === "in_progress" && (
             <aside className="reader-disclosure">
-              本章已按原书 section/subsection 建立站内正文，当前处于逐句校订阶段。
-              页面保留具体页码和关键英文摘录；校订完成前不会标记为“精读完成”。
+              诚信说明：旧版未经校订的机器翻译已下线。本章目录仍在依据
+              arXiv LaTeX 原文逐节重建；只有显示“已对照原文核验”的区块才属于
+              可读译文，其他小节会明确标记为制作中。
             </aside>
           )}
         </div>
@@ -289,7 +294,7 @@ export function ChapterReader({ chapter }: { chapter: ChapterContent }) {
             <span className="eyebrow">ON THIS PAGE</span>
             <strong>本章目录</strong>
             <small>
-              本章约占全书最低验收体量的 {Math.max(1, progressPercent)}%
+              本章已核验正文约占全书最低验收体量的 {progressPercent}%
             </small>
           </div>
           <nav aria-label={`第 ${chapter.chapter} 章目录`}>
@@ -320,7 +325,7 @@ export function ChapterReader({ chapter }: { chapter: ChapterContent }) {
               <span className="origin-label origin-source_translation">
                 原文译述
               </span>
-              <p>忠实传达原书内容，保留成熟 English terms。</p>
+              <p>仅发布已对照 arXiv LaTeX 与 PDF 页面的译述。</p>
             </div>
             <div>
               <span className="origin-label origin-editorial_explanation">
@@ -344,9 +349,26 @@ export function ChapterReader({ chapter }: { chapter: ChapterContent }) {
             >
               <SectionHeading section={section} />
               <div className="reader-block-list">
-                {section.blocks.map((block) => (
-                  <BlockRenderer block={block} key={block.id} />
-                ))}
+                {section.blocks.length ? (
+                  section.blocks.map((block) => (
+                    <BlockRenderer block={block} key={block.id} />
+                  ))
+                ) : (
+                  <aside className="reader-review-pending">
+                    <strong>本节译文正在重新校订</strong>
+                    <p>
+                      未经核验的机器草稿已撤下，暂不以“原文译述”名义展示。
+                      本节会从 LaTeX 源重新拆分正文、公式、代码和图表后发布。
+                    </p>
+                    <a
+                      href={sourceUrl(section.pages)}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      临时查看 PDF p. {section.pages} 来源 ↗
+                    </a>
+                  </aside>
+                )}
               </div>
             </section>
           ))}

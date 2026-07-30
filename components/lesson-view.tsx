@@ -233,11 +233,11 @@ export function LessonView({ lesson }: { lesson: Lesson }) {
         <header>
           <div>
             <span className="eyebrow">FULL CHAPTER READING</span>
-            <h2>先进入逐节正文，再回来做实验与测验</h2>
+            <h2>先查看章节译文状态，再回来做实验与测验</h2>
           </div>
           <p>
-            章节正文已从学习单元中拆出，按原书 section/subsection 展开。
-            每章显示真实区块数、页码和校订状态，不再用三段摘要代替精读。
+            章节阅读页已从学习单元中拆出，并公开显示结构条目、页码与校订状态。
+            只有经过原文核验的区块才作为译文发布；未完成小节会明确标记制作中。
           </p>
         </header>
         <div>

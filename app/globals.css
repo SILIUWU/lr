@@ -3422,6 +3422,35 @@ input[type="range"] {
   color: var(--navy-light);
 }
 
+.review-verified {
+  color: var(--green);
+  font-weight: 760;
+}
+
+.reader-review-pending {
+  padding: 1.2rem 1.35rem;
+  border: 1px dashed color-mix(in srgb, var(--orange) 55%, var(--line));
+  background: color-mix(in srgb, var(--orange) 5%, transparent);
+  color: var(--ink-soft);
+}
+
+.reader-review-pending strong {
+  color: var(--navy);
+  font-family: Georgia, "Noto Serif SC", serif;
+  font-size: 1.05rem;
+}
+
+.reader-review-pending p {
+  margin: 0.55rem 0 0.75rem;
+  font-size: 0.78rem;
+  line-height: 1.75;
+}
+
+.reader-review-pending a {
+  color: var(--navy-light);
+  font-size: 0.68rem;
+}
+
 .reader-block > h4 {
   margin: 0.4rem 0 0.85rem;
   color: var(--navy);

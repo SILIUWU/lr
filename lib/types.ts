@@ -81,6 +81,8 @@ export type ContentOrigin =
   | "source_unspecified"
   | "failure_analysis";
 
+export type ContentReviewStatus = "machine_draft" | "verified";
+
 export interface ReadingSourceRef {
   chapter: number;
   section?: string;
@@ -93,6 +95,12 @@ export interface ReadingSourceRef {
 interface BaseReadingBlock {
   id: string;
   origin: ContentOrigin;
+  /**
+   * Source-backed copy is public only after it has been checked against the
+   * arXiv LaTeX/PDF. Legacy generated blocks omit this field and are treated
+   * as machine drafts.
+   */
+  reviewStatus?: ContentReviewStatus;
   source: ReadingSourceRef;
   title?: string;
 }

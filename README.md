@@ -1,8 +1,12 @@
 # Agentic AI 全栈指南
 
 基于 Haggai Roitman 的 [The Hitchhiker’s Guide to Agentic AI](https://arxiv.org/abs/2606.24937)
-制作的中英双语分层精读站。课程将 636 页、30 章内容重组为 12 个学习单元，并提供六个
+制作的中英双语学习站。课程将 636 页、30 章内容重组为 12 个学习单元，并提供六个
 交互实验、60 道原创学习题、简化 SM-2 间隔复习、批注、静态搜索和本地进度管理。
+
+> 内容状态：旧版从 PDF 文本层生成的机器译稿未达到学习材料标准，现已从公开阅读器与
+> 搜索索引中隔离。正文正在以 arXiv LaTeX 为源逐章重新翻译、校订；目前仅 Ch.15
+> 通过整章核验。未完成章节会明确显示“制作中”，不计入已核验字符数。
 
 ## 本地运行
 
@@ -18,6 +22,8 @@ npm run dev
 ```bash
 npm run typecheck
 npm run lint
+npm run content:validate
+npm run content:audit
 npm test
 ```
 
