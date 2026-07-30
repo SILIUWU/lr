@@ -75,7 +75,7 @@ export function HomePage() {
       <section className="metric-strip" aria-label="课程规模">
         {[
           ["12", "学习单元"],
-          ["30", "原文章节映射"],
+          ["30", "章站内精读"],
           ["60", "原创学习题"],
           [String(labCount), "交互实验"],
           [`${Math.round(totalMinutes / 60)}h`, "预计精读时间"],
@@ -133,8 +133,8 @@ export function HomePage() {
             <h2>六个 Part，30 章，全部有去处</h2>
           </div>
           <p>
-            核心 Ch.15–27 深讲，其余章节压缩为高密度基础路径。每个结论保留
-            chapter 与 PDF page 范围。
+            每章都有无需跳转的中文忠实译述；核心 Ch.15–27 深讲，其余章节采用
+            高密度基础路径，并保留 chapter 与 PDF page 范围。
           </p>
         </div>
         <div className="part-list">
@@ -175,8 +175,9 @@ export function HomePage() {
           <span className="evidence unknown">原文未说明</span>
         </div>
         <p>
-          这不是 636 页逐段翻译，而是面向工程学习者的结构化重写。成熟术语保留
-          English，中文负责建立直觉与逻辑；所有改编内容沿用 CC BY-SA 4.0。
+          30 章均提供站内 Guided Translation。这不是机械逐句直译，而是面向工程
+          学习者的忠实译述：成熟术语保留 English，中文负责建立直觉、论证与逻辑；
+          PDF 只用于可选核对，所有改编内容沿用 CC BY-SA 4.0。
         </p>
       </section>
     </div>

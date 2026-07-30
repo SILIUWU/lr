@@ -46,6 +46,7 @@ html {
 
 body {
   margin: 0;
+  overflow-x: clip;
   background:
     radial-gradient(circle at 82% 8%, rgba(229, 111, 51, 0.08), transparent 25rem),
     var(--paper);
@@ -920,6 +921,11 @@ button:disabled {
   font-weight: 700;
 }
 
+.lesson-source-line strong {
+  color: var(--green);
+  font-weight: 750;
+}
+
 .lesson-summary {
   max-width: 760px;
   margin: 2rem 0 0;
@@ -998,6 +1004,271 @@ button:disabled {
   border-bottom: 1px solid var(--line);
   color: var(--ink-soft);
   font-size: 0.75rem;
+}
+
+.guided-reading {
+  padding: 5rem 0;
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.guided-reading-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.72fr);
+  gap: 3rem;
+  align-items: end;
+  margin-bottom: 2rem;
+}
+
+.guided-reading-heading h2 {
+  max-width: 650px;
+  margin: 0.65rem 0 0;
+  font-family: Georgia, "Noto Serif SC", serif;
+  font-size: clamp(2.1rem, 4.2vw, 3.7rem);
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  line-height: 1.12;
+}
+
+.guided-reading-heading > p {
+  margin: 0;
+  padding-left: 1.15rem;
+  border-left: 2px solid var(--orange);
+  color: var(--ink-soft);
+  font-family: Georgia, "Noto Serif SC", serif;
+  font-size: 0.88rem;
+  line-height: 1.85;
+}
+
+.chapter-jump-list {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--paper-strong) 85%, transparent);
+}
+
+.chapter-jump-list > span {
+  color: var(--orange);
+  font-family: ui-monospace, monospace;
+  font-size: 0.62rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+}
+
+.chapter-jump-list > div {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.6rem;
+}
+
+.chapter-jump-list a {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+  padding: 0.65rem 0.75rem;
+  border-left: 2px solid var(--line-strong);
+  background: var(--paper);
+}
+
+.chapter-jump-list a:hover {
+  border-left-color: var(--orange);
+}
+
+.chapter-jump-list small {
+  color: var(--orange);
+  font-family: ui-monospace, monospace;
+  font-size: 0.55rem;
+}
+
+.chapter-jump-list strong {
+  overflow: hidden;
+  font-size: 0.7rem;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chapter-reading-list {
+  display: grid;
+  gap: 3rem;
+}
+
+.chapter-reading {
+  scroll-margin-top: 1.5rem;
+  border: 1px solid var(--line-strong);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--orange) 5%, transparent), transparent 28rem),
+    var(--paper-strong);
+  box-shadow: var(--shadow);
+}
+
+.chapter-reading-header {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 1.5rem;
+  padding: 2.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.chapter-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.chapter-marker span {
+  color: var(--orange);
+  font-family: ui-monospace, monospace;
+  font-size: 0.58rem;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+}
+
+.chapter-marker strong {
+  margin-top: 0.15rem;
+  color: var(--navy);
+  font-family: Georgia, serif;
+  font-size: 4.5rem;
+  font-weight: 400;
+  letter-spacing: -0.08em;
+  line-height: 0.95;
+}
+
+.chapter-reading-header p {
+  margin: 0;
+  color: var(--orange);
+  font-family: Georgia, serif;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.chapter-reading-header h3 {
+  margin: 0.45rem 0 1rem;
+  font-family: Georgia, "Noto Serif SC", serif;
+  font-size: clamp(1.8rem, 3.5vw, 3rem);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 1.18;
+}
+
+.chapter-reading-header > div:last-child > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 1rem;
+  color: var(--ink-soft);
+  font-size: 0.65rem;
+}
+
+.chapter-overview {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 1.5rem;
+  padding: 2rem 2.5rem;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--navy) 4%, transparent);
+}
+
+.chapter-overview span {
+  color: var(--green);
+  font-size: 0.65rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+}
+
+.chapter-overview p {
+  max-width: 680px;
+  margin: 0;
+  font-family: Georgia, "Noto Serif SC", serif;
+  font-size: 1.02rem;
+  line-height: 1.95;
+}
+
+.reading-section {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 1.5rem;
+  padding: 2.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.reading-section-index {
+  color: color-mix(in srgb, var(--navy) 25%, transparent);
+  font-family: Georgia, serif;
+  font-size: 2.4rem;
+  line-height: 1;
+}
+
+.reading-copy {
+  min-width: 0;
+}
+
+.reading-copy > small {
+  color: var(--orange);
+  font-family: ui-monospace, monospace;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.reading-copy h4 {
+  margin: 0.5rem 0 1.25rem;
+  font-family: Georgia, "Noto Serif SC", serif;
+  font-size: 1.55rem;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+
+.reading-copy > p {
+  max-width: 700px;
+  margin: 0 0 1.1rem;
+  color: color-mix(in srgb, var(--ink) 88%, var(--ink-soft));
+  font-family: Georgia, "Noto Serif SC", serif;
+  font-size: 1rem;
+  line-height: 2;
+}
+
+.reading-copy > p:last-of-type {
+  margin-bottom: 0;
+}
+
+.reading-checkpoint {
+  max-width: 700px;
+  margin-top: 1.5rem;
+  padding: 1rem 1.15rem;
+  border-left: 3px solid var(--orange);
+  background: color-mix(in srgb, var(--orange) 8%, var(--paper));
+}
+
+.reading-checkpoint span {
+  color: var(--orange);
+  font-size: 0.62rem;
+  font-weight: 750;
+}
+
+.reading-checkpoint p {
+  margin: 0.35rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.65;
+}
+
+.chapter-reading-source {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 2.5rem;
+  color: var(--ink-soft);
+  font-size: 0.66rem;
+}
+
+.chapter-reading-source a {
+  flex: none;
+  color: var(--orange);
+  font-weight: 750;
 }
 
 .content-section,
@@ -2614,6 +2885,7 @@ input[type="range"] {
   .method-note { grid-template-columns: 1fr; }
   .method-note > p { grid-column: 1; margin: 0; }
   .lesson-orientation { grid-template-columns: 1fr; }
+  .guided-reading-heading { grid-template-columns: 1fr; gap: 1.5rem; }
   .content-section-heading { grid-template-columns: 1fr; }
   .prose-list,
   .failure-grid,
@@ -2650,6 +2922,21 @@ input[type="range"] {
   .lesson-hero { padding: 3.5rem 0 2.5rem; }
   .lesson-hero h1,
   .utility-hero h1 { font-size: 2.75rem; }
+  .chapter-jump-list,
+  .chapter-reading-header,
+  .chapter-overview,
+  .reading-section {
+    grid-template-columns: 1fr;
+  }
+  .chapter-marker strong { font-size: 3.5rem; }
+  .chapter-reading-header,
+  .chapter-overview,
+  .reading-section { padding: 1.4rem; }
+  .chapter-reading-source {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 1rem 1.4rem;
+  }
   .term-grid,
   .failure-grid,
   .takeaway-card ol,

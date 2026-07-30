@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
 import { lessons, searchLessons } from "@/lib/course-data";
+import { readingsForLesson } from "@/lib/reading-content";
 import { useCourse } from "./course-provider";
 
 const mainNav = [
@@ -13,12 +14,34 @@ const mainNav = [
   { href: "/progress", label: "学习进度", icon: "◔" },
 ];
 
+const readingSearchIndex = Object.fromEntries(
+  lessons.map((lesson) => [
+    lesson.slug,
+    readingsForLesson(lesson.slug)
+      .flatMap((reading) => [
+        reading.title,
+        reading.zhTitle,
+        reading.overview,
+        ...reading.sections.flatMap((section) => [
+          section.title,
+          section.english,
+          ...section.paragraphs,
+          section.checkpoint ?? "",
+        ]),
+      ])
+      .join(" "),
+  ]),
+);
+
 export function SiteShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { state, toggleTheme } = useCourse();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const results = useMemo(() => searchLessons(query).slice(0, 6), [query]);
+  const results = useMemo(
+    () => searchLessons(query, readingSearchIndex).slice(0, 6),
+    [query],
+  );
   const closeNavigation = () => {
     setDrawerOpen(false);
     setQuery("");

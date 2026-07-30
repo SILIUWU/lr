@@ -6,7 +6,9 @@ import {
   chapterMap,
   labCount,
   lessons,
+  searchLessons,
 } from "../lib/course-data.ts";
+import { chapterReadings, readingsForLesson } from "../lib/reading-content.ts";
 import { isDue, scheduleReview } from "../lib/scheduler.ts";
 
 async function render(pathname = "/") {
@@ -52,6 +54,28 @@ test("course contract covers all chapters, lessons, quizzes and labs", () => {
   assert.ok(lessons.every((item) => item.sources.every((source) => source.pages && source.section && source.url)));
 });
 
+test("guided readings cover every source chapter inside the course", () => {
+  const sourceChapters = chapterReadings.filter((reading) => reading.chapter > 0);
+  assert.equal(sourceChapters.length, 30);
+  assert.deepEqual(
+    sourceChapters.map((reading) => reading.chapter),
+    Array.from({ length: 30 }, (_, index) => index + 1),
+  );
+  assert.ok(sourceChapters.every((reading) => reading.pages && reading.overview));
+  assert.ok(sourceChapters.every((reading) => reading.sections.length >= 3));
+  assert.ok(sourceChapters.every((reading) => reading.sections.every((section) => section.paragraphs.length > 0)));
+  assert.deepEqual(readingsForLesson("agentic-stack").map((reading) => reading.chapter), [15]);
+  assert.deepEqual(readingsForLesson("protocols").map((reading) => reading.chapter), [22, 23, 24]);
+  assert.equal(
+    searchLessons("Perceive–Reason–Act", {
+      "agentic-stack": readingsForLesson("agentic-stack")
+        .flatMap((reading) => reading.sections.map((section) => section.english))
+        .join(" "),
+    })[0]?.slug,
+    "agentic-stack",
+  );
+});
+
 test("simplified SM-2 resets weak cards and expands strong cards", () => {
   const now = Date.UTC(2026, 6, 30);
   const identity = { quizId: "q1", lessonSlug: "roadmap", topic: "test" };
@@ -80,11 +104,15 @@ test("server renders the branded course without starter remnants", async () => {
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 });
 
-test("lesson route renders source boundaries and quizzes", async () => {
+test("lesson route renders on-page translation, source boundaries and quizzes", async () => {
   const response = await render("/learn/agentic-stack");
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /Agentic AI Architecture Stack/);
+  assert.match(html, /章节精读：在本站完成正文阅读/);
+  assert.match(html, /完成本单元无需跳转 PDF/);
+  assert.match(html, /Perceive–Reason–Act/);
+  assert.match(html, /可选：核对原文 pp\.[\s\S]*305–307/);
   assert.match(html, /原文事实/);
   assert.match(html, /工程建议/);
   assert.match(html, /3 道机判 \+ 2 道开放题/);

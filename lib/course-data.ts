@@ -1078,7 +1078,10 @@ export function getAdjacentLessons(slug: string) {
   };
 }
 
-export function searchLessons(query: string): Lesson[] {
+export function searchLessons(
+  query: string,
+  extraTextBySlug: Record<string, string> = {},
+): Lesson[] {
   const needle = query.trim().toLowerCase();
   if (!needle) return [];
   return lessons.filter((item) => {
@@ -1090,6 +1093,7 @@ export function searchLessons(query: string): Lesson[] {
       ...item.terms.flatMap((term) => [term.term, term.zh, term.meaning]),
       ...item.facts,
       ...item.explanations,
+      extraTextBySlug[item.slug] ?? "",
     ]
       .join(" ")
       .toLowerCase();

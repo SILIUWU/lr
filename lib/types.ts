@@ -73,6 +73,23 @@ export interface Lesson {
   quizzes: Quiz[];
 }
 
+export interface ReadingSection {
+  title: string;
+  english: string;
+  paragraphs: string[];
+  checkpoint?: string;
+}
+
+export interface ChapterReading {
+  chapter: number;
+  title: string;
+  zhTitle: string;
+  pages: string;
+  minutes: number;
+  overview: string;
+  sections: ReadingSection[];
+}
+
 export interface CoursePart {
   id: number;
   roman: string;
